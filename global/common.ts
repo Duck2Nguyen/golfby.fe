@@ -5,3 +5,8 @@ export enum METHOD {
   DELETE = 'delete',
   PATCH = 'PATCH',
 }
+
+export enum ROLE {
+  ADMIN = 'ADMIN',
+  USER = 'USER',
+}

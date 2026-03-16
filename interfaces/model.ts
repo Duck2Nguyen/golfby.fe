@@ -19,10 +19,21 @@ export interface SessionInfo {
 export type UserInfo = Partial<{
   id: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
+  firstName: string;
+  lastName: string;
+  userRole: string;
+  role: string;
+  userStatus: string;
+  phoneNumber: string;
+  image: string | null;
+  address: string | null;
+  province: string | null;
+  commune: string | null;
+  notification: boolean;
+  receiveEmailAds: boolean;
+  hasPassword: boolean;
   isRegisteredWithGoogle: boolean;
   createdAt: string;
-  trialEndDate?: string;
-  lastLogin?: string;
+  updatedAt: string;
+  lastLogin: string;
 }>;

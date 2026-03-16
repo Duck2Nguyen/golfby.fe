@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(yarn add:*)"
+      "Bash(yarn add:*)",
+      "Bash(cd /f)",
+      "Bash(find . -maxdepth 3 -type f -name index.tsx -path *elements*)"
     ]
   }
 }
