@@ -1,0 +1,2 @@
+export const COMMON_LOADING = 'COMMON_LOADING';
+export const SESSION_INFO = 'SESSION_INFO';

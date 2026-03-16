@@ -1,0 +1,94 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './theme.css';
+
+@config "../tailwind.config.js";
+
+@theme {
+  --color-black: #000;
+  --color-white: #fff;
+  --spacing: 0.4rem;
+  --container-xs: 32rem;
+  --container-sm: 38.4rem;
+  --container-md: 44.8rem;
+  --container-lg: 51.2rem;
+  --container-xl: 57.6rem;
+  --container-2xl: 67.2rem;
+  --container-3xl: 76.8rem;
+  --container-4xl: 89.6rem;
+  --container-5xl: 102.4rem;
+  --container-7xl: 128rem;
+  --navbar-height: 8rem;
+  --text-sm: 1.4rem;
+  --text-sm--line-height: calc(1.25 / 0.875);
+  --text-lg: 1.8rem;
+  --text-lg--line-height: calc(1.75 / 1.125);
+  --text-xl: 2rem;
+  --text-xl--line-height: calc(1.75 / 1.25);
+  --text-2xl: 2.4rem;
+  --text-2xl--line-height: calc(2 / 1.5);
+  --text-3xl: 3rem;
+  --text-3xl--line-height: calc(2.25 / 1.875);
+  --text-4xl: 3.6rem;
+  --text-4xl--line-height: calc(2.5 / 2.25);
+  --text-5xl: 4.8rem;
+  --text-5xl--line-height: 1;
+  --text-6xl: 6rem;
+  --text-6xl--line-height: 1;
+  --font-weight-extralight: 200;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --tracking-tight: -0.025em;
+  --radius-sm: 0.4rem;
+  --radius-md: 0.6rem;
+  --radius-lg: 0.8rem;
+  --radius-xl: 1.2rem;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --animate-spin: spin 1s linear infinite;
+  --blur-sm: 8px;
+  --blur-md: 12px;
+  --blur-lg: 16px;
+  --blur-xl: 24px;
+  --default-transition-duration: 0.15s;
+  --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html {
+  font-size: 62.5%;
+  background-color: black;
+  height: 100dvh;
+  scroll-behavior: smooth;
+}
+
+body {
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+
+  font-size: 1.6rem; /* This scales the body text back up to effectively 16px */
+}
+
+button {
+  outline: none !important;
+}
+
+.container {
+  width: 100%;
+  @media (width >= 64rem /* 640px */) {
+    max-width: 64rem /* 640px */;
+  }
+  @media (width >= 768px /* 768px */) {
+    max-width: 768px /* 768px */;
+  }
+  @media (width >= 1024px /* 1024px */) {
+    max-width: 1024px /* 1024px */;
+  }
+  @media (width >= 1280px /* 1280px */) {
+    max-width: 1280px /* 1280px */;
+  }
+  @media (width >= 1440px /* 1440px */) {
+    max-width: 1440px /* 1440px */;
+  }
+}
