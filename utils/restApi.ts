@@ -39,6 +39,7 @@ export const fetcher = async <T = Record<string, unknown>, TBody = Record<string
     ...(method !== METHOD.GET && {
       body: body instanceof FormData ? body : JSON.stringify(body),
     }),
+    credentials: 'include',
   });
 
   if (!res.ok) {

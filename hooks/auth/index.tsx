@@ -18,18 +18,21 @@ export const useSession = () => {
     mutate(prev => ({ ...prev, loading: true }));
 
     try {
-      const userInfo = await fetcher<Record<string, unknown>>('/api/v1/auth/me', METHOD.GET, undefined);
+      const response = await fetcher<{ success: boolean; data: UserInfo }>(
+        '/api/v1/auth/me',
+        METHOD.GET,
+        undefined,
+      );
+      const userInfo = response.data as UserInfo;
 
       mutate(prev => ({
         ...prev,
         isAuthenticated: true,
         loading: false,
-        userInfo: {
-          ...(userInfo as UserInfo),
-        },
+        userInfo,
       }));
 
-      return { success: true, user: userInfo as UserInfo };
+      return { success: true, user: userInfo };
     } catch (error) {
       console.log({ error });
       mutate({ isAuthenticated: false, loading: false });

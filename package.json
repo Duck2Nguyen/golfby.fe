@@ -56,6 +56,8 @@
     "@heroui/user": "2.2.22",
     "@react-aria/ssr": "3.9.10",
     "@react-aria/visually-hidden": "3.8.28",
+    "ag-grid-community": "^35.1.0",
+    "ag-grid-react": "^35.1.0",
     "clsx": "2.1.1",
     "firebase": "^12.10.0",
     "formik": "2.4.5",
