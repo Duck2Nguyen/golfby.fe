@@ -22,9 +22,9 @@ const PasswordField = ({ name, label, placeholder = '********', required }: Pass
         return (
           <div className="flex flex-col gap-2">
             {label && (
-              <label className="text-[1.6rem] font-600 leading-[2rem] text-text-text-primary">
+              <label className="block mb-2 text-[1.4rem] font-500 text-foreground">
                 {label}
-                {required && <span className="text-subtitle-red-300"> *</span>}
+                {required && <span className="text-destructive ml-0.5">*</span>}
               </label>
             )}
             <PasswordInputField
@@ -34,9 +34,7 @@ const PasswordField = ({ name, label, placeholder = '********', required }: Pass
               placeholder={placeholder}
               hasError={hasError}
             />
-            {hasError && (
-              <p className="text-[1.4rem] font-600 leading-[2rem] text-subtitle-red-300">{meta.error}</p>
-            )}
+            {hasError && <p className="text-[1.2rem] text-destructive">{meta.error}</p>}
           </div>
         );
       }}

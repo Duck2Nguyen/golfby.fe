@@ -2,9 +2,6 @@ import { Input } from '@heroui/input';
 
 import type { FieldProps } from 'formik';
 
-import ClearIcon from '@/assets/svg/clear.svg';
-import ErrorIcon from '@/assets/svg/error.svg';
-
 interface InputFieldProps {
   icon?: React.ComponentType;
   placeholder: string;
@@ -39,37 +36,41 @@ export default function InputField({
       placeholder={placeholder}
       aria-label={placeholder}
       startContent={Icon ? <Icon /> : undefined}
-      endContent={
-        hasValue && !hasError ? (
-          <button className="flex size-8 items-center justify-center" type="button" onClick={handleClear}>
-            <ClearIcon />
-          </button>
-        ) : hasError ? (
-          <div className="flex size-8 items-center justify-center">
-            <ErrorIcon />
-          </div>
-        ) : null
-      }
+      // endContent={
+      //   hasValue && !hasError ? (
+      //     <button className="flex size-8 items-center justify-center" type="button" onClick={handleClear}>
+      //       <ClearIcon />
+      //     </button>
+      //   ) : hasError ? (
+      //     <div className="flex size-8 items-center justify-center">
+      //       <ErrorIcon />
+      //     </div>
+      //   ) : null
+      // }
       classNames={{
         base: 'w-full',
         inputWrapper: [
-          'bg-neutral-0',
-          'border-[2px]',
-          hasError ? 'border-subtitle-red-300' : 'border-neutral-30',
-          'rounded-[1.6rem]',
+          'bg-[#f8f8f8]',
+          'border',
+          hasError ? 'border-destructive' : 'border-border/80 hover:border-gray-300',
+          'rounded-xl',
           'px-4',
-          'py-3.5',
-          'h-[5.2rem]',
-          hasError ? 'shadow-[0px_2px_0px_0px_#FF4363]' : 'shadow-none',
-          'hover:bg-none',
+          'h-[4.8rem]',
+          'transition-all duration-200',
+          'group-data-[focus=true]:bg-background',
+          'group-data-[focus=true]:border-primary',
+          'group-data-[focus=true]:ring-2',
+          'group-data-[focus=true]:ring-primary/15',
+          hasError
+            ? 'group-data-[focus=true]:border-destructive group-data-[focus=true]:ring-destructive/15'
+            : 'shadow-none',
           '!overflow-hidden',
           className,
         ].join(' '),
         input: [
-          'text-[1.6rem] !font-600 text-text-text-primary',
-          'leading-[2.4rem]',
+          'text-[1.4rem] font-500 text-foreground',
           'h-full',
-          'placeholder:text-text-text-secondary',
+          'placeholder:text-muted-foreground/60',
           'placeholder:font-400',
         ].join(' '),
       }}
