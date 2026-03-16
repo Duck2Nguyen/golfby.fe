@@ -6,6 +6,10 @@ import { Form, Formik } from 'formik';
 import { Button } from '@heroui/button';
 import { Divider } from '@heroui/divider';
 import { Checkbox } from '@heroui/checkbox';
+import { addToast } from '@heroui/toast';
+import { useRouter } from 'next/navigation';
+
+import { useAuth } from '@/hooks/auth/useAuth';
 
 import { Field } from '@/elements';
 
@@ -19,8 +23,20 @@ const validationSchema = yup.object().shape({
   agree: yup.boolean().oneOf([true], 'Vui lòng đồng ý với điều khoản dịch vụ'),
 });
 
+interface RegisterValues {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  newsletter: boolean;
+  agree: boolean;
+}
+
 export default function Register() {
-  const initialValues = {
+  const router = useRouter();
+  const { createUserMutation } = useAuth();
+
+  const initialValues: RegisterValues = {
     firstName: '',
     lastName: '',
     email: '',
@@ -29,8 +45,23 @@ export default function Register() {
     agree: false,
   };
 
-  const handleSubmit = (values: any) => {
-    console.log('Submit', values);
+  const handleSubmit = async (values: RegisterValues) => {
+    try {
+      await createUserMutation.trigger({
+        first_name: values.firstName,
+        last_name: values.lastName,
+        email: values.email,
+        password: values.password,
+        password_confirmation: values.password,
+        receive_advertisement: values.newsletter,
+      });
+
+      addToast({ color: 'success', description: 'Đăng ký thành công! Vui lòng đăng nhập.' });
+      router.push('/login');
+    } catch (error: any) {
+      const errorMsg = error?.message || 'Đăng ký thất bại. Vui lòng thử lại.';
+      addToast({ color: 'danger', description: Array.isArray(errorMsg) ? errorMsg[0] : errorMsg });
+    }
   };
 
   const calculateStrength = (password: string) => {

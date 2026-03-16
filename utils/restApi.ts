@@ -48,7 +48,6 @@ export const fetcher = async <T = Record<string, unknown>, TBody = Record<string
       error.status = res.status;
 
       if (error.status === 401) {
-        window.location.href = '/login';
         removeKey('accessToken');
       }
     } catch {

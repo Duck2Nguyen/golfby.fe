@@ -1,11 +1,16 @@
 'use client';
 
+import { useState } from 'react';
+
 import * as yup from 'yup';
 import { Link } from '@heroui/link';
 import { Form, Formik } from 'formik';
 import { Button } from '@heroui/button';
+import { addToast } from '@heroui/toast';
 import { Divider } from '@heroui/divider';
 import { Checkbox } from '@heroui/checkbox';
+
+import { useSession } from '@/hooks/auth';
 
 import { Field } from '@/elements';
 
@@ -16,11 +21,27 @@ const validationSchema = yup.object().shape({
   password: yup.string().required('Vui lòng nhập mật khẩu'),
 });
 
-export default function Login() {
-  const initialValues = { email: '', password: '', remember: false };
+interface LoginValues {
+  email: string;
+  password: string;
+  remember: boolean;
+}
 
-  const handleSubmit = (values: any) => {
-    console.log('Submit', values);
+export default function Login() {
+  const { login } = useSession();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const initialValues: LoginValues = { email: '', password: '', remember: false };
+
+  const handleSubmit = async (values: LoginValues) => {
+    try {
+      setIsLoading(true);
+      await login({ email: values.email, password: values.password });
+    } catch (error: any) {
+      setIsLoading(false);
+      const errorMsg = error?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra email và mật khẩu.';
+      addToast({ color: 'danger', description: errorMsg });
+    }
   };
 
   return (
@@ -31,7 +52,7 @@ export default function Login() {
         onSubmit={handleSubmit}
         validateOnMount
       >
-        {({ isValid, values, setFieldValue }) => (
+        {({ isValid, isSubmitting, values, setFieldValue }) => (
           <Form className="space-y-5">
             <Field.Text
               name="email"
@@ -48,9 +69,11 @@ export default function Login() {
                 isSelected={values.remember}
                 onValueChange={isSelected => setFieldValue('remember', isSelected)}
                 classNames={{
-                  base: 'items-start gap-2 p-0 m-0 max-w-full',
-                  wrapper: 'mt-1 shrink-0 bg-white border-2 border-border/80 before:border-transparent group-data-[hover=true]:before:bg-transparent',
-                  label: 'text-[1.3rem] text-muted-foreground font-400 leading-snug group-data-[hover=true]:text-foreground transition-colors',
+                  base: 'items-centrer gap-2 p-0 m-0 max-w-full',
+                  wrapper:
+                    'mt-1 shrink-0 bg-white border-2 border-border/80 before:border-transparent group-data-[hover=true]:before:bg-transparent',
+                  label:
+                    'text-[1.3rem] text-muted-foreground font-400 leading-snug group-data-[hover=true]:text-foreground transition-colors',
                 }}
                 radius="md"
               >
@@ -68,7 +91,8 @@ export default function Login() {
               type="submit"
               color="primary"
               className="w-full h-12 text-[1.6rem] font-600 rounded-xl mt-6"
-              isDisabled={!isValid}
+              isDisabled={!isValid || isLoading}
+              isLoading={isLoading}
             >
               Đăng Nhập
             </Button>
