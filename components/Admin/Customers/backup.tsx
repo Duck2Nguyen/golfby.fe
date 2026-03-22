@@ -13,20 +13,18 @@ import {
   ChevronRight,
 } from 'lucide-react';
 
+import { Spinner } from '@heroui/spinner';
+
 import type { UserInfo } from '@/interfaces/model';
-import type { ColDef, ICellRendererParams } from 'ag-grid-community';
 
 import { genCsrfToken } from '@/utils/csrf';
 
 import { useAdminUsers, useCreateAdminUser, useUpdateAdminUser } from '@/hooks/admin/useAdminUsers';
 
-import DataGrid from '@/components/DataGrid';
-
 import DeleteConfirmModal from './DeleteConfirmModal';
 import UserFormModal, { type UserFormData } from './UserFormModal';
 
 const ITEMS_PER_PAGE = 8;
-type SortField = 'email' | 'name' | 'role' | 'status';
 
 const toUserFormData = (user: UserInfo): UserFormData => {
   const roleRaw = user.userRole || user.role || 'USER';
@@ -53,44 +51,13 @@ const getNameInitials = (user: UserFormData) => {
   return initials || 'U';
 };
 
-const SortableHeader = ({
-  field,
-  label,
-  onSortAction,
-  sortDir,
-  sortField,
-}: {
-  field: SortField;
-  label: string;
-  onSortAction: (field: SortField) => void;
-  sortDir: 'asc' | 'desc';
-  sortField: SortField;
-}) => {
-  const isActive = sortField === field;
-
-  return (
-    <button
-      className="group flex w-full cursor-pointer select-none items-center text-left text-[1.2rem] tracking-wider text-gray-500"
-      onClick={() => onSortAction(field)}
-      type="button"
-    >
-      {label}
-      {isActive ? (
-        <span className="ml-1 text-primary-light">{sortDir === 'asc' ? '↑' : '↓'}</span>
-      ) : (
-        <span className="ml-1 opacity-0 group-hover:opacity-40">&#8597;</span>
-      )}
-    </button>
-  );
-};
-
-export default function Customers() {
+export default function Backup() {
   const [users, setUsers] = useState<UserFormData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'ALL' | 'ADMIN' | 'USER'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'active' | 'inactive'>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortField, setSortField] = useState<'email' | 'name' | 'role' | 'status'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const [showFormModal, setShowFormModal] = useState(false);
@@ -145,17 +112,6 @@ export default function Customers() {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE,
   );
-
-  useEffect(() => {
-    if (totalPages === 0 && currentPage !== 1) {
-      setCurrentPage(1);
-      return;
-    }
-
-    if (totalPages > 0 && currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
 
   const stats = useMemo(() => {
     const total = response?.data?.totalCount ?? users.length;
@@ -252,177 +208,17 @@ export default function Customers() {
     setDeletingUser(null);
   };
 
-  const columnDefs = useMemo<ColDef<UserFormData>[]>(
-    () => [
-      {
-        cellClass: 'text-[1.3rem] text-gray-500',
-        colId: 'index',
-        headerClass: 'text-left text-[1.2rem] text-gray-500',
-        headerName: '#',
-        maxWidth: 80,
-        minWidth: 72,
-        sortable: false,
-        valueGetter: params => {
-          return (currentPage - 1) * ITEMS_PER_PAGE + (params.node?.rowIndex ?? 0) + 1;
-        },
-      },
-      {
-        cellRenderer: (params: ICellRendererParams<UserFormData>) => {
-          const user = params.data;
-          if (!user) return null;
+  const SortIcon = ({ field }: { field: typeof sortField }) => {
+    if (sortField !== field) {
+      return <span className="ml-1 opacity-0 group-hover:opacity-40">&#8597;</span>;
+    }
 
-          return (
-            <div className="flex h-full items-center gap-3">
-              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-light">
-                <span className="text-[1.1rem] font-600 text-primary">{getNameInitials(user)}</span>
-              </div>
-              <span className="text-[1.4rem] font-500 text-gray-900">{getDisplayName(user)}</span>
-            </div>
-          );
-        },
-        colId: 'name',
-        flex: 1,
-        headerComponent: SortableHeader,
-        headerComponentParams: {
-          field: 'name',
-          label: 'HỌ VÀ TÊN',
-          onSortAction: handleSort,
-          sortDir,
-          sortField,
-        },
-        minWidth: 220,
-        sortable: false,
-      },
-      {
-        cellClass: 'text-[1.3rem] text-gray-500',
-        colId: 'email',
-        flex: 1,
-        headerComponent: SortableHeader,
-        headerComponentParams: {
-          field: 'email',
-          label: 'EMAIL',
-          onSortAction: handleSort,
-          sortDir,
-          sortField,
-        },
-        minWidth: 220,
-        sortable: false,
-        valueGetter: params => params.data?.email || '',
-      },
-      {
-        cellClass: 'text-[1.3rem] text-gray-500',
-        colId: 'phone',
-        headerClass: 'text-left text-[1.2rem] tracking-wider text-gray-500',
-        headerName: 'SỐ ĐIỆN THOẠI',
-        minWidth: 150,
-        sortable: false,
-        valueGetter: params => params.data?.phone || '—',
-      },
-      {
-        cellRenderer: (params: ICellRendererParams<UserFormData>) => {
-          const user = params.data;
-          if (!user) return null;
-
-          return (
-            <div className="flex h-full items-center">
-              <span
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[1.2rem] font-500 ${
-                  user.role === 'ADMIN' ? 'bg-violet-50 text-violet-700' : 'bg-blue-50 text-blue-700'
-                }`}
-              >
-                {user.role === 'ADMIN' ? <Shield className="h-3 w-3" /> : <UserIcon className="h-3 w-3" />}
-                {user.role}
-              </span>
-            </div>
-          );
-        },
-        colId: 'role',
-        headerComponent: SortableHeader,
-        headerComponentParams: {
-          field: 'role',
-          label: 'VAI TRÒ',
-          onSortAction: handleSort,
-          sortDir,
-          sortField,
-        },
-        minWidth: 130,
-        sortable: false,
-      },
-      {
-        cellRenderer: (params: ICellRendererParams<UserFormData>) => {
-          const user = params.data;
-          if (!user) return null;
-
-          return (
-            <div className="flex h-full items-center">
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[1.2rem] font-500 ${
-                  user.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-600'
-                }`}
-              >
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    user.status === 'active' ? 'bg-green-500' : 'bg-orange-400'
-                  }`}
-                />
-                {user.status === 'active' ? 'Hoạt động' : 'Ngừng HĐ'}
-              </span>
-            </div>
-          );
-        },
-        colId: 'status',
-        headerComponent: SortableHeader,
-        headerComponentParams: {
-          field: 'status',
-          label: 'TRẠNG THÁI',
-          onSortAction: handleSort,
-          sortDir,
-          sortField,
-        },
-        minWidth: 150,
-        sortable: false,
-      },
-      {
-        cellRenderer: (params: ICellRendererParams<UserFormData>) => {
-          const user = params.data;
-          if (!user) return null;
-
-          return (
-            <div className="flex h-full items-center justify-end gap-1">
-              <button
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-primary hover:text-primary-light"
-                onClick={() => handleEdit(user)}
-                title="Chỉnh sửa"
-                type="button"
-              >
-                <Pencil className="h-4 w-4" />
-              </button>
-
-              <button
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-red-50 hover:text-red-500"
-                onClick={() => handleDelete(user)}
-                title="Xóa"
-                type="button"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          );
-        },
-        colId: 'actions',
-        headerClass: 'text-right text-[1.2rem] tracking-wider text-gray-500',
-        headerName: 'THAO TÁC',
-        maxWidth: 140,
-        minWidth: 120,
-        sortable: false,
-      },
-    ],
-    [currentPage, handleSort, sortDir, sortField],
-  );
+    return <span className="ml-1 text-primary-light">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   return (
     <>
-      <div className="space-y-6 h-full flex flex-col">
+      <div className="space-y-6">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <div className="rounded-xl border border-gray-200 bg-white p-4">
             <p className="mb-1 text-[1.3rem] text-gray-500">Tổng người dùng</p>
@@ -445,7 +241,7 @@ export default function Customers() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white flex-1 flex flex-col">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
           <div className="flex flex-col justify-between gap-3 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center">
             <div className="flex flex-1 items-center gap-3">
               <div className="relative max-w-[32rem] flex-1">
@@ -521,19 +317,167 @@ export default function Customers() {
             </div>
           </div>
 
-          <div className="relative overflow-x-auto flex-1">
-            <DataGrid
-              className="w-full h-full"
-              columnDefs={columnDefs}
-              defaultColDef={{
-                cellClass: 'text-[1.3rem] text-gray-500',
-                suppressHeaderMenuButton: true,
-              }}
-              loading={isLoading}
-              rowData={paginatedUsers}
-              rowHeight={62}
-              headerHeight={43}
-            />
+          <div className="relative overflow-x-auto">
+            {isLoading && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm">
+                <Spinner color="primary" size="lg" />
+              </div>
+            )}
+
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-100/60">
+                  <th
+                    className="px-5 py-3 text-left text-[1.2rem] tracking-wider text-gray-500"
+                    style={{ fontWeight: 600, minWidth: '60px' }}
+                  >
+                    #
+                  </th>
+
+                  <th
+                    className="group cursor-pointer select-none px-5 py-3 text-left text-[1.2rem] tracking-wider text-gray-500"
+                    onClick={() => handleSort('name')}
+                    style={{ fontWeight: 600, minWidth: '180px' }}
+                  >
+                    HỌ VÀ TÊN
+                    <SortIcon field="name" />
+                  </th>
+
+                  <th
+                    className="group cursor-pointer select-none px-5 py-3 text-left text-[1.2rem] tracking-wider text-gray-500"
+                    onClick={() => handleSort('email')}
+                    style={{ fontWeight: 600, minWidth: '200px' }}
+                  >
+                    EMAIL
+                    <SortIcon field="email" />
+                  </th>
+
+                  <th
+                    className="px-5 py-3 text-left text-[1.2rem] tracking-wider text-gray-500"
+                    style={{ fontWeight: 600, minWidth: '130px' }}
+                  >
+                    SỐ ĐIỆN THOẠI
+                  </th>
+
+                  <th
+                    className="group cursor-pointer select-none px-5 py-3 text-left text-[1.2rem] tracking-wider text-gray-500"
+                    onClick={() => handleSort('role')}
+                    style={{ fontWeight: 600, minWidth: '100px' }}
+                  >
+                    VAI TRÒ
+                    <SortIcon field="role" />
+                  </th>
+
+                  <th
+                    className="group cursor-pointer select-none px-5 py-3 text-left text-[1.2rem] tracking-wider text-gray-500"
+                    onClick={() => handleSort('status')}
+                    style={{ fontWeight: 600, minWidth: '120px' }}
+                  >
+                    TRẠNG THÁI
+                    <SortIcon field="status" />
+                  </th>
+
+                  <th
+                    className="px-5 py-3 text-right text-[1.2rem] tracking-wider text-gray-500"
+                    style={{ fontWeight: 600, minWidth: '120px' }}
+                  >
+                    THAO TÁC
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {paginatedUsers.length === 0 ? (
+                  <tr>
+                    <td className="py-12 text-center text-[1.4rem] text-gray-500" colSpan={7}>
+                      Không tìm thấy người dùng nào
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedUsers.map((user, index) => (
+                    <tr
+                      className="border-t border-gray-200 transition-colors hover:bg-gray-100/50"
+                      key={user.id || `${user.email}-${index}`}
+                    >
+                      <td className="px-5 py-3.5 text-[1.3rem] text-gray-500">
+                        {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                      </td>
+
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-light">
+                            <span className="text-[1.1rem] font-600 text-primary">
+                              {getNameInitials(user)}
+                            </span>
+                          </div>
+                          <span className="text-[1.4rem] font-500 text-gray-900">{getDisplayName(user)}</span>
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-3.5 text-[1.3rem] text-gray-500">{user.email}</td>
+
+                      <td className="px-5 py-3.5 text-[1.3rem] text-gray-500">{user.phone || '—'}</td>
+
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[1.2rem] font-500 ${
+                            user.role === 'ADMIN'
+                              ? 'bg-violet-50 text-violet-700'
+                              : 'bg-blue-50 text-blue-700'
+                          }`}
+                        >
+                          {user.role === 'ADMIN' ? (
+                            <Shield className="h-3 w-3" />
+                          ) : (
+                            <UserIcon className="h-3 w-3" />
+                          )}
+                          {user.role}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[1.2rem] font-500 ${
+                            user.status === 'active'
+                              ? 'bg-green-50 text-green-700'
+                              : 'bg-orange-50 text-orange-600'
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              user.status === 'active' ? 'bg-green-500' : 'bg-orange-400'
+                            }`}
+                          />
+                          {user.status === 'active' ? 'Hoạt động' : 'Ngừng HĐ'}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-primary hover:text-primary-light"
+                            onClick={() => handleEdit(user)}
+                            title="Chỉnh sửa"
+                            type="button"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+
+                          <button
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-red-50 hover:text-red-500"
+                            onClick={() => handleDelete(user)}
+                            title="Xóa"
+                            type="button"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
 
           {totalPages > 1 && (

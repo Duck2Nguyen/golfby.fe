@@ -1,0 +1,65 @@
+.root :global(.ag-root-wrapper) {
+  border: 0;
+}
+
+.root :global(.ag-header-cell) {
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.root :global(.ag-header-cell-comp-wrapper) {
+  align-items: center;
+  display: flex;
+  height: 100%;
+}
+
+.root :global(.ag-header-cell-label) {
+  color: #6b7280;
+  display: flex;
+  font-size: 1.2rem;
+  font-weight: 600;
+  height: 100%;
+  letter-spacing: 0.06em;
+  line-height: 1.6rem;
+}
+
+.root :global(.ag-cell) {
+  align-items: center;
+  display: flex;
+  font-size: 1.3rem;
+  line-height: 1.6rem;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.root :global(.ag-cell-wrapper) {
+  align-items: center;
+  width: 100%;
+}
+
+.root :global(.ag-cell-value) {
+  align-items: center;
+  display: flex;
+  height: 100%;
+}
+
+.root :global(.ag-row) {
+  border-top: 1px solid #e5e7eb;
+}
+
+.root :global(.ag-row:first-child) {
+  border-top: 0;
+}
+
+.root :global(.ag-cell:focus),
+.root :global(.ag-cell-focus),
+.root :global(.ag-header-cell:focus),
+.root :global(.ag-header-cell-focus) {
+  border: none !important;
+  outline: none !important;
+}
+
+.root :global(.ag-pinned-right-header),
+.root :global(.ag-pinned-right-cols-container) {
+  border-left: 0;
+}

@@ -50,7 +50,7 @@ export const useSession = () => {
       let csrfToken = '';
       try {
         const csrfResponse = await fetcher<{ csrfToken: string }>('/api/v1/auth/csrf', METHOD.POST, {});
-        csrfToken = csrfResponse.csrfToken || '';
+        csrfToken = (csrfResponse as unknown as { csrfToken: string }).csrfToken || '';
       } catch {
         // Continue without CSRF token if it fails
       }

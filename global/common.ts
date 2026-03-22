@@ -3,7 +3,7 @@ export enum METHOD {
   POST = 'post',
   PUT = 'put',
   DELETE = 'delete',
-  PATCH = 'PATCH',
+  PATCH = 'patch',
 }
 
 export enum ROLE {
