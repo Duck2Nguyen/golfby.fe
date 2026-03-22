@@ -80,7 +80,7 @@ export default function Login() {
                 Ghi nhớ đăng nhập
               </Checkbox>
               <Link
-                href="#"
+                href="/forgot-password"
                 className="text-[1.3rem] text-primary hover:text-primary-dark font-500 transition-colors"
               >
                 Quên mật khẩu?

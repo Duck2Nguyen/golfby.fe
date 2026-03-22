@@ -37,3 +37,20 @@ export type UserInfo = Partial<{
   updatedAt: string;
   lastLogin: string;
 }>;
+
+export type UserAddress = Partial<{
+  id: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  address: string;
+  zipCode: string;
+  country: string;
+  company: string;
+  province: string;
+  commune: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}>;

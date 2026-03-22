@@ -28,7 +28,7 @@ const PrivateLayout = (props: Props) => {
   }, []);
   console.log(data?.loading);
 
-  if (data == null || data?.loading || !data.isAuthenticated) {
+  if (data?.loading) {
     return (
       <div className="w-full h-full flex items-center justify-center">
         <Spinner />

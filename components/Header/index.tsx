@@ -19,6 +19,8 @@ import * as Yup from 'yup';
 import Link from 'next/link';
 import { Form, Field, Formik } from 'formik';
 
+import { useSession } from '@/hooks/auth';
+
 import InputField from '@/elements/InputField';
 
 import { SearchSuggestion } from '../SearchSuggestion';
@@ -170,6 +172,7 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const { logout, data } = useSession();
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -281,40 +284,6 @@ export function Header() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-2">
-            {/* User Dropdown */}
-            <div className="relative hidden sm:block" ref={userMenuRef}>
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl hover:bg-muted transition-colors group"
-              >
-                <User className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                <span className="text-[1.1rem] text-muted-foreground group-hover:text-primary transition-colors">
-                  Tài khoản
-                </span>
-              </button>
-              {userMenuOpen && (
-                <div className="absolute right-0 top-[120%] mt-1 w-48 bg-white rounded-xl border border-border/80 shadow-[0_0_20px_rgba(0,0,0,0.1)] py-2 z-50">
-                  <Link
-                    href="/address"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-[1.4rem] text-foreground hover:bg-muted hover:text-primary transition-colors"
-                    style={{ fontWeight: 500 }}
-                  >
-                    <MapPin className="w-4 h-4" />
-                    Địa chỉ
-                  </Link>
-                  <Link
-                    href="/login"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-[1.4rem] text-foreground hover:bg-muted hover:text-destructive transition-colors"
-                    style={{ fontWeight: 500 }}
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Đăng xuất
-                  </Link>
-                </div>
-              )}
-            </div>
             <Link
               href="/wishlist"
               className="hidden sm:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl hover:bg-muted transition-colors group"
@@ -341,6 +310,52 @@ export function Header() {
                 Giỏ hàng
               </span>
             </Link>
+
+            {/* User Dropdown */}
+            {data?.isAuthenticated ? (
+              <div className="relative hidden sm:block" ref={userMenuRef}>
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl hover:bg-muted cursor-pointer transition-colors group"
+                >
+                  <User className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <span className="text-[1.1rem] text-muted-foreground group-hover:text-primary transition-colors">
+                    Tài khoản
+                  </span>
+                </button>
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-[120%] mt-1 w-48 bg-white rounded-xl border border-border/80 shadow-[0_0_20px_rgba(0,0,0,0.1)] py-2 z-50">
+                    <Link
+                      href="/address"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-[1.4rem] text-foreground hover:bg-muted hover:text-primary transition-colors"
+                      style={{ fontWeight: 500 }}
+                    >
+                      <MapPin className="w-4 h-4" />
+                      Địa chỉ
+                    </Link>
+                    <button
+                      onClick={() => logout()}
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-[1.4rem] text-foreground hover:bg-muted hover:text-destructive transition-colors disabled:opacity-60"
+                      style={{ fontWeight: 500 }}
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="hidden sm:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl hover:bg-muted transition-colors group"
+              >
+                <User className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                <span className="text-[1.1rem] text-muted-foreground group-hover:text-primary transition-colors">
+                  Đăng nhập
+                </span>
+              </Link>
+            )}
 
             {/* Mobile Menu Toggle */}
             <button

@@ -4,9 +4,9 @@ import * as yup from 'yup';
 import { Link } from '@heroui/link';
 import { Form, Formik } from 'formik';
 import { Button } from '@heroui/button';
+import { addToast } from '@heroui/toast';
 import { Divider } from '@heroui/divider';
 import { Checkbox } from '@heroui/checkbox';
-import { addToast } from '@heroui/toast';
 import { useRouter } from 'next/navigation';
 
 import { useAuth } from '@/hooks/auth/useAuth';
@@ -56,8 +56,7 @@ export default function Register() {
         receive_advertisement: values.newsletter,
       });
 
-      addToast({ color: 'success', description: 'Đăng ký thành công! Vui lòng đăng nhập.' });
-      router.push('/login');
+      addToast({ color: 'success', description: 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.' });
     } catch (error: any) {
       const errorMsg = error?.message || 'Đăng ký thất bại. Vui lòng thử lại.';
       addToast({ color: 'danger', description: Array.isArray(errorMsg) ? errorMsg[0] : errorMsg });
