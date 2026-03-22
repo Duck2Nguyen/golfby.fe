@@ -9,6 +9,8 @@ import { Button } from '@heroui/button';
 import { addToast } from '@heroui/toast';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+import { genCsrfToken } from '@/utils/csrf';
+
 import { useAuth } from '@/hooks/auth/useAuth';
 
 import { Field } from '@/elements';
@@ -54,9 +56,12 @@ export default function ResetPassword() {
           throw new Error('missing_link_data');
         }
 
+        const csrfToken = await genCsrfToken();
+
         await forgotPasswordCheckMutation.trigger({
           id: userId,
           token,
+          ...(csrfToken ? { csrfToken } : {}),
         });
 
         setIsCheckPassed(true);
@@ -72,7 +77,7 @@ export default function ResetPassword() {
     };
 
     checkForgotLink();
-  }, [forgotPasswordCheckMutation, isLinkValid, router, token, userId]);
+  }, []);
 
   const initialValues: ResetPasswordValues = {
     password: '',
@@ -91,10 +96,12 @@ export default function ResetPassword() {
 
     try {
       setIsSubmitting(true);
+      const csrfToken = await genCsrfToken();
       await resetPasswordMutation.trigger({
         id: userId,
         token,
         password: values.password,
+        ...(csrfToken ? { csrfToken } : {}),
       });
       addToast({
         color: 'success',
@@ -102,11 +109,7 @@ export default function ResetPassword() {
       });
       router.push('/login');
     } catch (error: any) {
-      const errorMsg = error?.message || 'Không thể đặt lại mật khẩu. Vui lòng thử lại.';
-      addToast({
-        color: 'danger',
-        description: Array.isArray(errorMsg) ? errorMsg[0] : errorMsg,
-      });
+      console.log('Error resetting password:', error);
     } finally {
       setIsSubmitting(false);
     }

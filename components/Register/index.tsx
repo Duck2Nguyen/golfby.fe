@@ -58,8 +58,7 @@ export default function Register() {
 
       addToast({ color: 'success', description: 'Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.' });
     } catch (error: any) {
-      const errorMsg = error?.message || 'Đăng ký thất bại. Vui lòng thử lại.';
-      addToast({ color: 'danger', description: Array.isArray(errorMsg) ? errorMsg[0] : errorMsg });
+      console.log('error', error);
     }
   };
 
