@@ -2,16 +2,18 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import {
-  X,
   Eye,
   Tag,
+  Info,
   Plus,
   Save,
-  Info,
+  Store,
   Layers,
   Package,
+  Grid3x3,
   ArrowLeft,
   ImageIcon,
+  FolderTree,
   AlertCircle,
 } from 'lucide-react';
 
@@ -20,12 +22,18 @@ import { useRouter } from 'next/navigation';
 import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 
 import VariantRow from '../VariantRow';
+import CkEditorField from '../CkEditorField';
+import VariantManager from '../VariantManager';
+import MultiUploadImage from '../MultiUploadImage';
+import MultiSelectDropdown, { type MultiSelectItem } from '../MultiSelectDropdown';
 import {
-  brandOptions,
   mockProducts,
-  categoryOptions,
   type AdminProduct,
+  productTagOptions,
+  type VariantOption,
   type ProductVariant,
+  productVendorOptions,
+  productCollectionOptions,
 } from '../product-types';
 
 const generateId = () => `V${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
@@ -57,7 +65,9 @@ function FormSection({
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-white">
       <div className="flex items-center gap-3 border-b border-border px-5 py-4">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">{icon}</div>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+          {icon}
+        </div>
         <div>
           <h3 className="text-[1.5rem] font-600 text-foreground">{title}</h3>
           {description && <p className="mt-0.5 text-[1.2rem] text-muted-foreground">{description}</p>}
@@ -82,10 +92,16 @@ export default function ProductForm({ productId }: ProductFormProps) {
   const [description, setDescription] = useState('');
   const [thumbnail, setThumbnail] = useState('');
   const [images, setImages] = useState<string[]>([]);
-  const [newImageUrl, setNewImageUrl] = useState('');
   const [status, setStatus] = useState<'active' | 'archived' | 'draft'>('draft');
   const [featured, setFeatured] = useState(false);
   const [variants, setVariants] = useState<ProductVariant[]>([emptyVariant()]);
+  const [tags, setTags] = useState<MultiSelectItem[]>(productTagOptions);
+  const [collections, setCollections] = useState<MultiSelectItem[]>(productCollectionOptions);
+  const [vendors, setVendors] = useState<MultiSelectItem[]>(productVendorOptions);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
+  const [selectedVendor, setSelectedVendor] = useState<string[]>([]);
+  const [variantOptions, setVariantOptions] = useState<VariantOption[]>([]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showErrors, setShowErrors] = useState(false);
@@ -105,6 +121,10 @@ export default function ProductForm({ productId }: ProductFormProps) {
     setStatus(product.status);
     setFeatured(product.featured);
     setVariants(product.variants.length > 0 ? product.variants : [emptyVariant()]);
+    setSelectedTags(product.tagIds ?? []);
+    setSelectedCollections(product.collectionIds ?? []);
+    setSelectedVendor(product.vendorIds ?? []);
+    setVariantOptions(product.variantOptions ?? []);
   }, [isEdit, productId]);
 
   const variantStats = useMemo(() => {
@@ -143,8 +163,6 @@ export default function ProductForm({ productId }: ProductFormProps) {
     const nextErrors: Record<string, string> = {};
 
     if (!name.trim()) nextErrors.name = 'Vui lòng nhập tên sản phẩm';
-    if (!brand) nextErrors.brand = 'Vui lòng chọn thương hiệu';
-    if (!category) nextErrors.category = 'Vui lòng chọn danh mục';
 
     let hasVariantError = false;
 
@@ -173,11 +191,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleVariantChange = (
-    variantId: string,
-    field: keyof ProductVariant,
-    value: number | string,
-  ) => {
+  const handleVariantChange = (variantId: string, field: keyof ProductVariant, value: number | string) => {
     setVariants(prev => prev.map(item => (item.id === variantId ? { ...item, [field]: value } : item)));
   };
 
@@ -189,18 +203,10 @@ export default function ProductForm({ productId }: ProductFormProps) {
     setVariants(prev => [...prev, emptyVariant()]);
   };
 
-  const handleAddImage = () => {
-    const imageUrl = newImageUrl.trim();
-
-    if (!imageUrl) return;
-
-    setImages(prev => [...prev, imageUrl]);
-    setNewImageUrl('');
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setImages(prev => prev.filter((_, imageIndex) => imageIndex !== index));
-  };
+  const createOption = (prefix: string, label: string): MultiSelectItem => ({
+    id: `${prefix}${Date.now()}`,
+    label,
+  });
 
   const handleSubmitAction = (submitStatus?: 'active' | 'draft') => {
     setShowErrors(true);
@@ -219,6 +225,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
     const payload: AdminProduct = {
       brand,
       category,
+      collectionIds: selectedCollections,
       createdAt: currentProduct?.createdAt || today,
       description,
       featured,
@@ -226,8 +233,11 @@ export default function ProductForm({ productId }: ProductFormProps) {
       images,
       name,
       status: finalStatus,
+      tagIds: selectedTags,
       thumbnail: thumbnail || variants[0]?.image || '',
       updatedAt: today,
+      variantOptions,
+      vendorIds: selectedVendor,
       variants,
     };
 
@@ -298,64 +308,14 @@ export default function ProductForm({ productId }: ProductFormProps) {
                   type="text"
                   value={name}
                 />
-                {showErrors && errors.name && <p className="mt-1 text-[1.2rem] text-destructive">{errors.name}</p>}
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-[1.3rem] font-500 text-foreground">
-                    Thương hiệu <span className="text-destructive">*</span>
-                  </label>
-                  <select
-                    className={`${selectClass} ${inputErrorClass('brand')}`}
-                    onChange={event => setBrand(event.target.value)}
-                    style={selectStyle}
-                    value={brand}
-                  >
-                    <option value="">Chọn thương hiệu</option>
-                    {brandOptions.map(item => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
-                  {showErrors && errors.brand && (
-                    <p className="mt-1 text-[1.2rem] text-destructive">{errors.brand}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-[1.3rem] font-500 text-foreground">
-                    Danh mục <span className="text-destructive">*</span>
-                  </label>
-                  <select
-                    className={`${selectClass} ${inputErrorClass('category')}`}
-                    onChange={event => setCategory(event.target.value)}
-                    style={selectStyle}
-                    value={category}
-                  >
-                    <option value="">Chọn danh mục</option>
-                    {categoryOptions.map(item => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
-                  {showErrors && errors.category && (
-                    <p className="mt-1 text-[1.2rem] text-destructive">{errors.category}</p>
-                  )}
-                </div>
+                {showErrors && errors.name && (
+                  <p className="mt-1 text-[1.2rem] text-destructive">{errors.name}</p>
+                )}
               </div>
 
               <div>
                 <label className="mb-1.5 block text-[1.3rem] font-500 text-foreground">Mô tả sản phẩm</label>
-                <textarea
-                  className="w-full resize-none rounded-lg bg-input-background px-4 py-3 text-[1.4rem] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  onChange={event => setDescription(event.target.value)}
-                  placeholder="Mô tả chi tiết về sản phẩm..."
-                  rows={4}
-                  value={description}
-                />
+                <CkEditorField onChangeAction={setDescription} value={description} />
               </div>
             </div>
           </FormSection>
@@ -365,74 +325,20 @@ export default function ProductForm({ productId }: ProductFormProps) {
             icon={<ImageIcon className="h-4 w-4 text-primary" />}
             title="Hình ảnh sản phẩm"
           >
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-[1.3rem] font-500 text-foreground">Ảnh đại diện (URL)</label>
-                <div className="flex gap-3">
-                  <input
-                    className={`${inputClass} flex-1`}
-                    onChange={event => setThumbnail(event.target.value)}
-                    placeholder="https://..."
-                    type="text"
-                    value={thumbnail}
-                  />
-                  {thumbnail && (
-                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
-                      <ImageWithFallback alt="thumbnail" className="h-full w-full object-cover" src={thumbnail} />
-                    </div>
-                  )}
-                </div>
-              </div>
+            <MultiUploadImage
+              images={images}
+              onImagesChangeAction={setImages}
+              onThumbnailChangeAction={setThumbnail}
+              thumbnail={thumbnail}
+            />
+          </FormSection>
 
-              <div>
-                <label className="mb-1.5 block text-[1.3rem] font-500 text-foreground">Ảnh gallery</label>
-                <div className="mb-3 flex gap-2">
-                  <input
-                    className={`${inputClass} flex-1`}
-                    onChange={event => setNewImageUrl(event.target.value)}
-                    onKeyDown={event => {
-                      if (event.key !== 'Enter') return;
-                      event.preventDefault();
-                      handleAddImage();
-                    }}
-                    placeholder="Dán URL ảnh rồi Enter hoặc nhấn Thêm"
-                    type="text"
-                    value={newImageUrl}
-                  />
-                  <button
-                    className="h-10 shrink-0 rounded-lg border border-border px-4 text-[1.3rem] font-500 text-foreground transition-colors hover:bg-muted"
-                    onClick={handleAddImage}
-                    type="button"
-                  >
-                    Thêm
-                  </button>
-                </div>
-
-                {images.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {images.map((image, index) => (
-                      <div
-                        className="group relative h-20 w-20 overflow-hidden rounded-lg border border-border bg-muted"
-                        key={image}
-                      >
-                        <ImageWithFallback alt={`gallery-${index + 1}`} className="h-full w-full object-cover" src={image} />
-                        <button
-                          className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                          onClick={() => handleRemoveImage(index)}
-                          type="button"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex h-20 items-center justify-center rounded-lg border-2 border-dashed border-border text-[1.3rem] text-muted-foreground">
-                    Chưa có ảnh gallery
-                  </div>
-                )}
-              </div>
-            </div>
+          <FormSection
+            description="Tùy chọn phân loại như Shaft, Flex, Độ Loft..."
+            icon={<Grid3x3 className="h-4 w-4 text-primary" />}
+            title="Variants"
+          >
+            <VariantManager onChangeAction={setVariantOptions} variants={variantOptions} />
           </FormSection>
 
           <FormSection
@@ -472,10 +378,75 @@ export default function ProductForm({ productId }: ProductFormProps) {
         </div>
 
         <div className="space-y-6">
+          <FormSection
+            description="Thẻ giúp phân loại và tìm kiếm sản phẩm dễ dàng hơn"
+            icon={<Tag className="h-4 w-4 text-primary" />}
+            title="Tags"
+          >
+            <MultiSelectDropdown
+              allowMultiple
+              items={tags}
+              label="Tags"
+              onAddNewAction={label => {
+                const newTag = createOption('tag', label);
+                setTags(prev => [...prev, newTag]);
+                setSelectedTags(prev => [...prev, newTag.id]);
+              }}
+              onSelectionChangeAction={setSelectedTags}
+              placeholder="Tìm kiếm tags..."
+              selectedIds={selectedTags}
+              showAddNew
+            />
+          </FormSection>
+
+          <FormSection
+            description="Bộ sưu tập mà sản phẩm thuộc về"
+            icon={<FolderTree className="h-4 w-4 text-primary" />}
+            title="Collections"
+          >
+            <MultiSelectDropdown
+              allowMultiple
+              items={collections}
+              label="Collections"
+              onAddNewAction={label => {
+                const newCollection = createOption('col', label);
+                setCollections(prev => [...prev, newCollection]);
+                setSelectedCollections(prev => [...prev, newCollection.id]);
+              }}
+              onSelectionChangeAction={setSelectedCollections}
+              placeholder="Tìm kiếm collections..."
+              selectedIds={selectedCollections}
+              showAddNew
+            />
+          </FormSection>
+
+          <FormSection
+            description="Nhà cung cấp sản phẩm"
+            icon={<Store className="h-4 w-4 text-primary" />}
+            title="Vendor"
+          >
+            <MultiSelectDropdown
+              allowMultiple={false}
+              items={vendors}
+              label="Vendor"
+              onAddNewAction={label => {
+                const newVendor = createOption('v', label);
+                setVendors(prev => [...prev, newVendor]);
+                setSelectedVendor([newVendor.id]);
+              }}
+              onSelectionChangeAction={setSelectedVendor}
+              placeholder="Chọn vendor..."
+              selectedIds={selectedVendor}
+              showAddNew
+            />
+          </FormSection>
+
           <FormSection icon={<Tag className="h-4 w-4 text-primary" />} title="Trạng thái">
             <div className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-[1.3rem] font-500 text-foreground">Trạng thái sản phẩm</label>
+                <label className="mb-1.5 block text-[1.3rem] font-500 text-foreground">
+                  Trạng thái sản phẩm
+                </label>
                 <select
                   className={selectClass}
                   onChange={event => setStatus(event.target.value as 'active' | 'archived' | 'draft')}

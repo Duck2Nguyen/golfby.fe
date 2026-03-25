@@ -10,9 +10,16 @@ export interface ProductVariant {
   weight: number;
 }
 
+export interface VariantOption {
+  id: string;
+  name: string;
+  values: string[];
+}
+
 export interface AdminProduct {
   brand: string;
   category: string;
+  collectionIds?: string[];
   createdAt: string;
   description: string;
   featured: boolean;
@@ -20,9 +27,17 @@ export interface AdminProduct {
   images: string[];
   name: string;
   status: 'active' | 'archived' | 'draft';
+  tagIds?: string[];
   thumbnail: string;
   updatedAt: string;
+  variantOptions?: VariantOption[];
+  vendorIds?: string[];
   variants: ProductVariant[];
+}
+
+export interface ProductMultiSelectOption {
+  id: string;
+  label: string;
 }
 
 export const categoryOptions = [
@@ -36,14 +51,31 @@ export const categoryOptions = [
   'Phụ kiện Golf',
 ];
 
-export const brandOptions = [
-  'TaylorMade',
-  'Callaway',
-  'Titleist',
-  'Ping',
-  'Mizuno',
-  'Cobra',
-  'Honma',
+export const brandOptions = ['TaylorMade', 'Callaway', 'Titleist', 'Ping', 'Mizuno', 'Cobra', 'Honma'];
+
+export const productTagOptions: ProductMultiSelectOption[] = [
+  { id: 'tag1', label: 'Sale' },
+  { id: 'tag2', label: 'Mới về' },
+  { id: 'tag3', label: 'Best Seller' },
+  { id: 'tag4', label: 'Giới hạn' },
+  { id: 'tag5', label: 'Hot' },
+  { id: 'tag6', label: 'Premium' },
+];
+
+export const productCollectionOptions: ProductMultiSelectOption[] = [
+  { id: 'col1', label: 'Bộ sưu tập Driver 2026' },
+  { id: 'col2', label: 'Bộ sưu tập Iron Pro' },
+  { id: 'col3', label: 'Bộ sưu tập Putter Elite' },
+  { id: 'col4', label: 'Golf Accessories' },
+  { id: 'col5', label: 'Limited Edition' },
+];
+
+export const productVendorOptions: ProductMultiSelectOption[] = [
+  { id: 'v1', label: 'TaylorMade VN' },
+  { id: 'v2', label: 'Callaway Distributor' },
+  { id: 'v3', label: 'Golf House Supply' },
+  { id: 'v4', label: 'Premium Golf Import' },
+  { id: 'v5', label: 'Titleist Partner' },
 ];
 
 export const mockProducts: AdminProduct[] = [
@@ -92,7 +124,8 @@ export const mockProducts: AdminProduct[] = [
     brand: 'Callaway',
     category: 'Gậy Iron / Sắt',
     createdAt: '2026-02-01',
-    description: 'Bộ gậy sắt Callaway Paradym Ai Smoke với công nghệ AI Flash Face cho vùng sweet-spot lớn hơn.',
+    description:
+      'Bộ gậy sắt Callaway Paradym Ai Smoke với công nghệ AI Flash Face cho vùng sweet-spot lớn hơn.',
     featured: true,
     id: 'P002',
     images: [],
@@ -119,7 +152,8 @@ export const mockProducts: AdminProduct[] = [
     brand: 'Titleist',
     category: 'Gậy Putter',
     createdAt: '2026-01-20',
-    description: 'Putter Scotty Cameron Phantom X với thiết kế multi-material giúp kiểm soát đường bóng tốt hơn.',
+    description:
+      'Putter Scotty Cameron Phantom X với thiết kế multi-material giúp kiểm soát đường bóng tốt hơn.',
     featured: false,
     id: 'P003',
     images: [],
