@@ -7,6 +7,7 @@ import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 
 interface MultiUploadImageProps {
   images: string[];
+  onImageFilesChangeAction: (files: File[]) => void;
   onImagesChangeAction: (images: string[]) => void;
   onThumbnailChangeAction: (thumbnail: string) => void;
   thumbnail: string;
@@ -14,11 +15,13 @@ interface MultiUploadImageProps {
 
 export default function MultiUploadImage({
   images,
+  onImageFilesChangeAction,
   onImagesChangeAction,
   onThumbnailChangeAction,
   thumbnail,
 }: MultiUploadImageProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileByPreviewUrlRef = useRef<Map<string, File>>(new Map());
 
   const [activeGalleryIndex, setActiveGalleryIndex] = useState<number | null>(null);
   const [newImageUrl, setNewImageUrl] = useState('');
@@ -45,10 +48,37 @@ export default function MultiUploadImage({
       ? thumbnail
       : galleryImages[activeGalleryIndex ?? 0] || thumbnail || '';
 
+  const emitSelectedFiles = (nextThumbnail: string, nextGallery: string[]) => {
+    const orderedPreviewUrls = [nextThumbnail, ...nextGallery].filter(Boolean);
+    const dedup = new Set<File>();
+
+    orderedPreviewUrls.forEach(url => {
+      const file = fileByPreviewUrlRef.current.get(url);
+      if (file) {
+        dedup.add(file);
+      }
+    });
+
+    onImageFilesChangeAction(Array.from(dedup));
+  };
+
+  const removePreviewUrl = (url: string) => {
+    if (!fileByPreviewUrlRef.current.has(url)) {
+      return;
+    }
+
+    URL.revokeObjectURL(url);
+    fileByPreviewUrlRef.current.delete(url);
+  };
+
   const handleRemoveImage = (index: number) => {
     const nextGallery = [...galleryImages];
-    nextGallery.splice(index, 1);
+    const removed = nextGallery.splice(index, 1)[0];
+    if (removed) {
+      removePreviewUrl(removed);
+    }
     onImagesChangeAction(nextGallery);
+    emitSelectedFiles(thumbnail, nextGallery);
 
     if (activeGalleryIndex === null) {
       return;
@@ -80,6 +110,7 @@ export default function MultiUploadImage({
 
     onThumbnailChangeAction(pickedImage);
     onImagesChangeAction(nextGallery);
+    emitSelectedFiles(pickedImage, nextGallery);
     setActiveGalleryIndex(null);
   };
 
@@ -93,12 +124,14 @@ export default function MultiUploadImage({
     if (!thumbnail) {
       onThumbnailChangeAction(imageUrl);
       setNewImageUrl('');
+      emitSelectedFiles(imageUrl, galleryImages);
       setActiveGalleryIndex(null);
 
       return;
     }
 
     onImagesChangeAction([...galleryImages, imageUrl]);
+    emitSelectedFiles(thumbnail, [...galleryImages, imageUrl]);
     setNewImageUrl('');
   };
 
@@ -114,18 +147,38 @@ export default function MultiUploadImage({
     }
 
     const fileUrls = Array.from(fileList).map(file => URL.createObjectURL(file));
+    const files = Array.from(fileList);
+
+    fileUrls.forEach((url, index) => {
+      const file = files[index];
+      if (file) {
+        fileByPreviewUrlRef.current.set(url, file);
+      }
+    });
 
     if (!thumbnail && fileUrls.length > 0) {
       const [first, ...rest] = fileUrls;
       onThumbnailChangeAction(first);
       onImagesChangeAction([...galleryImages, ...rest]);
+      emitSelectedFiles(first, [...galleryImages, ...rest]);
       setActiveGalleryIndex(null);
     } else {
-      onImagesChangeAction([...galleryImages, ...fileUrls]);
+      const nextGallery = [...galleryImages, ...fileUrls];
+      onImagesChangeAction(nextGallery);
+      emitSelectedFiles(thumbnail, nextGallery);
     }
 
     event.target.value = '';
   };
+
+  useEffect(() => {
+    return () => {
+      fileByPreviewUrlRef.current.forEach((_, previewUrl) => {
+        URL.revokeObjectURL(previewUrl);
+      });
+      fileByPreviewUrlRef.current.clear();
+    };
+  }, []);
 
   return (
     <div className="space-y-3">

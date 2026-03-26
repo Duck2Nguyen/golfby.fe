@@ -15,9 +15,8 @@ import {
 import type { Ref } from 'react';
 import type { AgGridReactProps } from 'ag-grid-react';
 
-import styles from './styles.module.css';
 import { customerDataGridTheme } from './theme';
-import 'ag-grid-community/styles/ag-grid.css';
+import './style.scss';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -122,7 +121,7 @@ const DataGrid = forwardRef(
     );
 
     return (
-      <div ref={containerRef} className={`${styles.root} ${className || ''}`.trim()}>
+      <div ref={containerRef} className={`data-grid ${className || ''}`.trim()}>
         <AgGridReact
           onBodyScroll={handleBodyScroll}
           onGridReady={handleGridReady}

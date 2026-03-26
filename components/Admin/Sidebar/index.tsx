@@ -55,7 +55,8 @@ const MENU_ITEMS: SidebarItem[] = [
     children: [
       { href: '/admin/products', label: 'Danh sách sản phẩm' },
       { href: '/admin/products/create', label: 'Thêm sản phẩm' },
-      { href: '/admin/categories', label: 'Danh mục' },
+      { href: '/admin/products/brands', label: 'Quản lý Brand' },
+      { href: '/admin/products/categories', label: 'Quản lý Category' },
     ],
   },
   {

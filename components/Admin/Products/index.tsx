@@ -1,9 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   Eye,
-  Copy,
   Plus,
   Star,
   Pencil,
@@ -19,19 +18,73 @@ import {
 import { Link } from '@heroui/link';
 import { useRouter } from 'next/navigation';
 
+import { genCsrfToken } from '@/utils/csrf';
+
+import { useBrands } from '@/hooks/useBrands';
+import { useCategorires } from '@/hooks/useCategorires';
+import { useAdminProduct, type AdminProductListItem } from '@/hooks/admin/useAdminProduct';
+
 import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 import DeleteConfirmModal from '@/components/Admin/Customers/DeleteConfirmModal';
 
-import { brandOptions, mockProducts, categoryOptions, type AdminProduct } from './product-types';
+import type { ProductVariant } from './product-types';
 
-const ITEMS_PER_PAGE = 6;
+const PAGE_SIZE_OPTIONS = [6, 10, 20, 50] as const;
+
+type UiProductStatus = 'active' | 'archived' | 'draft';
+
+interface ProductTableRow {
+  brand: string;
+  category: string;
+  featured: boolean;
+  id: string;
+  name: string;
+  priceRange: string;
+  status: UiProductStatus;
+  thumbnail: string;
+  totalStock: number;
+  variants: ProductVariant[];
+}
+
+const mapApiStatusToUi = (status?: string): UiProductStatus => {
+  if (status === 'ACTIVE') return 'active';
+  if (status === 'ARCHIVED') return 'archived';
+  return 'draft';
+};
+
+const mapUiStatusToApi = (status: 'ALL' | UiProductStatus): 'ACTIVE' | 'ARCHIVED' | 'DRAFT' | undefined => {
+  if (status === 'ALL') return undefined;
+  if (status === 'active') return 'ACTIVE';
+  if (status === 'archived') return 'ARCHIVED';
+  return 'DRAFT';
+};
+
+const toNumber = (value: number | string | null | undefined) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const getProductThumbnail = (images?: AdminProductListItem['images']) => {
+  if (!images || images.length === 0) return '';
+  return images.find(image => image.isPrimary)?.url || images[0]?.url || '';
+};
+
+const getProductPriceRange = (item: AdminProductListItem) => {
+  const listPrice = toNumber(item.listPrice);
+  const salePrice = toNumber(item.salePrice);
+  const minPrice = Math.min(...[listPrice, salePrice].filter(price => price > 0));
+  const maxPrice = Math.max(...[listPrice, salePrice].filter(price => price > 0));
+
+  if (!Number.isFinite(minPrice) || minPrice <= 0) return '—';
+  if (!Number.isFinite(maxPrice) || maxPrice <= 0) return formatPrice(minPrice);
+  if (minPrice === maxPrice) return formatPrice(minPrice);
+
+  return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
+};
 
 const formatPrice = (price: number) => `${new Intl.NumberFormat('vi-VN').format(price)}₫`;
 
-const statusConfig: Record<
-  AdminProduct['status'],
-  { className: string; dotClassName: string; label: string }
-> = {
+const statusConfig: Record<UiProductStatus, { className: string; dotClassName: string; label: string }> = {
   active: {
     className: 'bg-green-50 text-green-700',
     dotClassName: 'bg-green-500',
@@ -51,83 +104,103 @@ const statusConfig: Record<
 
 export default function Products() {
   const router = useRouter();
-  const [products, setProducts] = useState<AdminProduct[]>(mockProducts);
+
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [brandFilter, setBrandFilter] = useState('ALL');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'active' | 'archived' | 'draft'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | UiProductStatus>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(10);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletingProduct, setDeletingProduct] = useState<AdminProduct | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<ProductTableRow | null>(null);
 
-  const filteredProducts = useMemo(() => {
-    let result = [...products];
+  const { getAllBrands } = useBrands();
+  const { getAllCategories } = useCategorires();
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        product =>
-          product.name.toLowerCase().includes(query) ||
-          product.brand.toLowerCase().includes(query) ||
-          product.id.toLowerCase().includes(query) ||
-          product.variants.some(variant => variant.sku.toLowerCase().includes(query)),
-      );
-    }
-
-    if (categoryFilter !== 'ALL') {
-      result = result.filter(product => product.category === categoryFilter);
-    }
-
-    if (brandFilter !== 'ALL') {
-      result = result.filter(product => product.brand === brandFilter);
-    }
-
-    if (statusFilter !== 'ALL') {
-      result = result.filter(product => product.status === statusFilter);
-    }
-
-    return result;
-  }, [products, searchQuery, categoryFilter, brandFilter, statusFilter]);
-
-  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
-
-  const paginatedProducts = filteredProducts.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
+  const listParams = useMemo(
+    () => ({
+      ...(brandFilter !== 'ALL' ? { brandId: brandFilter } : {}),
+      ...(categoryFilter !== 'ALL' ? { categoryId: categoryFilter } : {}),
+      ...(searchQuery ? { search: searchQuery } : {}),
+      ...(mapUiStatusToApi(statusFilter) ? { status: mapUiStatusToApi(statusFilter) } : {}),
+      page: currentPage,
+      size: pageSize,
+    }),
+    [brandFilter, categoryFilter, currentPage, pageSize, searchQuery, statusFilter],
   );
 
+  const { deleteAdminProductMutation, getAllAdminProduct } = useAdminProduct({
+    getAllParams: listParams,
+  });
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearchQuery(searchInput.trim());
+      setCurrentPage(1);
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  const apiProducts = getAllAdminProduct.data?.data?.items ?? [];
+  const totalCount = getAllAdminProduct.data?.data?.totalCount ?? 0;
+
+  const products = useMemo<ProductTableRow[]>(() => {
+    return apiProducts.map(item => {
+      const variants: ProductVariant[] = [];
+
+      return {
+        brand: item.brand?.name || '—',
+        category: item.category?.name || '—',
+        featured: false,
+        id: item.id,
+        name: item.name,
+        priceRange: getProductPriceRange(item),
+        status: mapApiStatusToUi(item.status),
+        thumbnail: getProductThumbnail(item.images),
+        totalStock: 0,
+        variants,
+      };
+    });
+  }, [apiProducts]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   const stats = useMemo(() => {
-    const total = products.length;
     const active = products.filter(product => product.status === 'active').length;
     const draft = products.filter(product => product.status === 'draft').length;
-    const totalStock = products.reduce(
-      (sum, product) => sum + product.variants.reduce((variantSum, variant) => variantSum + variant.stock, 0),
-      0,
-    );
+    const totalStock = products.reduce((sum, product) => sum + product.totalStock, 0);
 
     return {
       active,
       draft,
-      total,
+      total: totalCount,
       totalStock,
     };
-  }, [products]);
+  }, [products, totalCount]);
 
-  const getPriceRange = (product: AdminProduct) => {
-    if (product.variants.length === 0) return '—';
+  const pageNumbers = useMemo(() => {
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
-    const prices = product.variants.map(variant => variant.price);
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
 
-    if (min === max) return formatPrice(min);
+    return Array.from({ length: endPage - startPage + 1 }, (_, index) => startPage + index);
+  }, [currentPage, totalPages]);
 
-    return `${formatPrice(min)} - ${formatPrice(max)}`;
-  };
-
-  const getTotalStock = (product: AdminProduct) =>
-    product.variants.reduce((sum, variant) => sum + variant.stock, 0);
+  const startItem = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endItem = Math.min(currentPage * pageSize, totalCount);
 
   const selectClass =
     'h-9 cursor-pointer appearance-none rounded-lg bg-muted px-3 pr-8 text-[1.3rem] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20';
@@ -139,38 +212,25 @@ export default function Products() {
     backgroundRepeat: 'no-repeat' as const,
   };
 
-  const handleDelete = (product: AdminProduct) => {
+  const handleDelete = (product: ProductTableRow) => {
     setDeletingProduct(product);
     setShowDeleteModal(true);
   };
 
-  const handleDeleteConfirmAction = () => {
+  const handleDeleteConfirmAction = async () => {
     if (deletingProduct) {
-      setProducts(prev => prev.filter(product => product.id !== deletingProduct.id));
+      const csrfToken = await genCsrfToken();
+
+      await deleteAdminProductMutation.trigger({
+        ...(csrfToken ? { csrfToken } : {}),
+        id: deletingProduct.id,
+      });
+
+      await getAllAdminProduct.mutate();
     }
 
     setShowDeleteModal(false);
     setDeletingProduct(null);
-  };
-
-  const handleDuplicate = (product: AdminProduct) => {
-    const now = Date.now();
-    const date = new Date().toISOString().split('T')[0];
-
-    const clonedProduct: AdminProduct = {
-      ...product,
-      createdAt: date,
-      id: `P${now}`,
-      name: `${product.name} (Copy)`,
-      status: 'draft',
-      updatedAt: date,
-      variants: product.variants.map(variant => ({
-        ...variant,
-        id: `V${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
-      })),
-    };
-
-    setProducts(prev => [clonedProduct, ...prev]);
   };
 
   return (
@@ -235,12 +295,11 @@ export default function Products() {
                   <input
                     className="h-9 w-full rounded-lg bg-muted py-0 pr-4 pl-9 text-[1.3rem] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                     onChange={event => {
-                      setSearchQuery(event.target.value);
-                      setCurrentPage(1);
+                      setSearchInput(event.target.value);
                     }}
                     placeholder="Tìm tên, mã SP, SKU..."
                     type="text"
-                    value={searchQuery}
+                    value={searchInput}
                   />
                 </div>
 
@@ -254,9 +313,9 @@ export default function Products() {
                   value={categoryFilter}
                 >
                   <option value="ALL">Tất cả danh mục</option>
-                  {categoryOptions.map(option => (
-                    <option key={option} value={option}>
-                      {option}
+                  {(getAllCategories.data?.data ?? []).map(option => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
                     </option>
                   ))}
                 </select>
@@ -271,9 +330,9 @@ export default function Products() {
                   value={brandFilter}
                 >
                   <option value="ALL">Tất cả thương hiệu</option>
-                  {brandOptions.map(option => (
-                    <option key={option} value={option}>
-                      {option}
+                  {(getAllBrands.data?.data ?? []).map(option => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
                     </option>
                   ))}
                 </select>
@@ -302,6 +361,23 @@ export default function Products() {
                   <Download className="h-4 w-4" />
                   <span className="hidden sm:inline">Xuất Excel</span>
                 </button>
+
+                <select
+                  className={selectClass}
+                  onChange={event => {
+                    const nextSize = Number(event.target.value) as (typeof PAGE_SIZE_OPTIONS)[number];
+                    setPageSize(nextSize);
+                    setCurrentPage(1);
+                  }}
+                  style={selectStyle}
+                  value={pageSize}
+                >
+                  {PAGE_SIZE_OPTIONS.map(option => (
+                    <option key={option} value={option}>
+                      {option} / trang
+                    </option>
+                  ))}
+                </select>
 
                 <Link
                   className="flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-[1.3rem] font-500 text-white transition-colors hover:bg-primary-dark"
@@ -342,7 +418,13 @@ export default function Products() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedProducts.length === 0 ? (
+                {getAllAdminProduct.isLoading ? (
+                  <tr>
+                    <td className="py-16 text-center text-[1.4rem] text-muted-foreground" colSpan={7}>
+                      Đang tải dữ liệu sản phẩm...
+                    </td>
+                  </tr>
+                ) : products.length === 0 ? (
                   <tr>
                     <td className="py-16 text-center text-[1.4rem] text-muted-foreground" colSpan={7}>
                       <Package className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
@@ -350,9 +432,9 @@ export default function Products() {
                     </td>
                   </tr>
                 ) : (
-                  paginatedProducts.map(product => {
+                  products.map(product => {
                     const status = statusConfig[product.status];
-                    const totalStock = getTotalStock(product);
+                    const totalStock = product.totalStock;
 
                     return (
                       <tr
@@ -389,9 +471,7 @@ export default function Products() {
                         </td>
 
                         <td className="px-5 py-3.5">
-                          <span className="text-[1.3rem] font-500 text-foreground">
-                            {getPriceRange(product)}
-                          </span>
+                          <span className="text-[1.3rem] font-500 text-foreground">{product.priceRange}</span>
                         </td>
 
                         <td className="hidden px-5 py-3.5 text-center sm:table-cell">
@@ -434,14 +514,6 @@ export default function Products() {
                               <Pencil className="h-4 w-4" />
                             </button>
                             <button
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-blue-50 hover:text-blue-600"
-                              onClick={() => handleDuplicate(product)}
-                              title="Nhân bản"
-                              type="button"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </button>
-                            <button
                               className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-destructive"
                               onClick={() => handleDelete(product)}
                               title="Xóa"
@@ -462,14 +534,11 @@ export default function Products() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-border px-5 py-4">
               <p className="text-[1.3rem] text-muted-foreground">
-                Hiển thị{' '}
-                <span className="font-500 text-foreground">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span>
+                Hiển thị <span className="font-500 text-foreground">{startItem}</span>
                 {' - '}
-                <span className="font-500 text-foreground">
-                  {Math.min(currentPage * ITEMS_PER_PAGE, filteredProducts.length)}
-                </span>
+                <span className="font-500 text-foreground">{endItem}</span>
                 {' / '}
-                {filteredProducts.length} sản phẩm
+                {totalCount} sản phẩm
               </p>
 
               <div className="flex items-center gap-1">
@@ -482,7 +551,7 @@ export default function Products() {
                   <ChevronLeft className="h-4 w-4" />
                 </button>
 
-                {Array.from({ length: totalPages }, (_, index) => index + 1).map(page => (
+                {pageNumbers.map(page => (
                   <button
                     className={`flex h-8 w-8 items-center justify-center rounded-lg text-[1.3rem] transition-colors ${
                       currentPage === page

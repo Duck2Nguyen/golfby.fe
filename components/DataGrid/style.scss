@@ -1,0 +1,39 @@
+.data-grid {
+  .ag-body-horizontal-scroll-viewport,
+  .ag-body-vertical-scroll-viewport,
+  .ag-body-viewport,
+  .ag-center-cols-viewport {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(107, 114, 128, 0.35) transparent;
+  }
+
+  .ag-body-horizontal-scroll-viewport::-webkit-scrollbar,
+  .ag-body-vertical-scroll-viewport::-webkit-scrollbar,
+  .ag-body-viewport::-webkit-scrollbar,
+  .ag-center-cols-viewport::-webkit-scrollbar {
+    height: 0.8rem;
+    width: 0.8rem;
+  }
+
+  .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-track,
+  .ag-body-vertical-scroll-viewport::-webkit-scrollbar-track,
+  .ag-body-viewport::-webkit-scrollbar-track,
+  .ag-center-cols-viewport::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-thumb,
+  .ag-body-vertical-scroll-viewport::-webkit-scrollbar-thumb,
+  .ag-body-viewport::-webkit-scrollbar-thumb,
+  .ag-center-cols-viewport::-webkit-scrollbar-thumb {
+    background: rgba(107, 114, 128, 0.3);
+    border-radius: 9999px;
+  }
+
+  .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-thumb:hover,
+  .ag-body-vertical-scroll-viewport::-webkit-scrollbar-thumb:hover,
+  .ag-body-viewport::-webkit-scrollbar-thumb:hover,
+  .ag-center-cols-viewport::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.45);
+  }
+}
