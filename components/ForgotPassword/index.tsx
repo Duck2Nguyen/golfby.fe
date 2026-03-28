@@ -8,8 +8,6 @@ import { Form, Formik } from 'formik';
 import { Button } from '@heroui/button';
 import { addToast } from '@heroui/toast';
 
-import { genCsrfToken } from '@/utils/csrf';
-
 import { useAuth } from '@/hooks/auth/useAuth';
 
 import { Field } from '@/elements';
@@ -33,11 +31,10 @@ export default function ForgotPassword() {
   const handleSubmit = async (values: ForgotPasswordValues) => {
     try {
       setIsLoading(true);
-      const csrfToken = await genCsrfToken();
 
       await forgotPasswordMutation.trigger({
+        csrf: true,
         email: values.email.trim(),
-        ...(csrfToken ? { csrfToken } : {}),
       });
       addToast({
         color: 'success',

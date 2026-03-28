@@ -32,7 +32,7 @@ export interface UseCategoriresOptions {
 }
 
 export interface CreateCategoryPayload {
-  csrfToken?: string;
+  csrf?: boolean;
   description?: string;
   name: string;
   parentId?: string;
@@ -44,13 +44,13 @@ export type UpdateCategoryPayload = Partial<CreateCategoryPayload> & {
 };
 
 export interface DeleteCategoryPayload {
-  csrfToken?: string;
+  csrf?: boolean;
   id: string;
 }
 
 export interface CreateSubcategoryPayload {
   categoryId: string;
-  csrfToken?: string;
+  csrf?: boolean;
   description?: string;
   name: string;
   slug: string;
@@ -61,7 +61,7 @@ export type UpdateSubcategoryPayload = Partial<CreateSubcategoryPayload> & {
 };
 
 export interface DeleteSubcategoryPayload {
-  csrfToken?: string;
+  csrf?: boolean;
   id: string;
 }
 

@@ -5,7 +5,6 @@ import { useMemo } from 'react';
 import type { Brand } from '@/hooks/useBrands';
 
 import { toSlug } from '@/utils/common';
-import { genCsrfToken } from '@/utils/csrf';
 
 import { useBrands } from '@/hooks/useBrands';
 
@@ -33,10 +32,8 @@ export default function BrandPicker({ onSelectAction, selectedBrandIds }: BrandP
     const trimmedLabel = label.trim();
     if (!trimmedLabel) return;
 
-    const csrfToken = await genCsrfToken();
-
     const response = await createBrandMutation.trigger({
-      ...(csrfToken ? { csrfToken } : {}),
+      csrf: true,
       name: trimmedLabel,
       slug: toSlug(trimmedLabel),
     });

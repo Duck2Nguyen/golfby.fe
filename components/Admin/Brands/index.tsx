@@ -5,8 +5,6 @@ import { useMemo, useState, useEffect } from 'react';
 
 import type { Brand } from '@/hooks/useBrands';
 
-import { genCsrfToken } from '@/utils/csrf';
-
 import { useBrands } from '@/hooks/useBrands';
 
 import DataGrid from '@/components/DataGrid';
@@ -81,10 +79,8 @@ export default function Brands() {
   const handleDeleteConfirmAction = async () => {
     if (!deletingBrand?.id) return;
 
-    const csrfToken = await genCsrfToken();
-
     await deleteBrandMutation.trigger({
-      ...(csrfToken ? { csrfToken } : {}),
+      csrf: true,
       id: deletingBrand.id,
     });
 
@@ -95,11 +91,9 @@ export default function Brands() {
   };
 
   const handleSubmitAction = async (data: BrandFormData) => {
-    const csrfToken = await genCsrfToken();
-
     if (formMode === 'create') {
       await createBrandMutation.trigger({
-        ...(csrfToken ? { csrfToken } : {}),
+        csrf: true,
         description: data.description || undefined,
         logoUrl: data.logoUrl || undefined,
         name: data.name,
@@ -109,7 +103,7 @@ export default function Brands() {
       if (!data.id) return;
 
       await updateBrandMutation.trigger({
-        ...(csrfToken ? { csrfToken } : {}),
+        csrf: true,
         description: data.description || undefined,
         id: data.id,
         logoUrl: data.logoUrl || undefined,

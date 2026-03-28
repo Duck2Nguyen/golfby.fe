@@ -10,6 +10,7 @@ import type { Key, PublicConfiguration } from 'swr/_internal';
 import type { RestError, RestResponse } from '@/interfaces/response';
 
 import { fetcher } from '@/utils/restApi';
+import { genCsrfToken } from '@/utils/csrf';
 
 import { METHOD } from '@/global/common';
 import { COMMON_LOADING } from '@/global/swr';
@@ -126,84 +127,121 @@ export const useMutation = <T = Record<string, unknown>,>(
 
   return useSWRMutation(
     key,
-    async (key: string, { arg: body }: { arg?: Record<string, unknown> | FormData }) => {
+    async (mutationKey: string, { arg: body }: { arg?: Record<string, unknown> | FormData }) => {
       return new Promise<RestResponse<T>>((resolve, reject) => {
-        let componentId = options.componentId;
-        let notification = options.notification;
+        const executeRequest = async () => {
+          const requestBody = body;
 
-        if (!(body instanceof FormData) && body?.componentId) {
-          componentId = body?.componentId as string;
-          delete body.componentId;
-        }
-        if (!(body instanceof FormData) && body?.notification) {
-          notification = body?.notification as NotificationConfig;
-          delete body.notification;
-        }
+          if (requestBody && !(requestBody instanceof FormData)) {
+            const shouldAttachCsrf = Boolean(requestBody.csrf);
 
-        if (options.loading) {
-          mutate(COMMON_LOADING, {
-            componentId,
-            loading: true,
-          });
-        }
+            if ('csrf' in requestBody) {
+              delete requestBody.csrf;
+            }
 
-        const extraHeader = (body as Record<string, unknown>)?.extraHeader as Record<string, string>;
-        if (!(body instanceof FormData) && body?.extraHeader) {
-          delete body.extraHeader;
-        }
+            if (shouldAttachCsrf) {
+              const csrfToken = await genCsrfToken();
+              if (csrfToken) {
+                requestBody.csrfToken = csrfToken;
+              }
+            }
+          }
 
-        fetcher<T>(url ?? key, method ?? METHOD.POST, body as Record<string, unknown>, {
-          ...(!options.noAuth && {
-            Authorization: 'Bearer ' + session?.accessToken,
-          }),
-          ...extraHeader,
-        })
-          .then(data => {
-            resolve(data);
-            if (notification && !notification.ignoreSuccess) {
-              addToast({
-                color: 'success',
-                variant: 'solid',
-                title: notification?.title,
-                description: notification?.content,
+          return requestBody;
+        };
+
+        executeRequest()
+          .then(requestBody => {
+            let componentId = options.componentId;
+            let notification = options.notification;
+
+            if (!(requestBody instanceof FormData) && requestBody?.componentId) {
+              componentId = requestBody?.componentId as string;
+              delete requestBody.componentId;
+            }
+            if (!(requestBody instanceof FormData) && requestBody?.notification) {
+              notification = requestBody?.notification as NotificationConfig;
+              delete requestBody.notification;
+            }
+
+            if (options.loading) {
+              mutate(COMMON_LOADING, {
+                componentId,
+                loading: true,
               });
             }
+
+            const extraHeader = (requestBody as Record<string, unknown>)?.extraHeader as Record<
+              string,
+              string
+            >;
+            if (!(requestBody instanceof FormData) && requestBody?.extraHeader) {
+              delete requestBody.extraHeader;
+            }
+
+            fetcher<T>(url ?? mutationKey, method ?? METHOD.POST, requestBody as Record<string, unknown>, {
+              ...(!options.noAuth && {
+                Authorization: 'Bearer ' + session?.accessToken,
+              }),
+              ...extraHeader,
+            })
+              .then(data => {
+                resolve(data);
+                if (notification && !notification.ignoreSuccess) {
+                  addToast({
+                    color: 'success',
+                    variant: 'solid',
+                    title: notification?.title,
+                    description: notification?.content,
+                  });
+                }
+              })
+              .catch(err => {
+                reject(err);
+                if (!notification?.ignoreError) {
+                  // Handle error message - first check if code is in our translations
+                  let errorMessage = notification?.errorMessage;
+
+                  if (!errorMessage) {
+                    if (err?.code && ERROR_MESSAGES[err.code]) {
+                      // Use translated error code
+                      errorMessage = translateErrorCode(err.code);
+                    } else if (err?.message) {
+                      // Use message if it's a string, or take first element if array
+                      errorMessage = Array.isArray(err.message) ? err.message[0] : err.message;
+                    } else {
+                      // Fallback
+                      errorMessage = 'An error occurred';
+                    }
+                  }
+
+                  addToast({
+                    color: 'danger',
+                    variant: 'solid',
+                    title: notification?.title ?? 'Error',
+                    description: errorMessage,
+                  });
+                }
+              })
+              .finally(() => {
+                {
+                  if (options.loading) {
+                    mutate(COMMON_LOADING, {
+                      componentId,
+                      loading: false,
+                    });
+                  }
+                }
+              });
           })
           .catch(err => {
             reject(err);
-            if (!notification?.ignoreError) {
-              // Handle error message - first check if code is in our translations
-              let errorMessage = notification?.errorMessage;
 
-              if (!errorMessage) {
-                if (err?.code && ERROR_MESSAGES[err.code]) {
-                  // Use translated error code
-                  errorMessage = translateErrorCode(err.code);
-                } else if (err?.message) {
-                  // Use message if it's a string, or take first element if array
-                  errorMessage = Array.isArray(err.message) ? err.message[0] : err.message;
-                } else {
-                  // Fallback
-                  errorMessage = 'An error occurred';
-                }
-              }
-
-              addToast({
-                color: 'danger',
-                variant: 'solid',
-                title: notification?.title ?? 'Error',
-                description: errorMessage,
+            if (options.loading) {
+              mutate(COMMON_LOADING, {
+                componentId: options.componentId,
+                loading: false,
               });
-            }
-          })
-          .finally(() => {
-            {
-              if (options.loading) {
-                mutate(COMMON_LOADING, {
-                  componentId,
-                  loading: false,
-                });
-              }
             }
           });
       });

@@ -7,8 +7,6 @@ import { addToast } from '@heroui/toast';
 
 import type { UserAddress } from '@/interfaces/model';
 
-import { genCsrfToken } from '@/utils/csrf';
-
 import { useMutation, useSWRWrapper } from '@/hooks/swr';
 
 import { METHOD } from '@/global/common';
@@ -99,20 +97,13 @@ export default function AddressPage() {
     isDefault: data.isDefault,
   });
 
-  const getCsrfPayload = async () => {
-    const csrfToken = await genCsrfToken();
-
-    return csrfToken ? { csrfToken } : {};
-  };
-
   const handleDelete = async (id: string) => {
     try {
       setDeletingId(id);
-      const csrfPayload = await getCsrfPayload();
 
       await deleteAddressMutation.trigger({
+        csrf: true,
         id,
-        ...csrfPayload,
       });
 
       await mutateUserAddresses();
@@ -133,10 +124,9 @@ export default function AddressPage() {
   const handleSubmit = async (data: Omit<Address, 'id'>) => {
     try {
       setIsSaving(true);
-      const csrfPayload = await getCsrfPayload();
       const payload = {
+        csrf: true,
         ...mapAddressPayload(data),
-        ...csrfPayload,
       };
 
       if (editingAddress) {

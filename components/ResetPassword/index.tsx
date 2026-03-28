@@ -9,8 +9,6 @@ import { Button } from '@heroui/button';
 import { addToast } from '@heroui/toast';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-import { genCsrfToken } from '@/utils/csrf';
-
 import { useAuth } from '@/hooks/auth/useAuth';
 
 import { Field } from '@/elements';
@@ -56,12 +54,10 @@ export default function ResetPassword() {
           throw new Error('missing_link_data');
         }
 
-        const csrfToken = await genCsrfToken();
-
         await forgotPasswordCheckMutation.trigger({
+          csrf: true,
           id: userId,
           token,
-          ...(csrfToken ? { csrfToken } : {}),
         });
 
         setIsCheckPassed(true);
@@ -96,12 +92,11 @@ export default function ResetPassword() {
 
     try {
       setIsSubmitting(true);
-      const csrfToken = await genCsrfToken();
       await resetPasswordMutation.trigger({
+        csrf: true,
         id: userId,
         token,
         password: values.password,
-        ...(csrfToken ? { csrfToken } : {}),
       });
       addToast({
         color: 'success',

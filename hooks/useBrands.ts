@@ -17,7 +17,7 @@ export interface UseBrandsOptions {
 }
 
 export interface CreateBrandPayload {
-  csrfToken?: string;
+  csrf?: boolean;
   description?: string;
   logoUrl?: string;
   name: string;
@@ -29,7 +29,7 @@ export type UpdateBrandPayload = Partial<CreateBrandPayload> & {
 };
 
 export interface DeleteBrandPayload {
-  csrfToken?: string;
+  csrf?: boolean;
   id: string;
 }
 

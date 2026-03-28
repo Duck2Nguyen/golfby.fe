@@ -5,7 +5,6 @@ import { useMemo } from 'react';
 import type { CategoryBase } from '@/hooks/useCategorires';
 
 import { toSlug } from '@/utils/common';
-import { genCsrfToken } from '@/utils/csrf';
 
 import { useCategorires } from '@/hooks/useCategorires';
 
@@ -33,10 +32,8 @@ export default function CollectionPicker({ onSelectAction, selectedCollectionIds
     const trimmedLabel = label.trim();
     if (!trimmedLabel) return;
 
-    const csrfToken = await genCsrfToken();
-
     const response = await createCategoryMutation.trigger({
-      ...(csrfToken ? { csrfToken } : {}),
+      csrf: true,
       name: trimmedLabel,
       slug: toSlug(trimmedLabel),
     });

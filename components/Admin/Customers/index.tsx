@@ -5,9 +5,9 @@ import { Plus, Search, Download, ChevronLeft, ChevronRight } from 'lucide-react'
 
 import type { UserInfo } from '@/interfaces/model';
 
-import { genCsrfToken } from '@/utils/csrf';
-
 import { useAdminUsers, useCreateAdminUser, useUpdateAdminUser } from '@/hooks/admin/useAdminUsers';
+
+import { ROLE, USER_STATUS } from '@/global/common';
 
 import DataGrid from '@/components/DataGrid';
 
@@ -18,8 +18,16 @@ import UserFormModal, { type UserFormData } from './UserFormModal';
 const ITEMS_PER_PAGE = 8;
 
 const toUserFormData = (user: UserInfo): UserFormData => {
-  const roleRaw = user.userRole || user.role || 'USER';
-  const statusRaw = user.userStatus || 'ACTIVE';
+  const roleRaw = user.userRole || user.role || ROLE.USER;
+  const statusRaw = user.userStatus || USER_STATUS.ACTIVE;
+
+  const normalizedRole = roleRaw === ROLE.ADMIN ? ROLE.ADMIN : ROLE.USER;
+  const normalizedStatus =
+    statusRaw === USER_STATUS.PENDING
+      ? USER_STATUS.PENDING
+      : statusRaw === USER_STATUS.DEACTIVATED
+        ? USER_STATUS.DEACTIVATED
+        : USER_STATUS.ACTIVE;
 
   return {
     email: user.email || '',
@@ -27,8 +35,8 @@ const toUserFormData = (user: UserInfo): UserFormData => {
     id: user.id,
     lastName: user.lastName || '',
     phone: user.phoneNumber || '',
-    role: roleRaw === 'ADMIN' ? 'ADMIN' : 'USER',
-    status: statusRaw.toUpperCase() === 'INACTIVE' ? 'inactive' : 'active',
+    role: normalizedRole,
+    status: normalizedStatus,
   };
 };
 
@@ -40,8 +48,8 @@ const getDisplayName = (user: UserFormData) => {
 export default function Customers() {
   const [users, setUsers] = useState<UserFormData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'ALL' | 'ADMIN' | 'USER'>('ALL');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'active' | 'inactive'>('ALL');
+  const [roleFilter, setRoleFilter] = useState<'ALL' | ROLE>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | USER_STATUS>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
 
   const [showFormModal, setShowFormModal] = useState(false);
@@ -103,10 +111,10 @@ export default function Customers() {
 
   const stats = useMemo(() => {
     const total = response?.data?.totalCount ?? users.length;
-    const admins = users.filter(user => user.role === 'ADMIN').length;
-    const active = users.filter(user => user.status === 'active').length;
-    const inactive = users.filter(user => user.status === 'inactive').length;
-    return { active, admins, inactive, total };
+    const admins = users.filter(user => user.role === ROLE.ADMIN).length;
+    const active = users.filter(user => user.status === USER_STATUS.ACTIVE).length;
+    const deactivated = users.filter(user => user.status === USER_STATUS.DEACTIVATED).length;
+    return { active, admins, deactivated, total };
   }, [response?.data?.totalCount, users]);
 
   const handleCreate = () => {
@@ -128,51 +136,40 @@ export default function Customers() {
 
   const handleFormSubmitAction = async (data: UserFormData) => {
     if (formMode === 'create') {
-      const csrfToken = await genCsrfToken();
-
       await createUser({
-        ...(csrfToken ? { csrfToken } : {}),
+        csrf: true,
         email: data.email.trim(),
         first_name: data.firstName.trim(),
         last_name: data.lastName.trim(),
         password: data.password || '',
         phone: data.phone.trim(),
         role: data.role,
-        status: data.status === 'active' ? 'ACTIVE' : 'INACTIVE',
+        status: data.status,
       });
 
       await mutate();
     } else {
       if (!editingUser?.id) return;
 
-      const csrfToken = await genCsrfToken();
+      const nextStatus = data.status;
+      const prevStatus = editingUser.status;
+      if (nextStatus === prevStatus) {
+        setShowFormModal(false);
+        return;
+      }
+
       const payload: {
-        csrfToken?: string;
+        csrf?: boolean;
         id: string;
-        role?: 'ADMIN' | 'USER';
-        status?: 'ACTIVE' | 'INACTIVE';
+        status: USER_STATUS;
       } = {
+        csrf: true,
         id: editingUser.id,
+        status: nextStatus,
       };
 
-      if (data.role !== editingUser.role) {
-        payload.role = data.role;
-      }
-
-      const nextStatus = data.status === 'active' ? 'ACTIVE' : 'INACTIVE';
-      const prevStatus = editingUser.status === 'active' ? 'ACTIVE' : 'INACTIVE';
-      if (nextStatus !== prevStatus) {
-        payload.status = nextStatus;
-      }
-
-      if (csrfToken) {
-        payload.csrfToken = csrfToken;
-      }
-
-      if (payload.role || payload.status) {
-        await updateUser(payload);
-        await mutate();
-      }
+      await updateUser(payload);
+      await mutate();
     }
 
     setShowFormModal(false);
@@ -219,7 +216,7 @@ export default function Customers() {
 
           <div className="rounded-xl border border-gray-200 bg-white p-4">
             <p className="mb-1 text-[1.3rem] text-gray-500">Ngừng hoạt động</p>
-            <p className="text-[2.8rem] font-700 text-orange-500">{stats.inactive}</p>
+            <p className="text-[2.8rem] font-700 text-orange-500">{stats.deactivated}</p>
           </div>
         </div>
 
@@ -243,7 +240,7 @@ export default function Customers() {
               <select
                 className="h-9 cursor-pointer appearance-none rounded-lg bg-gray-100 py-0 pr-8 pl-3 text-[1.3rem] focus:outline-none focus:ring-2 focus:ring-emerald-600/20"
                 onChange={event => {
-                  setRoleFilter(event.target.value as 'ALL' | 'ADMIN' | 'USER');
+                  setRoleFilter(event.target.value as 'ALL' | ROLE);
                   setCurrentPage(1);
                 }}
                 style={{
@@ -255,14 +252,14 @@ export default function Customers() {
                 value={roleFilter}
               >
                 <option value="ALL">Tất cả vai trò</option>
-                <option value="ADMIN">ADMIN</option>
-                <option value="USER">USER</option>
+                <option value={ROLE.ADMIN}>{ROLE.ADMIN}</option>
+                <option value={ROLE.USER}>{ROLE.USER}</option>
               </select>
 
               <select
                 className="hidden h-9 cursor-pointer appearance-none rounded-lg bg-gray-100 py-0 pr-8 pl-3 text-[1.3rem] focus:outline-none focus:ring-2 focus:ring-emerald-600/20 sm:block"
                 onChange={event => {
-                  setStatusFilter(event.target.value as 'ALL' | 'active' | 'inactive');
+                  setStatusFilter(event.target.value as 'ALL' | USER_STATUS);
                   setCurrentPage(1);
                 }}
                 style={{
@@ -274,8 +271,9 @@ export default function Customers() {
                 value={statusFilter}
               >
                 <option value="ALL">Tất cả trạng thái</option>
-                <option value="active">Hoạt động</option>
-                <option value="inactive">Ngừng hoạt động</option>
+                <option value={USER_STATUS.ACTIVE}>Hoạt động</option>
+                <option value={USER_STATUS.PENDING}>Chờ duyệt</option>
+                <option value={USER_STATUS.DEACTIVATED}>Ngừng hoạt động</option>
               </select>
             </div>
 

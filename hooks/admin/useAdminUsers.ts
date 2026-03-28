@@ -1,4 +1,5 @@
 import type { UserInfo } from '@/interfaces/model';
+import type { ROLE, USER_STATUS } from '@/global/common';
 import type { PaginatedResponse } from '@/interfaces/response';
 
 import { useMutation, useSWRWrapper } from '@/hooks/swr';
@@ -14,21 +15,20 @@ export const useAdminUsers = (page: number, size: number) => {
 };
 
 export interface CreateAdminUserPayload {
-  csrfToken?: string;
+  csrf?: boolean;
   email: string;
   first_name: string;
   last_name: string;
   password: string;
   phone: string;
-  role: 'ADMIN' | 'USER';
-  status: 'ACTIVE' | 'INACTIVE';
+  role: ROLE;
+  status: USER_STATUS;
 }
 
 export interface UpdateAdminUserPayload {
-  csrfToken?: string;
+  csrf?: boolean;
   id: string;
-  role?: 'ADMIN' | 'USER';
-  status?: 'ACTIVE' | 'INACTIVE';
+  status: USER_STATUS;
 }
 
 export const useCreateAdminUser = () => {
@@ -43,12 +43,12 @@ export const useCreateAdminUser = () => {
 };
 
 export const useUpdateAdminUser = () => {
-  return useMutation('/api/v1/admin/users/{id}/update', {
+  return useMutation('/api/v1/admin/users/{id}/update-status', {
     method: METHOD.PATCH,
     notification: {
-      content: 'Cập nhật người dùng thành công',
+      content: 'Cập nhật trạng thái người dùng thành công',
       title: 'Thành công',
     },
-    url: '/api/v1/admin/users/{id}/update',
+    url: '/api/v1/admin/users/{id}/update-status',
   });
 };

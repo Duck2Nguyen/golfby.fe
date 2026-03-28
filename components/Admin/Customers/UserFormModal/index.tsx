@@ -7,6 +7,7 @@ import * as yup from 'yup';
 import { Form, Formik } from 'formik';
 
 import { Field } from '@/elements';
+import { ROLE, USER_STATUS } from '@/global/common';
 
 export interface UserFormData {
   email: string;
@@ -15,8 +16,8 @@ export interface UserFormData {
   lastName: string;
   password?: string;
   phone: string;
-  role: 'ADMIN' | 'USER';
-  status: 'active' | 'inactive';
+  role: ROLE;
+  status: USER_STATUS;
 }
 
 interface UserFormModalProps {
@@ -45,8 +46,8 @@ export default function UserFormModal({
       lastName: initialData?.lastName || '',
       password: '',
       phone: initialData?.phone || '',
-      role: initialData?.role || 'USER',
-      status: initialData?.status || 'active',
+      role: initialData?.role || ROLE.USER,
+      status: initialData?.status || USER_STATUS.ACTIVE,
     }),
     [initialData],
   );
@@ -54,10 +55,9 @@ export default function UserFormModal({
   const validationSchema = useMemo(() => {
     if (isEditMode) {
       return yup.object().shape({
-        role: yup.mixed<'ADMIN' | 'USER'>().oneOf(['ADMIN', 'USER']).required('Vui lòng chọn vai trò'),
         status: yup
-          .mixed<'active' | 'inactive'>()
-          .oneOf(['active', 'inactive'])
+          .mixed<USER_STATUS>()
+          .oneOf([USER_STATUS.ACTIVE, USER_STATUS.PENDING, USER_STATUS.DEACTIVATED])
           .required('Vui lòng chọn trạng thái'),
       });
     }
@@ -68,10 +68,10 @@ export default function UserFormModal({
       lastName: yup.string().trim().required('Vui lòng nhập họ'),
       password: yup.string().required('Vui lòng nhập mật khẩu').min(6, 'Mật khẩu tối thiểu 6 ký tự'),
       phone: yup.string().trim().required('Vui lòng nhập số điện thoại'),
-      role: yup.mixed<'ADMIN' | 'USER'>().oneOf(['ADMIN', 'USER']).required('Vui lòng chọn vai trò'),
+      role: yup.mixed<ROLE>().oneOf([ROLE.USER, ROLE.ADMIN]).required('Vui lòng chọn vai trò'),
       status: yup
-        .mixed<'active' | 'inactive'>()
-        .oneOf(['active', 'inactive'])
+        .mixed<USER_STATUS>()
+        .oneOf([USER_STATUS.ACTIVE, USER_STATUS.PENDING, USER_STATUS.DEACTIVATED])
         .required('Vui lòng chọn trạng thái'),
     });
   }, [isEditMode]);
@@ -156,21 +156,23 @@ export default function UserFormModal({
 
               <div className="grid grid-cols-2 gap-4">
                 <Field.Select
+                  disabled={isEditMode}
                   label="Vai trò"
                   name="role"
                   options={[
-                    { value: 'USER', label: 'USER' },
-                    { value: 'ADMIN', label: 'ADMIN' },
+                    { value: ROLE.USER, label: ROLE.USER },
+                    { value: ROLE.ADMIN, label: ROLE.ADMIN },
                   ]}
-                  required
+                  required={!isEditMode}
                 />
 
                 <Field.Select
                   label="Trạng thái"
                   name="status"
                   options={[
-                    { value: 'active', label: 'Hoạt động' },
-                    { value: 'inactive', label: 'Ngừng hoạt động' },
+                    { value: USER_STATUS.ACTIVE, label: 'Hoạt động' },
+                    { value: USER_STATUS.PENDING, label: 'Chờ duyệt' },
+                    { value: USER_STATUS.DEACTIVATED, label: 'Ngừng hoạt động' },
                   ]}
                   required
                 />

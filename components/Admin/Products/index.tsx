@@ -18,8 +18,6 @@ import {
 import { Link } from '@heroui/link';
 import { useRouter } from 'next/navigation';
 
-import { genCsrfToken } from '@/utils/csrf';
-
 import { useBrands } from '@/hooks/useBrands';
 import { useCategorires } from '@/hooks/useCategorires';
 import { useAdminProduct, type AdminProductListItem } from '@/hooks/admin/useAdminProduct';
@@ -219,10 +217,8 @@ export default function Products() {
 
   const handleDeleteConfirmAction = async () => {
     if (deletingProduct) {
-      const csrfToken = await genCsrfToken();
-
       await deleteAdminProductMutation.trigger({
-        ...(csrfToken ? { csrfToken } : {}),
+        csrf: true,
         id: deletingProduct.id,
       });
 

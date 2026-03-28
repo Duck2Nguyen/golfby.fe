@@ -5,8 +5,6 @@ import { useMemo, useState, useEffect } from 'react';
 
 import type { CategoryWithSubcategories } from '@/hooks/useCategorires';
 
-import { genCsrfToken } from '@/utils/csrf';
-
 import { useCategorires } from '@/hooks/useCategorires';
 
 import DataGrid from '@/components/DataGrid';
@@ -81,10 +79,8 @@ export default function Categories() {
   const handleDeleteConfirmAction = async () => {
     if (!deletingCategory?.id) return;
 
-    const csrfToken = await genCsrfToken();
-
     await deleteCategoryMutation.trigger({
-      ...(csrfToken ? { csrfToken } : {}),
+      csrf: true,
       id: deletingCategory.id,
     });
 
@@ -95,11 +91,9 @@ export default function Categories() {
   };
 
   const handleSubmitAction = async (data: CategoryFormData) => {
-    const csrfToken = await genCsrfToken();
-
     if (formMode === 'create') {
       await createCategoryMutation.trigger({
-        ...(csrfToken ? { csrfToken } : {}),
+        csrf: true,
         description: data.description || undefined,
         name: data.name,
         slug: data.slug,
@@ -108,7 +102,7 @@ export default function Categories() {
       if (!data.id) return;
 
       await updateCategoryMutation.trigger({
-        ...(csrfToken ? { csrfToken } : {}),
+        csrf: true,
         description: data.description || undefined,
         id: data.id,
         name: data.name,
