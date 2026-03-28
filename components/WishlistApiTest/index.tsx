@@ -1,16 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
-import { Button } from '@heroui/button';
 import { Input } from '@heroui/input';
+import { Button } from '@heroui/button';
 
 import { useWishlists } from '@/hooks/useWishlists';
 
-const DEFAULT_PRODUCT_IDS = [
-  '4f7a3e20-13b6-4b37-a6f4-ec9db34b264b',
-  '8d84ca9f-4542-4f27-af5e-0699215814a6',
-];
+const DEFAULT_PRODUCT_IDS = ['4f7a3e20-13b6-4b37-a6f4-ec9db34b264b', '8d84ca9f-4542-4f27-af5e-0699215814a6'];
 
 const formatErrorMessage = (error: unknown) => {
   if (typeof error === 'object' && error !== null && 'message' in error) {

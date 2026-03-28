@@ -8,13 +8,7 @@ interface FormCheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
   onCheckedChange?: (checked: boolean) => void;
 }
 
-export function FormCheckbox({
-  label,
-  checked = false,
-  onCheckedChange,
-  id,
-  ...props
-}: FormCheckboxProps) {
+export function FormCheckbox({ label, checked = false, onCheckedChange, id, ...props }: FormCheckboxProps) {
   const inputId = id || label.toLowerCase().replace(/\s+/g, '-');
 
   return (
@@ -24,15 +18,13 @@ export function FormCheckbox({
           id={inputId}
           type="checkbox"
           checked={checked}
-          onChange={(e) => onCheckedChange?.(e.target.checked)}
+          onChange={e => onCheckedChange?.(e.target.checked)}
           className="peer sr-only"
           {...props}
         />
         <div
           className={` flex h-5 w-5 items-center justify-center rounded-md border-2 transition-all duration-200 ${
-            checked
-              ? 'border-primary bg-primary'
-              : 'border-gray-300 bg-white group-hover:border-primary/50'
+            checked ? 'border-primary bg-primary' : 'border-gray-300 bg-white group-hover:border-primary/50'
           } `}
         >
           {checked && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />}

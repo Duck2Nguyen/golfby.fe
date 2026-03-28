@@ -111,9 +111,7 @@ export default function VariantRow({
           <label className="mb-1 block text-[1.2rem] font-500 text-muted-foreground">Giá gốc (₫)</label>
           <input
             className={inputClass}
-            onChange={event =>
-              onChangeAction(variant.id, 'originalPrice', parseCurrency(event.target.value))
-            }
+            onChange={event => onChangeAction(variant.id, 'originalPrice', parseCurrency(event.target.value))}
             placeholder="Để trống nếu không giảm"
             type="text"
             value={variant.originalPrice ? formatCurrency(variant.originalPrice) : ''}
@@ -125,7 +123,9 @@ export default function VariantRow({
           <input
             className={inputClass}
             min={0}
-            onChange={event => onChangeAction(variant.id, 'weight', Number.parseInt(event.target.value, 10) || 0)}
+            onChange={event =>
+              onChangeAction(variant.id, 'weight', Number.parseInt(event.target.value, 10) || 0)
+            }
             placeholder="0"
             type="number"
             value={variant.weight || ''}
@@ -139,7 +139,9 @@ export default function VariantRow({
           <input
             className={inputClass}
             min={0}
-            onChange={event => onChangeAction(variant.id, 'stock', Number.parseInt(event.target.value, 10) || 0)}
+            onChange={event =>
+              onChangeAction(variant.id, 'stock', Number.parseInt(event.target.value, 10) || 0)
+            }
             placeholder="0"
             type="number"
             value={variant.stock || ''}
@@ -147,7 +149,9 @@ export default function VariantRow({
         </div>
 
         <div className="sm:col-span-2">
-          <label className="mb-1 block text-[1.2rem] font-500 text-muted-foreground">Ảnh phân loại (URL)</label>
+          <label className="mb-1 block text-[1.2rem] font-500 text-muted-foreground">
+            Ảnh phân loại (URL)
+          </label>
           <div className="flex gap-2">
             <input
               className={`${inputClass} flex-1`}
@@ -159,7 +163,11 @@ export default function VariantRow({
 
             {variant.image ? (
               <div className="h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
-                <ImageWithFallback alt={variant.name} className="h-full w-full object-cover" src={variant.image} />
+                <ImageWithFallback
+                  alt={variant.name}
+                  className="h-full w-full object-cover"
+                  src={variant.image}
+                />
               </div>
             ) : (
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted">

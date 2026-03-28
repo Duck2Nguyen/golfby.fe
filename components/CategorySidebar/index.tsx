@@ -53,7 +53,7 @@ function PriceSlider({
           max={maxPrice}
           step={100000}
           value={min}
-          onChange={(e) => onChange({ min: Math.min(Number(e.target.value), max - 100000), max })}
+          onChange={e => onChange({ min: Math.min(Number(e.target.value), max - 100000), max })}
           className="pointer-events-none absolute h-2 w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:flex-shrink-0 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-primary [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md"
           style={{ top: 0 }}
         />
@@ -63,7 +63,7 @@ function PriceSlider({
           max={maxPrice}
           step={100000}
           value={max}
-          onChange={(e) => onChange({ min, max: Math.max(Number(e.target.value), min + 100000) })}
+          onChange={e => onChange({ min, max: Math.max(Number(e.target.value), min + 100000) })}
           className="pointer-events-none absolute h-2 w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:flex-shrink-0 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-primary [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md"
           style={{ top: 0 }}
         />
@@ -123,10 +123,7 @@ function CollapsibleSection({
         onClick={() => setOpen(!open)}
         className="mb-3 flex w-full items-center justify-between text-left"
       >
-        <span
-          className="text-[1.4rem] uppercase tracking-wide text-foreground"
-          style={{ fontWeight: 600 }}
-        >
+        <span className="text-[1.4rem] uppercase tracking-wide text-foreground" style={{ fontWeight: 600 }}>
           {title}
         </span>
         {open ? (
@@ -151,23 +148,18 @@ export function CategorySidebar({
     <aside className="w-full">
       {/* Price Filter */}
       <CollapsibleSection title="Giá">
-        <PriceSlider
-          min={priceRange.min}
-          max={priceRange.max}
-          maxPrice={maxPrice}
-          onChange={onPriceChange}
-        />
+        <PriceSlider min={priceRange.min} max={priceRange.max} maxPrice={maxPrice} onChange={onPriceChange} />
       </CollapsibleSection>
 
       {/* Dynamic Filters */}
-      {filters.map((section) => (
+      {filters.map(section => (
         <CollapsibleSection key={section.title} title={section.title}>
-          {section.options.map((option) => (
+          {section.options.map(option => (
             <div key={option.label} className="flex items-center justify-between">
               <FormCheckbox
                 label={option.label}
                 checked={option.checked || false}
-                onCheckedChange={(checked) => onFilterChange(section.title, option.label, checked)}
+                onCheckedChange={checked => onFilterChange(section.title, option.label, checked)}
               />
               <span className="text-[1.2rem] text-muted-foreground">({option.count})</span>
             </div>

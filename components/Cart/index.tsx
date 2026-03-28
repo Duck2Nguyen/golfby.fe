@@ -1,21 +1,21 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useRef, useMemo, useState, useCallback } from 'react';
 import { ChevronLeft, ShieldCheck, ChevronRight, ShoppingCart, MessageSquare } from 'lucide-react';
 
 import { Link } from '@heroui/link';
 import { Spinner } from '@heroui/spinner';
 
-import { useCarts, type CartItem as ApiCartItem } from '@/hooks/useCarts';
-
 import type { CartItem } from '@/components/Cart/CartItemRow';
+
+import { useCarts, type CartItem as ApiCartItem } from '@/hooks/useCarts';
 
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
+import { ProductCard } from '@/components/ProductCard';
 import CartItemRow from '@/components/Cart/CartItemRow';
 import OrderSummary from '@/components/Cart/OrderSummary';
-import { ProductCard } from '@/components/ProductCard';
-import { accessoryProducts, ballProducts, clubProducts } from '@/components/mock-data';
+import { ballProducts, clubProducts, accessoryProducts } from '@/components/mock-data';
 
 const bestSellers = [...clubProducts, ...ballProducts, ...accessoryProducts].slice(0, 6);
 
