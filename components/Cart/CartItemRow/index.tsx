@@ -1,28 +1,28 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Plus, Minus } from 'lucide-react';
+import { Plus, Minus, Trash2 } from 'lucide-react';
 
-import Link from 'next/link';
+import { Link } from '@heroui/link';
 
 import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 
 export interface CartItem {
-  id: number;
-  productId: number;
+  id: number | string;
+  productId: number | string;
   name: string;
   brand: string;
   image: string;
   price: number;
   originalPrice?: number;
   quantity: number;
-  specs: { label: string; value: string }[];
+  specs?: { label: string; value: string }[];
 }
 
 interface CartItemRowProps {
   item: CartItem;
-  onQuantityChange: (id: number, qty: number) => void;
-  onRemove: (id: number) => void;
+  onQuantityChange: (id: number | string, qty: number) => void;
+  onRemove: (id: number | string) => void;
 }
 
 export default function CartItemRow({ item, onQuantityChange, onRemove }: CartItemRowProps) {
@@ -37,19 +37,10 @@ export default function CartItemRow({ item, onQuantityChange, onRemove }: CartIt
 
   return (
     <div
-      className={`group relative bg-white rounded-2xl border border-border/50 p-5 transition-all duration-300 hover:shadow-lg hover:shadow-black/4 hover:border-border ${
+      className={`bg-white rounded-2xl border border-border/50 p-5 transition-all duration-300 hover:shadow-lg hover:shadow-black/4 hover:border-border ${
         isRemoving ? 'opacity-0 scale-95 -translate-x-4' : 'opacity-100'
       }`}
     >
-      {/* Remove button - top right */}
-      <button
-        onClick={handleRemove}
-        className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground/50 hover:bg-destructive/10 hover:text-destructive transition-all duration-200 opacity-0 group-hover:opacity-100"
-        title="Xóa sản phẩm"
-      >
-        <X className="w-4 h-4" />
-      </button>
-
       <div className="flex gap-5">
         {/* Product Image */}
         <Link
@@ -71,13 +62,15 @@ export default function CartItemRow({ item, onQuantityChange, onRemove }: CartIt
             </Link>
 
             {/* Specs */}
-            <div className="flex flex-wrap gap-x-4 gap-y-1">
-              {item.specs.map(spec => (
-                <span key={spec.label} className="text-[12px] text-muted-foreground">
-                  <span className="text-foreground/70 font-500">{spec.label}:</span> {spec.value}
-                </span>
-              ))}
-            </div>
+            {item.specs?.length ? (
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {item.specs.map(spec => (
+                  <span key={spec.label} className="text-[12px] text-muted-foreground">
+                    <span className="text-foreground/70 font-500">{spec.label}:</span> {spec.value}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           {/* Price + Quantity + Subtotal */}
@@ -116,6 +109,16 @@ export default function CartItemRow({ item, onQuantityChange, onRemove }: CartIt
             <div className="min-w-[120px] text-right">
               <span className="text-[16px] text-primary font-700">{formatPrice(subtotal)}</span>
             </div>
+
+            {/* Remove - desktop */}
+            <button
+              onClick={handleRemove}
+              className="hidden md:flex w-9 h-9 rounded-full border border-border/70 items-center justify-center text-muted-foreground/60 hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive transition-all duration-200"
+              title="Xóa sản phẩm"
+              aria-label="Xóa sản phẩm"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
@@ -130,7 +133,19 @@ export default function CartItemRow({ item, onQuantityChange, onRemove }: CartIt
             </span>
           )}
         </div>
-        <span className="text-[14px] text-primary font-700">{formatPrice(subtotal)}</span>
+
+        <div className="flex items-center gap-4">
+          <span className="text-[14px] text-primary font-700">{formatPrice(subtotal)}</span>
+          <button
+            onClick={handleRemove}
+            className="inline-flex items-center gap-1.5 text-[12px] text-destructive hover:text-destructive/80 transition-colors font-600"
+            title="Xóa sản phẩm"
+            aria-label="Xóa sản phẩm"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Xóa
+          </button>
+        </div>
       </div>
     </div>
   );
