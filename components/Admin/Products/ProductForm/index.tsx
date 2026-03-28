@@ -33,26 +33,11 @@ import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 
 import BrandPicker from '../BrandPicker';
 import CkEditorField from '../CkEditorField';
-import VariantManager from '../VariantManager';
 import CollectionPicker from '../CollectionPicker';
 import MultiUploadImage from '../MultiUploadImage';
+import ProductOptionManager from '../ProductOptionManager';
 import MultiSelectDropdown, { type MultiSelectItem } from '../MultiSelectDropdown';
-import { mockProducts, productTagOptions, type VariantOption, type ProductVariant } from '../product-types';
-
-const generateId = () => `V${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
-
-const emptyVariant = (): ProductVariant => ({
-  id: generateId(),
-  image: '',
-  name: '',
-  price: 0,
-  size: '',
-  sku: '',
-  stock: 0,
-  weight: 0,
-});
-
-const formatPrice = (price: number) => `${new Intl.NumberFormat('vi-VN').format(price)}₫`;
+import { mockProducts, productTagOptions, type ProductOption } from '../product-types';
 
 function FormSection({
   children,
@@ -92,13 +77,12 @@ interface ProductFormValues {
   imageFiles: File[];
   images: string[];
   name: string;
+  productOptions: ProductOption[];
   selectedBrandIds: string[];
   selectedCollections: string[];
   selectedTags: string[];
   status: 'active' | 'archived' | 'draft';
   thumbnail: string;
-  variantOptions: VariantOption[];
-  variants: ProductVariant[];
 }
 
 const validationSchema = yup.object({
@@ -113,7 +97,7 @@ const validationSchema = yup.object({
     .of(yup.string())
     .min(1, 'Vui lòng chọn collection')
     .required('Vui lòng chọn collection'),
-  variantOptions: yup
+  productOptions: yup
     .array()
     .of(
       yup.object({
@@ -167,13 +151,12 @@ export default function ProductForm({ productId }: ProductFormProps) {
       imageFiles: [],
       images: editingProduct?.images ?? [],
       name: editingProduct?.name ?? '',
+      productOptions: editingProduct?.productOptions ?? [],
       selectedBrandIds: editingProduct?.vendorIds ?? [],
       selectedCollections: editingProduct?.collectionIds ?? [],
       selectedTags: editingProduct?.tagIds ?? [],
       status: editingProduct?.status ?? 'draft',
       thumbnail: editingProduct?.thumbnail ?? '',
-      variantOptions: editingProduct?.variantOptions ?? [],
-      variants: editingProduct?.variants?.length ? editingProduct.variants : [emptyVariant()],
     }),
     [editingProduct],
   );
@@ -192,7 +175,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
         description: values.description.trim() || undefined,
         listPrice: '0',
         name: values.name.trim(),
-        productOptions: values.variantOptions
+        productOptions: values.productOptions
           .filter(option => option.name.trim() && option.values.filter(Boolean).length > 0)
           .map(option => ({
             name: option.name.trim(),
@@ -216,19 +199,27 @@ export default function ProductForm({ productId }: ProductFormProps) {
     validationSchema,
   });
 
-  const variantStats = useMemo(() => {
-    const totalStock = formik.values.variants.reduce((sum, item) => sum + (item.stock || 0), 0);
-    const prices = formik.values.variants.filter(item => item.price > 0).map(item => item.price);
-    const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-    const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+  const productOptionStats = useMemo(() => {
+    const optionCount = formik.values.productOptions.length;
+    const totalValues = formik.values.productOptions.reduce(
+      (sum, option) => sum + option.values.filter(Boolean).length,
+      0,
+    );
+    const combinationCount =
+      optionCount === 0
+        ? 0
+        : formik.values.productOptions.reduce((acc, option) => {
+            const valueCount = option.values.filter(Boolean).length;
+
+            return acc * Math.max(1, valueCount);
+          }, 1);
 
     return {
-      count: formik.values.variants.length,
-      maxPrice,
-      minPrice,
-      totalStock,
+      combinationCount,
+      optionCount,
+      totalValues,
     };
-  }, [formik.values.variants]);
+  }, [formik.values.productOptions]);
 
   const showErrors = formik.submitCount > 0;
   const errorMessages = useMemo(() => {
@@ -267,7 +258,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
       await formik.setFieldTouched('name', true, false);
       await formik.setFieldTouched('selectedBrandIds', true, false);
       await formik.setFieldTouched('selectedCollections', true, false);
-      await formik.setFieldTouched('variantOptions', true, false);
+      await formik.setFieldTouched('productOptions', true, false);
 
       window.scrollTo({ behavior: 'smooth', top: 0 });
       return;
@@ -368,15 +359,15 @@ export default function ProductForm({ productId }: ProductFormProps) {
             <FormSection
               description="Tùy chọn phân loại như Shaft, Flex, Độ Loft..."
               icon={<Grid3x3 className="h-4 w-4 text-primary" />}
-              title="Variants"
+              title="Phân loại"
             >
-              <VariantManager
-                onChangeAction={nextOptions => formik.setFieldValue('variantOptions', nextOptions)}
-                variants={formik.values.variantOptions}
+              <ProductOptionManager
+                onChangeAction={nextOptions => formik.setFieldValue('productOptions', nextOptions)}
+                productOptions={formik.values.productOptions}
               />
-              {showErrors && formik.errors.variantOptions && (
+              {showErrors && formik.errors.productOptions && (
                 <p className="mt-2 text-[1.2rem] text-destructive">
-                  {collectErrorMessages(formik.errors.variantOptions)[0]}
+                  {collectErrorMessages(formik.errors.productOptions)[0]}
                 </p>
               )}
             </FormSection>
@@ -407,7 +398,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
             <FormSection
               description="Bộ sưu tập mà sản phẩm thuộc về"
               icon={<FolderTree className="h-4 w-4 text-primary" />}
-              title="Collections"
+              title="Danh mục"
             >
               <CollectionPicker
                 onSelectAction={ids => formik.setFieldValue('selectedCollections', ids)}
@@ -423,7 +414,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
             <FormSection
               description="Thương hiệu sản phẩm"
               icon={<Store className="h-4 w-4 text-primary" />}
-              title="Brands"
+              title="Thương hiệu"
             >
               <BrandPicker
                 onSelectAction={ids => formik.setFieldValue('selectedBrandIds', ids)}
@@ -466,33 +457,21 @@ export default function ProductForm({ productId }: ProductFormProps) {
             <FormSection icon={<Package className="h-4 w-4 text-primary" />} title="Tổng quan">
               <div className="space-y-3">
                 <div className="flex items-center justify-between border-b border-border py-2">
-                  <span className="text-[1.3rem] text-muted-foreground">Số phân loại</span>
-                  <span className="text-[1.4rem] font-600 text-foreground">{variantStats.count}</span>
-                </div>
-                <div className="flex items-center justify-between border-b border-border py-2">
-                  <span className="text-[1.3rem] text-muted-foreground">Tổng tồn kho</span>
-                  <span
-                    className={`text-[1.4rem] font-600 ${
-                      variantStats.totalStock === 0
-                        ? 'text-destructive'
-                        : variantStats.totalStock < 10
-                          ? 'text-amber-600'
-                          : 'text-foreground'
-                    }`}
-                  >
-                    {variantStats.totalStock}
+                  <span className="text-[1.3rem] text-muted-foreground">Số option</span>
+                  <span className="text-[1.4rem] font-600 text-foreground">
+                    {productOptionStats.optionCount}
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-b border-border py-2">
-                  <span className="text-[1.3rem] text-muted-foreground">Giá thấp nhất</span>
-                  <span className="text-[1.4rem] font-600 text-primary">
-                    {variantStats.minPrice > 0 ? formatPrice(variantStats.minPrice) : '—'}
+                  <span className="text-[1.3rem] text-muted-foreground">Tổng số value</span>
+                  <span className="text-[1.4rem] font-600 text-foreground">
+                    {productOptionStats.totalValues}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-2">
-                  <span className="text-[1.3rem] text-muted-foreground">Giá cao nhất</span>
+                  <span className="text-[1.3rem] text-muted-foreground">Số tổ hợp dự kiến</span>
                   <span className="text-[1.4rem] font-600 text-primary">
-                    {variantStats.maxPrice > 0 ? formatPrice(variantStats.maxPrice) : '—'}
+                    {productOptionStats.combinationCount}
                   </span>
                 </div>
               </div>
@@ -515,13 +494,6 @@ export default function ProductForm({ productId }: ProductFormProps) {
                     {formik.values.name || 'Tên sản phẩm'}
                   </p>
                   <p className="mt-0.5 text-[1.2rem] text-primary">{formik.values.brand || 'Thương hiệu'}</p>
-                  {variantStats.minPrice > 0 && (
-                    <p className="mt-2 text-[1.6rem] font-700 text-primary">
-                      {variantStats.minPrice === variantStats.maxPrice
-                        ? formatPrice(variantStats.minPrice)
-                        : `${formatPrice(variantStats.minPrice)} - ${formatPrice(variantStats.maxPrice)}`}
-                    </p>
-                  )}
                 </div>
               </div>
             )}

@@ -44,7 +44,7 @@ const MENU_ITEMS: SidebarItem[] = [
   },
   {
     key: 'customers',
-    label: 'Quản lý Users',
+    label: 'Quản lý người dùng',
     href: '/admin/customers',
     icon: Users,
   },
@@ -55,8 +55,8 @@ const MENU_ITEMS: SidebarItem[] = [
     children: [
       { href: '/admin/products', label: 'Danh sách sản phẩm' },
       { href: '/admin/products/create', label: 'Thêm sản phẩm' },
-      { href: '/admin/products/brands', label: 'Quản lý Brand' },
-      { href: '/admin/products/categories', label: 'Quản lý Category' },
+      { href: '/admin/products/brands', label: 'Quản lý thương hiệu' },
+      { href: '/admin/products/categories', label: 'Quản lý danh mục' },
     ],
   },
   {

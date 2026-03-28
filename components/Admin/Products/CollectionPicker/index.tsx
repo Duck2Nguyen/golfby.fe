@@ -55,10 +55,10 @@ export default function CollectionPicker({ onSelectAction, selectedCollectionIds
     <MultiSelectDropdown
       allowMultiple
       items={collectionItems}
-      label="Collections"
+      label="Danh mục"
       onAddNewAction={handleAddNewCollection}
       onSelectionChangeAction={onSelectAction}
-      placeholder={getAllCategories.isLoading ? 'Đang tải collections...' : 'Tìm kiếm collections...'}
+      placeholder={getAllCategories.isLoading ? 'Đang tải danh mục...' : 'Tìm kiếm danh mục...'}
       selectedIds={selectedCollectionIds}
       showAddNew
     />

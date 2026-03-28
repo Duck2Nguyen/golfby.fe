@@ -3,30 +3,30 @@
 import { useState } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 
-import type { VariantOption } from '../product-types';
+import type { ProductOption } from '../product-types';
 
-interface VariantManagerProps {
-  onChangeAction: (variants: VariantOption[]) => void;
-  variants: VariantOption[];
+interface ProductOptionManagerProps {
+  onChangeAction: (productOptions: ProductOption[]) => void;
+  productOptions: ProductOption[];
 }
 
-interface VariantCardProps {
+interface ProductOptionCardProps {
   index: number;
   onAddValueAction: (value: string) => void;
   onRemoveAction: () => void;
   onRemoveValueAction: (index: number) => void;
   onUpdateNameAction: (name: string) => void;
-  variant: VariantOption;
+  productOption: ProductOption;
 }
 
-function VariantCard({
+function ProductOptionCard({
   index,
   onAddValueAction,
   onRemoveAction,
   onRemoveValueAction,
   onUpdateNameAction,
-  variant,
-}: VariantCardProps) {
+  productOption,
+}: ProductOptionCardProps) {
   const [newValue, setNewValue] = useState('');
 
   const handleAddClick = () => {
@@ -41,7 +41,7 @@ function VariantCard({
   return (
     <div className="rounded-lg border border-border bg-white p-3">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-[1.2rem] text-muted-foreground">Option {index + 1}</p>
+        <p className="text-[1.2rem] text-muted-foreground">Phân loại {index + 1}</p>
         <button
           className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-red-50 hover:text-destructive"
           onClick={onRemoveAction}
@@ -52,24 +52,24 @@ function VariantCard({
       </div>
 
       <div className="mb-3">
-        <label className="mb-1 block text-[1.1rem] text-muted-foreground">Option name</label>
+        <label className="mb-1 block text-[1.1rem] text-muted-foreground">Tên phân loại</label>
         <input
           className="h-10 w-full rounded-md border border-border bg-white px-3 text-[1.3rem] focus:outline-none focus:ring-2 focus:ring-primary/20"
           onChange={event => onUpdateNameAction(event.target.value)}
           placeholder="VD: Shaft"
           type="text"
-          value={variant.name}
+          value={productOption.name}
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-[1.1rem] text-muted-foreground">Option values</label>
+        <label className="mb-1 block text-[1.1rem] text-muted-foreground">Giá trị phân loại</label>
 
         <div className="mb-2 flex flex-wrap gap-2">
-          {variant.values.map((value, valueIndex) => (
+          {productOption.values.map((value, valueIndex) => (
             <div
               className="flex items-center gap-1.5 rounded-md border border-border bg-input-background px-2.5 py-1 text-[1.3rem]"
-              key={`${variant.id}-${valueIndex}`}
+              key={`${productOption.id}-${valueIndex}`}
             >
               <span>{value}</span>
               <button
@@ -112,64 +112,64 @@ function VariantCard({
   );
 }
 
-export default function VariantManager({ onChangeAction, variants }: VariantManagerProps) {
-  const handleAddVariant = () => {
-    const newVariant: VariantOption = {
-      id: `VAR${Date.now()}`,
+export default function ProductOptionManager({ onChangeAction, productOptions }: ProductOptionManagerProps) {
+  const handleAddProductOption = () => {
+    const newProductOption: ProductOption = {
+      id: `OPT${Date.now()}`,
       name: '',
       values: [],
     };
 
-    onChangeAction([...variants, newVariant]);
+    onChangeAction([...productOptions, newProductOption]);
   };
 
-  const handleRemoveVariant = (id: string) => {
-    onChangeAction(variants.filter(variant => variant.id !== id));
+  const handleRemoveProductOption = (id: string) => {
+    onChangeAction(productOptions.filter(option => option.id !== id));
   };
 
-  const handleUpdateVariantName = (id: string, name: string) => {
-    onChangeAction(variants.map(variant => (variant.id === id ? { ...variant, name } : variant)));
+  const handleUpdateProductOptionName = (id: string, name: string) => {
+    onChangeAction(productOptions.map(option => (option.id === id ? { ...option, name } : option)));
   };
 
-  const handleAddValue = (variantId: string, value: string) => {
+  const handleAddValue = (optionId: string, value: string) => {
     onChangeAction(
-      variants.map(variant =>
-        variant.id === variantId ? { ...variant, values: [...variant.values, value] } : variant,
+      productOptions.map(option =>
+        option.id === optionId ? { ...option, values: [...option.values, value] } : option,
       ),
     );
   };
 
-  const handleRemoveValue = (variantId: string, valueIndex: number) => {
+  const handleRemoveValue = (optionId: string, valueIndex: number) => {
     onChangeAction(
-      variants.map(variant =>
-        variant.id === variantId
-          ? { ...variant, values: variant.values.filter((_, index) => index !== valueIndex) }
-          : variant,
+      productOptions.map(option =>
+        option.id === optionId
+          ? { ...option, values: option.values.filter((_, index) => index !== valueIndex) }
+          : option,
       ),
     );
   };
 
   return (
     <div className="space-y-3">
-      {variants.map((variant, index) => (
-        <VariantCard
+      {productOptions.map((option, index) => (
+        <ProductOptionCard
           index={index}
-          key={variant.id}
-          onAddValueAction={value => handleAddValue(variant.id, value)}
-          onRemoveAction={() => handleRemoveVariant(variant.id)}
-          onRemoveValueAction={valueIndex => handleRemoveValue(variant.id, valueIndex)}
-          onUpdateNameAction={name => handleUpdateVariantName(variant.id, name)}
-          variant={variant}
+          key={option.id}
+          onAddValueAction={value => handleAddValue(option.id, value)}
+          onRemoveAction={() => handleRemoveProductOption(option.id)}
+          onRemoveValueAction={valueIndex => handleRemoveValue(option.id, valueIndex)}
+          onUpdateNameAction={name => handleUpdateProductOptionName(option.id, name)}
+          productOption={option}
         />
       ))}
 
       <button
         className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 text-[1.3rem] font-500 text-primary transition-all hover:border-primary/50 hover:bg-primary-light"
-        onClick={handleAddVariant}
+        onClick={handleAddProductOption}
         type="button"
       >
         <Plus className="h-4 w-4" />
-        Thêm option
+        Thêm phân loại
       </button>
     </div>
   );

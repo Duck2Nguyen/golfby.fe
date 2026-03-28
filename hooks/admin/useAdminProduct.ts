@@ -68,6 +68,17 @@ export interface AdminProductListCategory {
   name: string;
 }
 
+export interface AdminProductListOptionValue {
+  id?: string;
+  value: string;
+}
+
+export interface AdminProductListOption {
+  id?: string;
+  name: string;
+  values?: AdminProductListOptionValue[];
+}
+
 export interface AdminProductListItem {
   brand?: AdminProductListBrand | null;
   brandId?: string | null;
@@ -81,6 +92,7 @@ export interface AdminProductListItem {
   images?: AdminProductListImage[];
   listPrice?: string | null;
   name: string;
+  productOptions?: AdminProductListOption[];
   salePrice?: string | null;
   slug?: string;
   status?: AdminProductStatus;

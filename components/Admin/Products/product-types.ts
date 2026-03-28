@@ -1,16 +1,4 @@
-export interface ProductVariant {
-  id: string;
-  image: string;
-  name: string;
-  originalPrice?: number;
-  price: number;
-  size: string;
-  sku: string;
-  stock: number;
-  weight: number;
-}
-
-export interface VariantOption {
+export interface ProductOption {
   id: string;
   name: string;
   values: string[];
@@ -30,9 +18,8 @@ export interface AdminProduct {
   tagIds?: string[];
   thumbnail: string;
   updatedAt: string;
-  variantOptions?: VariantOption[];
+  productOptions?: ProductOption[];
   vendorIds?: string[];
-  variants: ProductVariant[];
 }
 
 export interface ProductMultiSelectOption {
@@ -89,36 +76,22 @@ export const mockProducts: AdminProduct[] = [
     id: 'P001',
     images: [],
     name: 'TaylorMade Qi35 Max Driver',
+    productOptions: [
+      {
+        id: 'OPT-1-1',
+        name: 'Shaft Flex',
+        values: ['Regular', 'Stiff'],
+      },
+      {
+        id: 'OPT-1-2',
+        name: 'Loft',
+        values: ['9°', '10.5°'],
+      },
+    ],
     status: 'active',
     thumbnail:
       'https://images.unsplash.com/photo-1629213287303-4f74fc4aa976?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
     updatedAt: '2026-03-10',
-    variants: [
-      {
-        id: 'V001-1',
-        image:
-          'https://images.unsplash.com/photo-1629213287303-4f74fc4aa976?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-        name: 'Shaft Regular 10.5°',
-        originalPrice: 18500000,
-        price: 15900000,
-        size: '10.5°',
-        sku: 'TM-QI35-R105',
-        stock: 12,
-        weight: 310,
-      },
-      {
-        id: 'V001-2',
-        image:
-          'https://images.unsplash.com/photo-1708568326307-9d14c6405af6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-        name: 'Shaft Stiff 9°',
-        originalPrice: 18500000,
-        price: 16200000,
-        size: '9°',
-        sku: 'TM-QI35-S9',
-        stock: 8,
-        weight: 315,
-      },
-    ],
   },
   {
     brand: 'Callaway',
@@ -130,23 +103,22 @@ export const mockProducts: AdminProduct[] = [
     id: 'P002',
     images: [],
     name: 'Callaway Paradym Ai Smoke Iron Set',
+    productOptions: [
+      {
+        id: 'OPT-2-1',
+        name: 'Shaft Type',
+        values: ['Steel', 'Graphite'],
+      },
+      {
+        id: 'OPT-2-2',
+        name: 'Flex',
+        values: ['Regular', 'Stiff'],
+      },
+    ],
     status: 'active',
     thumbnail:
       'https://images.unsplash.com/photo-1761233976530-d09fc58ad175?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
     updatedAt: '2026-03-12',
-    variants: [
-      {
-        id: 'V002-1',
-        image:
-          'https://images.unsplash.com/photo-1761233976530-d09fc58ad175?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-        name: '5-PW Steel Regular',
-        price: 32500000,
-        size: '5-PW (6 gậy)',
-        sku: 'CW-PRDM-5PW-SR',
-        stock: 5,
-        weight: 2450,
-      },
-    ],
   },
   {
     brand: 'Titleist',
@@ -158,24 +130,17 @@ export const mockProducts: AdminProduct[] = [
     id: 'P003',
     images: [],
     name: 'Titleist Scotty Cameron Phantom X Putter',
+    productOptions: [
+      {
+        id: 'OPT-3-1',
+        name: 'Chiều dài',
+        values: ['33"', '34"', '35"'],
+      },
+    ],
     status: 'active',
     thumbnail:
       'https://images.unsplash.com/photo-1542770914-5773ed8acbaf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
     updatedAt: '2026-03-05',
-    variants: [
-      {
-        id: 'V003-1',
-        image:
-          'https://images.unsplash.com/photo-1542770914-5773ed8acbaf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-        name: '34 inch',
-        originalPrice: 14500000,
-        price: 12800000,
-        size: '34"',
-        sku: 'TT-SC-PX-34',
-        stock: 10,
-        weight: 355,
-      },
-    ],
   },
   {
     brand: 'Titleist',
@@ -186,24 +151,22 @@ export const mockProducts: AdminProduct[] = [
     id: 'P004',
     images: [],
     name: 'Titleist Pro V1 Golf Ball',
+    productOptions: [
+      {
+        id: 'OPT-4-1',
+        name: 'Màu',
+        values: ['Trắng', 'Vàng'],
+      },
+      {
+        id: 'OPT-4-2',
+        name: 'Quy cách',
+        values: ['Hộp 12 bóng'],
+      },
+    ],
     status: 'active',
     thumbnail:
       'https://images.unsplash.com/photo-1642235733613-ccba5328fb3f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
     updatedAt: '2026-03-15',
-    variants: [
-      {
-        id: 'V004-1',
-        image:
-          'https://images.unsplash.com/photo-1642235733613-ccba5328fb3f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-        name: 'Hộp 12 bóng - Trắng',
-        originalPrice: 1900000,
-        price: 1650000,
-        size: '12 bóng',
-        sku: 'TT-PV1-12-W',
-        stock: 50,
-        weight: 550,
-      },
-    ],
   },
   {
     brand: 'Ping',
@@ -214,23 +177,22 @@ export const mockProducts: AdminProduct[] = [
     id: 'P005',
     images: [],
     name: 'Ping G440 Driver',
+    productOptions: [
+      {
+        id: 'OPT-5-1',
+        name: 'Loft',
+        values: ['9°', '10.5°'],
+      },
+      {
+        id: 'OPT-5-2',
+        name: 'Shaft Flex',
+        values: ['Regular', 'Stiff'],
+      },
+    ],
     status: 'draft',
     thumbnail:
       'https://images.unsplash.com/photo-1708568326307-9d14c6405af6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
     updatedAt: '2026-03-14',
-    variants: [
-      {
-        id: 'V005-1',
-        image:
-          'https://images.unsplash.com/photo-1708568326307-9d14c6405af6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-        name: '10.5° Regular Alta CB',
-        price: 16200000,
-        size: '10.5°',
-        sku: 'PG-G440-105R',
-        stock: 6,
-        weight: 308,
-      },
-    ],
   },
   {
     brand: 'Cobra',
@@ -241,22 +203,16 @@ export const mockProducts: AdminProduct[] = [
     id: 'P006',
     images: [],
     name: 'Cobra Premium Golf Glove',
+    productOptions: [
+      {
+        id: 'OPT-6-1',
+        name: 'Size',
+        values: ['S', 'M', 'L'],
+      },
+    ],
     status: 'archived',
     thumbnail:
       'https://images.unsplash.com/photo-1653868250317-144a0c4f5884?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
     updatedAt: '2026-03-02',
-    variants: [
-      {
-        id: 'V006-1',
-        image:
-          'https://images.unsplash.com/photo-1653868250317-144a0c4f5884?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-        name: 'Size M',
-        price: 590000,
-        size: 'M',
-        sku: 'CB-GLV-M',
-        stock: 0,
-        weight: 48,
-      },
-    ],
   },
 ];

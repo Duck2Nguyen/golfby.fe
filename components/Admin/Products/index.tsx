@@ -25,8 +25,6 @@ import { useAdminProduct, type AdminProductListItem } from '@/hooks/admin/useAdm
 import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 import DeleteConfirmModal from '@/components/Admin/Customers/DeleteConfirmModal';
 
-import type { ProductVariant } from './product-types';
-
 const PAGE_SIZE_OPTIONS = [6, 10, 20, 50] as const;
 
 type UiProductStatus = 'active' | 'archived' | 'draft';
@@ -38,10 +36,10 @@ interface ProductTableRow {
   id: string;
   name: string;
   priceRange: string;
+  productOptionsCount: number;
   status: UiProductStatus;
   thumbnail: string;
   totalStock: number;
-  variants: ProductVariant[];
 }
 
 const mapApiStatusToUi = (status?: string): UiProductStatus => {
@@ -147,8 +145,6 @@ export default function Products() {
 
   const products = useMemo<ProductTableRow[]>(() => {
     return apiProducts.map(item => {
-      const variants: ProductVariant[] = [];
-
       return {
         brand: item.brand?.name || '—',
         category: item.category?.name || '—',
@@ -156,10 +152,10 @@ export default function Products() {
         id: item.id,
         name: item.name,
         priceRange: getProductPriceRange(item),
+        productOptionsCount: item.productOptions?.length ?? 0,
         status: mapApiStatusToUi(item.status),
         thumbnail: getProductThumbnail(item.images),
         totalStock: 0,
-        variants,
       };
     });
   }, [apiProducts]);
@@ -472,7 +468,7 @@ export default function Products() {
 
                         <td className="hidden px-5 py-3.5 text-center sm:table-cell">
                           <span className="inline-flex items-center justify-center rounded-full bg-blue-50 px-2.5 py-1 text-[1.2rem] font-500 text-blue-700">
-                            {product.variants.length} loại
+                            {product.productOptionsCount} loại
                           </span>
                         </td>
 

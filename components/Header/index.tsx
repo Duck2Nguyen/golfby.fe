@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { Form, Field, Formik } from 'formik';
 
 import { useSession } from '@/hooks/auth';
+import { useCarts } from '@/hooks/useCarts';
 
 import InputField from '@/elements/InputField';
 
@@ -173,6 +174,9 @@ export function Header() {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const { logout, data } = useSession();
+  const { getMyCart } = useCarts();
+  const cartItems = getMyCart.data?.data ?? [];
+  const cartCount = cartItems.length ?? 0;
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -299,12 +303,14 @@ export function Header() {
             >
               <div className="relative">
                 <ShoppingCart className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                <span
-                  className="absolute -top-1.5 -right-2 bg-destructive text-white text-[1.0rem] w-4 h-4 rounded-full flex items-center justify-center"
-                  style={{ fontWeight: 600 }}
-                >
-                  3
-                </span>
+                {cartCount > 0 && (
+                  <span
+                    className="absolute -top-1.5 -right-2 bg-destructive text-white text-[1.0rem] w-4 h-4 rounded-full flex items-center justify-center"
+                    style={{ fontWeight: 600 }}
+                  >
+                    {cartCount}
+                  </span>
+                )}
               </div>
               <span className="text-[1.1rem] text-muted-foreground group-hover:text-primary transition-colors">
                 Giỏ hàng
