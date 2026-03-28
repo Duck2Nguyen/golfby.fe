@@ -1,13 +1,13 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 import * as yup from 'yup';
 import { Link } from '@heroui/link';
 import { Form, Formik } from 'formik';
 import { Button } from '@heroui/button';
 import { addToast } from '@heroui/toast';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 import { useAuth } from '@/hooks/auth/useAuth';
 
@@ -37,17 +37,34 @@ interface ResetPasswordValues {
 
 export default function ResetPassword() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isCheckingLink, setIsCheckingLink] = useState(true);
   const [isCheckPassed, setIsCheckPassed] = useState(false);
+  const [isParamsReady, setIsParamsReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resetLinkData, setResetLinkData] = useState({ token: '', userId: '' });
+  const hasCheckedLinkRef = useRef(false);
   const { resetPasswordMutation, forgotPasswordCheckMutation } = useAuth();
 
-  const userId = useMemo(() => searchParams.get('id')?.trim() || '', [searchParams]);
-  const token = useMemo(() => searchParams.get('code')?.trim() || '', [searchParams]);
-  const isLinkValid = useMemo(() => Boolean(userId && token), [userId, token]);
+  const { userId, token } = resetLinkData;
+  const isLinkValid = Boolean(userId && token);
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+
+    setResetLinkData({
+      token: searchParams.get('code')?.trim() || '',
+      userId: searchParams.get('id')?.trim() || '',
+    });
+    setIsParamsReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isParamsReady || hasCheckedLinkRef.current) {
+      return;
+    }
+
+    hasCheckedLinkRef.current = true;
+
     const checkForgotLink = async () => {
       try {
         if (!isLinkValid) {
@@ -73,7 +90,7 @@ export default function ResetPassword() {
     };
 
     checkForgotLink();
-  }, []);
+  }, [forgotPasswordCheckMutation, isLinkValid, isParamsReady, router, token, userId]);
 
   const initialValues: ResetPasswordValues = {
     password: '',

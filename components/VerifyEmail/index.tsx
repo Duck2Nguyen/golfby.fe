@@ -1,12 +1,11 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 import { Link } from '@heroui/link';
 import { Button } from '@heroui/button';
 import { addToast } from '@heroui/toast';
 import { applyActionCode } from 'firebase/auth';
-import { useSearchParams } from 'next/navigation';
 
 import { auth } from '@/lib/firebase';
 
@@ -15,18 +14,14 @@ import AuthLayout from '@/components/AuthLayout';
 type VerifyStatus = 'loading' | 'success' | 'error';
 
 export default function VerifyEmail() {
-  const searchParams = useSearchParams();
   const [status, setStatus] = useState<VerifyStatus>('loading');
-
-  const code = useMemo(() => {
-    const directCode = searchParams.get('code')?.trim();
-    if (directCode) return directCode;
-
-    return searchParams.get('oobCode')?.trim() || '';
-  }, [searchParams]);
 
   useEffect(() => {
     const verify = async () => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const directCode = searchParams.get('code')?.trim();
+      const code = directCode || searchParams.get('oobCode')?.trim() || '';
+
       if (!code) {
         setStatus('error');
         addToast({
@@ -50,7 +45,7 @@ export default function VerifyEmail() {
     };
 
     verify();
-  }, [code]);
+  }, []);
 
   if (status === 'loading') {
     return (
