@@ -54,11 +54,16 @@ const toEditableRows = (items: ProductVariantItem[]): EditableVariantRow[] => {
 };
 
 interface ProductVariantsTableProps {
+  onSaveSuccessAction?: () => Promise<void> | void;
   productId?: string;
   variantsFromDetail?: ProductVariantItem[];
 }
 
-export default function ProductVariantsTable({ productId, variantsFromDetail }: ProductVariantsTableProps) {
+export default function ProductVariantsTable({
+  onSaveSuccessAction,
+  productId,
+  variantsFromDetail,
+}: ProductVariantsTableProps) {
   const isFromProductDetail = variantsFromDetail !== undefined;
   const { putVariantsAction, putVariantsMutation } = useVariants(productId);
 
@@ -172,6 +177,8 @@ export default function ProductVariantsTable({ productId, variantsFromDetail }: 
 
     await putVariantsAction(payload);
 
+    await onSaveSuccessAction?.();
+
     setIsDirty(false);
   };
 
@@ -179,7 +186,7 @@ export default function ProductVariantsTable({ productId, variantsFromDetail }: 
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/20 p-3 lg:flex-row lg:items-end">
+      <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/20 p-3 2xl:flex-row lg:items-end">
         <div className="grid w-full grid-cols-1 gap-2 md:grid-cols-3">
           <div>
             <label className="mb-1 block text-[1.2rem] font-500 text-muted-foreground">

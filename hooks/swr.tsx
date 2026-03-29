@@ -132,6 +132,21 @@ export const useMutation = <T = Record<string, unknown>,>(
         const executeRequest = async () => {
           const requestBody = body;
 
+          if (requestBody instanceof FormData) {
+            const shouldAttachCsrf = requestBody.has('csrf');
+
+            if (shouldAttachCsrf) {
+              requestBody.delete('csrf');
+
+              const csrfToken = await genCsrfToken();
+              if (csrfToken) {
+                requestBody.set('csrfToken', csrfToken);
+              }
+            }
+
+            return requestBody;
+          }
+
           if (requestBody && !(requestBody instanceof FormData)) {
             const shouldAttachCsrf = Boolean(requestBody.csrf);
 

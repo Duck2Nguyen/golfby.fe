@@ -80,29 +80,6 @@ export const useCategorires = (options?: UseCategoriresOptions) => {
     },
   );
 
-  const subcategoryQuery = options?.subcategoriesByCategoryId
-    ? `?categoryId=${options.subcategoriesByCategoryId}`
-    : '';
-
-  const getAllSubcategories = useSWRWrapper<Subcategory[]>(`/api/v1/subcategories${subcategoryQuery}`, {
-    body: options?.subcategoriesByCategoryId
-      ? ({ categoryId: options.subcategoriesByCategoryId } as unknown as Record<string, unknown>)
-      : undefined,
-    method: METHOD.GET,
-    url: '/api/v1/subcategories',
-  });
-
-  const getSubcategoryById = useSWRWrapper<Subcategory>(
-    options?.subcategoryId ? `/api/v1/subcategories/${options.subcategoryId}` : null,
-    {
-      method: METHOD.GET,
-      noEndPoint: true,
-      url: options?.subcategoryId
-        ? `/api/v1/subcategories/${options.subcategoryId}`
-        : '/api/v1/subcategories',
-    },
-  );
-
   const createCategoryMutation = useMutation<CategoryBase>('/api/v1/admin/categories', {
     loading: true,
     method: METHOD.POST,
@@ -169,9 +146,7 @@ export const useCategorires = (options?: UseCategoriresOptions) => {
     deleteCategoryMutation,
     deleteSubcategoryMutation,
     getAllCategories,
-    getAllSubcategories,
     getCategoryById,
-    getSubcategoryById,
     updateCategoryMutation,
     updateSubcategoryMutation,
   };

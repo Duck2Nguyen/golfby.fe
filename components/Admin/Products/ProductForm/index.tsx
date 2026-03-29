@@ -2,7 +2,6 @@
 
 import { useRef, useMemo, useState, useEffect } from 'react';
 import {
-  Eye,
   Tag,
   Info,
   Save,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react';
 
 import * as yup from 'yup';
+import { addToast } from '@heroui/toast';
 import { useRouter } from 'next/navigation';
 import { useFormik, FormikProvider } from 'formik';
 
@@ -34,14 +34,15 @@ import { Field } from '@/elements';
 
 import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 
+import TagPicker from '../TagPicker';
 import BrandPicker from '../BrandPicker';
 import CkEditorField from '../CkEditorField';
 import CollectionPicker from '../CollectionPicker';
 import MultiUploadImage from '../MultiUploadImage';
 import ProductOptionManager from '../ProductOptionManager';
 import ProductVariantsTable from '../ProductVariantsTable';
-import { productTagOptions, type ProductOption } from '../product-types';
-import MultiSelectDropdown, { type MultiSelectItem } from '../MultiSelectDropdown';
+
+import type { ProductOption } from '../product-types';
 
 function FormSection({
   children,
@@ -119,9 +120,8 @@ const buildValidationSchema = (isEdit: boolean) => {
           .of(yup.string())
           .min(1, 'Vui lòng chọn thương hiệu')
           .required('Vui lòng chọn thương hiệu'),
-    selectedCollections: isEdit
-      ? yup.array().of(yup.string())
-      : yup.array().of(yup.string()).min(1, 'Vui lòng chọn collection').required('Vui lòng chọn collection'),
+    // Temporarily allow submit without selecting collection.
+    selectedCollections: yup.array().of(yup.string()),
     productOptions: isEdit ? yup.array().of(baseOptionSchema) : createProductOptionsSchema,
   });
 };
@@ -201,15 +201,17 @@ export default function ProductForm({ productId }: ProductFormProps) {
   const {
     createProductMutation,
     getAdminProductById,
+    removeProductImageMutation,
+    triggerRemoveProductImage,
+    triggerUploadProductImage,
     triggerUpdateAdminProduct,
     updateAdminProductMutation,
   } = useAdminProduct({
     detailProductId: isEdit ? productId : undefined,
   });
   const hasLoggedDetailRef = useRef(false);
-  const submitStatusRef = useRef<'active' | 'draft'>('active');
 
-  const [tags, setTags] = useState<MultiSelectItem[]>(productTagOptions);
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const detailProduct = getAdminProductById.data?.data;
 
   useEffect(() => {
@@ -224,25 +226,6 @@ export default function ProductForm({ productId }: ProductFormProps) {
     console.log('[Admin Products] Product detail response:', detailProduct);
     hasLoggedDetailRef.current = true;
   }, [detailProduct, isEdit]);
-
-  const mergedTagItems = useMemo<MultiSelectItem[]>(() => {
-    const tagMap = new Map<string, MultiSelectItem>();
-
-    tags.forEach(item => {
-      tagMap.set(item.id, item);
-    });
-
-    (detailProduct?.tags ?? []).forEach(tag => {
-      if (!tagMap.has(tag.id)) {
-        tagMap.set(tag.id, {
-          id: tag.id,
-          label: tag.name,
-        });
-      }
-    });
-
-    return Array.from(tagMap.values());
-  }, [detailProduct?.tags, tags]);
 
   const detailVariantRows = useMemo<ProductVariantItem[]>(() => {
     if (!isEdit) {
@@ -294,7 +277,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
     enableReinitialize: true,
     initialValues,
     onSubmit: async values => {
-      const finalStatus = submitStatusRef.current || values.status;
+      const finalStatus = values.status;
       const normalizedName = values.name.trim();
       const normalizedDescription = values.description.trim();
 
@@ -310,15 +293,21 @@ export default function ProductForm({ productId }: ProductFormProps) {
             id: productId,
             listPrice: detailProduct?.listPrice != null ? String(detailProduct.listPrice) : undefined,
             name: normalizedName,
+            productTagIds: values.selectedTags,
             salePrice: detailProduct?.salePrice != null ? String(detailProduct.salePrice) : undefined,
             slug: toSlug(normalizedName) || detailProduct?.slug || `product-${Date.now()}`,
             status: mapStatusToApi(finalStatus),
             subcategoryId: detailProduct?.subcategoryId ?? null,
-            // TODO: add productTagIds / productTagsNew when BE update-tags contract is ready.
+            // TODO: add productTagsNew when BE update-tags contract is ready.
             // TODO: add productOptions when BE supports options update on PATCH product.
           };
 
           await triggerUpdateAdminProduct(updatePayload);
+
+          // Refresh latest detail after update and keep user on edit page.
+          await getAdminProductById.mutate();
+
+          return;
         } else {
           const productPayload: CreateAdminProductPayload = {
             brandId: values.selectedBrandIds[0],
@@ -336,17 +325,28 @@ export default function ProductForm({ productId }: ProductFormProps) {
                   value,
                 })),
               })),
+            productTagIds: values.selectedTags,
             salePrice: '0',
             slug: toSlug(normalizedName) || `product-${Date.now()}`,
             status: mapStatusToApi(finalStatus),
           };
 
           const formData = buildCreateProductMultipartPayload(productPayload, values.imageFiles);
-          await createProductMutation.trigger(formData);
-        }
+          const createdProductResponse = await createProductMutation.trigger(formData);
+          const createdProductId = createdProductResponse?.data?.id;
 
-        router.push('/admin/products');
-      } catch {
+          if (createdProductId) {
+            router.push(`/admin/products/edit/${createdProductId}`);
+
+            return;
+          }
+
+          router.push('/admin/products');
+
+          return;
+        }
+      } catch (error) {
+        console.error('[Admin Products][ProductForm] Submit failed:', error);
         return;
       }
     },
@@ -375,7 +375,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
     };
   }, [formik.values.productOptions]);
 
-  const showErrors = formik.submitCount > 0;
+  const showErrors = hasAttemptedSubmit || formik.submitCount > 0;
   const errorMessages = useMemo(() => {
     const messages = collectErrorMessages(formik.errors);
     return Array.from(new Set(messages));
@@ -390,11 +390,6 @@ export default function ProductForm({ productId }: ProductFormProps) {
     [],
   );
 
-  const createOption = (prefix: string, label: string): MultiSelectItem => ({
-    id: `${prefix}${Date.now()}`,
-    label,
-  });
-
   const mapStatusToApi = (uiStatus: 'active' | 'archived' | 'draft'): 'ACTIVE' | 'ARCHIVED' | 'DRAFT' => {
     if (uiStatus === 'active') return 'ACTIVE';
     if (uiStatus === 'archived') return 'ARCHIVED';
@@ -403,14 +398,21 @@ export default function ProductForm({ productId }: ProductFormProps) {
 
   const isSubmitting = createProductMutation.isMutating || updateAdminProductMutation.isMutating;
 
-  const handleSubmitAction = async (submitStatus?: 'active' | 'draft') => {
-    const finalStatus = submitStatus || formik.values.status;
-    submitStatusRef.current = finalStatus === 'draft' ? 'draft' : 'active';
-
-    await formik.setFieldValue('status', finalStatus, false);
+  const handleSubmitAction = async () => {
+    setHasAttemptedSubmit(true);
     const nextErrors = await formik.validateForm();
 
     if (Object.keys(nextErrors).length > 0) {
+      console.error('[Admin Products][Formik] Validation errors:', nextErrors);
+
+      const firstErrorMessage =
+        collectErrorMessages(nextErrors)[0] ?? 'Vui lòng kiểm tra lại các trường bắt buộc.';
+
+      addToast({
+        color: 'danger',
+        description: firstErrorMessage,
+      });
+
       await formik.setFieldTouched('name', true, false);
       await formik.setFieldTouched('selectedBrandIds', true, false);
       await formik.setFieldTouched('selectedCollections', true, false);
@@ -438,22 +440,13 @@ export default function ProductForm({ productId }: ProductFormProps) {
 
           <div className="flex items-center gap-2">
             <button
-              className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-4 text-[1.3rem] font-500 text-foreground transition-colors hover:bg-muted"
-              disabled={isSubmitting}
-              onClick={() => handleSubmitAction('draft')}
-              type="button"
-            >
-              <Eye className="h-4 w-4" />
-              Lưu nháp
-            </button>
-            <button
               className="flex h-9 items-center gap-1.5 rounded-lg bg-primary px-5 text-[1.3rem] font-500 text-white transition-colors hover:bg-primary-dark"
               disabled={isSubmitting}
-              onClick={() => handleSubmitAction('active')}
+              onClick={handleSubmitAction}
               type="button"
             >
               <Save className="h-4 w-4" />
-              {isSubmitting ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Đăng bán'}
+              {isSubmitting ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Tạo mới'}
             </button>
           </div>
         </div>
@@ -504,8 +497,33 @@ export default function ProductForm({ productId }: ProductFormProps) {
               title="Hình ảnh sản phẩm"
             >
               <MultiUploadImage
+                existingImages={detailProduct?.images}
+                imageFiles={formik.values.imageFiles}
                 images={formik.values.images}
+                isEdit={isEdit}
+                isDeleteLoading={removeProductImageMutation.isMutating}
+                onDeleteExistingImageAction={async imageId => {
+                  if (!productId) return;
+
+                  await triggerRemoveProductImage({
+                    id: productId,
+                    imageId,
+                  });
+
+                  await getAdminProductById.mutate();
+                }}
                 onImageFilesChangeAction={files => formik.setFieldValue('imageFiles', files)}
+                onUploadExistingImageAction={async file => {
+                  if (!productId) return;
+
+                  await triggerUploadProductImage({
+                    csrf: true,
+                    id: productId,
+                    image: file,
+                  });
+
+                  await getAdminProductById.mutate();
+                }}
                 onImagesChangeAction={nextImages => formik.setFieldValue('images', nextImages)}
                 onThumbnailChangeAction={nextThumbnail => formik.setFieldValue('thumbnail', nextThumbnail)}
                 thumbnail={formik.values.thumbnail}
@@ -528,16 +546,21 @@ export default function ProductForm({ productId }: ProductFormProps) {
               )}
             </FormSection>
 
-            <FormSection
-              description="Chỉnh sửa trực tiếp toàn bộ variants và áp dụng nhanh giá trị cho cả cột"
-              icon={<Package className="h-4 w-4 text-primary" />}
-              title="Variants"
-            >
-              <ProductVariantsTable
-                productId={productId}
-                variantsFromDetail={isEdit ? detailVariantRows : undefined}
-              />
-            </FormSection>
+            {isEdit && (
+              <FormSection
+                description="Chỉnh sửa trực tiếp toàn bộ variants và áp dụng nhanh giá trị cho cả cột"
+                icon={<Package className="h-4 w-4 text-primary" />}
+                title="Variants"
+              >
+                <ProductVariantsTable
+                  onSaveSuccessAction={async () => {
+                    await getAdminProductById.mutate();
+                  }}
+                  productId={productId}
+                  variantsFromDetail={detailVariantRows}
+                />
+              </FormSection>
+            )}
           </div>
 
           <div className="space-y-6">
@@ -546,19 +569,9 @@ export default function ProductForm({ productId }: ProductFormProps) {
               icon={<Tag className="h-4 w-4 text-primary" />}
               title="Tags"
             >
-              <MultiSelectDropdown
-                allowMultiple
-                items={mergedTagItems}
-                label="Tags"
-                onAddNewAction={label => {
-                  const newTag = createOption('tag', label);
-                  setTags(prev => [...prev, newTag]);
-                  formik.setFieldValue('selectedTags', [...formik.values.selectedTags, newTag.id]);
-                }}
-                onSelectionChangeAction={ids => formik.setFieldValue('selectedTags', ids)}
-                placeholder="Tìm kiếm tags..."
-                selectedIds={formik.values.selectedTags}
-                showAddNew
+              <TagPicker
+                onSelectAction={ids => formik.setFieldValue('selectedTags', ids)}
+                selectedTagIds={formik.values.selectedTags}
               />
             </FormSection>
 
@@ -669,20 +682,12 @@ export default function ProductForm({ productId }: ProductFormProps) {
 
         <div className="fixed right-0 bottom-0 left-0 z-30 flex items-center justify-end gap-2 border-t border-border bg-white p-4 xl:hidden">
           <button
-            className="h-10 rounded-lg border border-border px-5 text-[1.4rem] font-500 text-foreground transition-colors hover:bg-muted"
-            disabled={isSubmitting}
-            onClick={() => handleSubmitAction('draft')}
-            type="button"
-          >
-            Lưu nháp
-          </button>
-          <button
             className="h-10 rounded-lg bg-primary px-6 text-[1.4rem] font-500 text-white transition-colors hover:bg-primary-dark"
             disabled={isSubmitting}
-            onClick={() => handleSubmitAction('active')}
+            onClick={handleSubmitAction}
             type="button"
           >
-            {isSubmitting ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Đăng bán'}
+            {isSubmitting ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Tạo mới'}
           </button>
         </div>
 

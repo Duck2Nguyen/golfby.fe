@@ -1,4 +1,4 @@
-import { Truck, ShieldCheck, RotateCcw, Headphones } from 'lucide-react';
+import { Truck, RotateCcw, Headphones, ShieldCheck } from 'lucide-react';
 
 const features = [
   {

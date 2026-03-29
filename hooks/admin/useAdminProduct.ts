@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+
 import type { RestResponse, PaginatedResponse } from '@/interfaces/response';
 
 import { useMutation, useSWRWrapper } from '@/hooks/swr';
@@ -24,6 +26,7 @@ export interface CreateAdminProductPayload {
   listPrice?: string;
   name: string;
   productOptions: AdminProductOptionPayload[];
+  productTagIds?: string[];
   salePrice?: string;
   slug: string;
   status?: Exclude<AdminProductStatus, 'DELETED'>;
@@ -38,11 +41,12 @@ export interface UpdateAdminProductPayload {
   description?: string;
   listPrice?: string;
   name?: string;
+  productTagIds?: string[];
   salePrice?: string;
   slug?: string;
   status?: Exclude<AdminProductStatus, 'DELETED'>;
   subcategoryId?: string | null;
-  // TODO: add `productTagIds` / `productTagsNew` after BE update-tags contract is finalized.
+  // TODO: add `productTagsNew` after BE update-tags contract is finalized.
   // TODO: add `productOptions` after BE supports options update via PATCH product API.
 }
 
@@ -223,6 +227,7 @@ export interface AdminProductListItem {
 
 export type UploadProductImagePayload = {
   altText?: string;
+  csrf?: boolean;
   id: string;
   image: File;
   isPrimary?: boolean;
@@ -299,8 +304,9 @@ export const buildUpdateAdminProductPayload = (
   if (payload.brandId !== undefined) normalizedPayload.brandId = payload.brandId;
   if (payload.categoryId !== undefined) normalizedPayload.categoryId = payload.categoryId;
   if (payload.subcategoryId !== undefined) normalizedPayload.subcategoryId = payload.subcategoryId;
+  if (payload.productTagIds !== undefined) normalizedPayload.productTagIds = payload.productTagIds;
 
-  // TODO: add `productTagIds` / `productTagsNew` once BE update-tags API contract is stable.
+  // TODO: add `productTagsNew` once BE update-tags API contract is stable.
   // TODO: add `productOptions` once BE supports options update in PATCH /admin/products/{id}.
 
   return normalizedPayload;
@@ -310,6 +316,10 @@ const buildUploadImagePayload = (payload: UploadProductImagePayload) => {
   const formData = new FormData();
   formData.append('id', payload.id);
   formData.append('image', payload.image);
+
+  if (payload.csrf) {
+    formData.append('csrf', 'true');
+  }
 
   if (payload.altText) {
     formData.append('altText', payload.altText);
@@ -369,30 +379,39 @@ export interface UseAdminProductOptions {
 }
 
 export const useAdminProduct = (options?: UseAdminProductOptions) => {
+  const requestNonce = useMemo(() => Date.now().toString(36), []);
   const normalizedGetAllParams = normalizeGetAllParams(options?.getAllParams);
   const queryString = buildQueryString(normalizedGetAllParams);
+  const getAllKey = `admin-products:list:${queryString}:${requestNonce}`;
+  const detailKey = options?.detailProductId
+    ? `admin-products:detail:${options.detailProductId}:${requestNonce}`
+    : null;
 
-  const getAllAdminProduct = useSWRWrapper<PaginatedResponse<AdminProductListItem>>(
-    `/api/v1/admin/products?${queryString}`,
-    {
-      body: normalizedGetAllParams as unknown as Record<string, unknown>,
-      method: METHOD.GET,
-      url: '/api/v1/admin/products',
-    },
-  );
+  const getAllAdminProduct = useSWRWrapper<PaginatedResponse<AdminProductListItem>>(getAllKey, {
+    body: normalizedGetAllParams as unknown as Record<string, unknown>,
+    dedupingInterval: 0,
+    keepPreviousData: false,
+    method: METHOD.GET,
+    revalidateIfStale: true,
+    revalidateOnFocus: true,
+    revalidateOnMount: true,
+    url: '/api/v1/admin/products',
+  });
 
-  const getAdminProductById = useSWRWrapper<AdminProductDetail>(
-    options?.detailProductId ? `/api/v1/admin/products/${options.detailProductId}` : null,
-    {
-      method: METHOD.GET,
-      noEndPoint: true,
-      url: options?.detailProductId
-        ? `/api/v1/admin/products/${options.detailProductId}`
-        : '/api/v1/admin/products',
-    },
-  );
+  const getAdminProductById = useSWRWrapper<AdminProductDetail>(detailKey, {
+    dedupingInterval: 0,
+    keepPreviousData: false,
+    method: METHOD.GET,
+    noEndPoint: true,
+    revalidateIfStale: true,
+    revalidateOnFocus: true,
+    revalidateOnMount: true,
+    url: options?.detailProductId
+      ? `/api/v1/admin/products/${options.detailProductId}`
+      : '/api/v1/admin/products',
+  });
 
-  const createProductMutation = useMutation('/api/v1/admin/products', {
+  const createProductMutation = useMutation<AdminProductDetail>('/api/v1/admin/products', {
     loading: true,
     method: METHOD.POST,
     notification: {
@@ -456,6 +475,14 @@ export const useAdminProduct = (options?: UseAdminProductOptions) => {
     return uploadProductImageMutation.trigger(buildUploadImagePayload(payload));
   };
 
+  const triggerRemoveProductImage = (payload: RemoveProductImagePayload) => {
+    return removeProductImageMutation.trigger({
+      csrf: true,
+      id: payload.id,
+      imageId: payload.imageId,
+    } as unknown as Record<string, unknown>);
+  };
+
   const triggerUpdateAdminProduct = (payload: TriggerUpdateAdminProductPayload) => {
     return updateAdminProductMutation.trigger(
       buildUpdateAdminProductPayload(payload) as unknown as Record<string, unknown>,
@@ -469,6 +496,7 @@ export const useAdminProduct = (options?: UseAdminProductOptions) => {
     getAllAdminProduct,
     removeProductImageMutation,
     setPrimaryProductImageMutation,
+    triggerRemoveProductImage,
     triggerUploadProductImage,
     triggerUpdateAdminProduct,
     updateAdminProductMutation,

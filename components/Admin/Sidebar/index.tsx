@@ -23,6 +23,7 @@ import { Link } from '@heroui/link';
 import { usePathname } from 'next/navigation';
 
 interface SidebarChild {
+  exact?: boolean;
   href: string;
   label: string;
 }
@@ -53,10 +54,11 @@ const MENU_ITEMS: SidebarItem[] = [
     label: 'Sản phẩm',
     icon: Package,
     children: [
-      { href: '/admin/products', label: 'Danh sách sản phẩm' },
+      { exact: true, href: '/admin/products', label: 'Danh sách sản phẩm' },
       { href: '/admin/products/create', label: 'Thêm sản phẩm' },
       { href: '/admin/products/brands', label: 'Quản lý thương hiệu' },
       { href: '/admin/products/categories', label: 'Quản lý danh mục' },
+      { href: '/admin/products/tags', label: 'Quản lý tag' },
     ],
   },
   {
@@ -115,14 +117,28 @@ export default function Sidebar({ isOpen, onCloseAction }: SidebarProps) {
     setExpandedGroups(prev => (prev.includes(key) ? prev.filter(item => item !== key) : [...prev, key]));
   };
 
-  const isActive = (href?: string) => {
-    if (!href) return false;
-    return pathname === href || pathname?.startsWith(`${href}/`);
+  const normalizePath = (path?: string) => {
+    if (!path) return '';
+    const normalized = path.replace(/\/+$/, '');
+    return normalized || '/';
+  };
+
+  const isActive = (href?: string, exact = false) => {
+    if (!href || !pathname) return false;
+
+    const currentPath = normalizePath(pathname);
+    const targetPath = normalizePath(href);
+
+    if (exact) {
+      return currentPath === targetPath;
+    }
+
+    return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
   };
 
   const isGroupActive = (item: SidebarItem) => {
     if (!item.children) return false;
-    return item.children.some(child => isActive(child.href));
+    return item.children.some(child => isActive(child.href, child.exact));
   };
 
   return (
@@ -187,7 +203,7 @@ export default function Sidebar({ isOpen, onCloseAction }: SidebarProps) {
                 {!collapsed && expanded && (
                   <div className="mt-1 ml-5 space-y-0.5 border-l-2 border-gray-200 pl-4">
                     {item.children?.map(child => {
-                      const childActive = isActive(child.href);
+                      const childActive = isActive(child.href, child.exact);
                       return (
                         <Link
                           key={child.href}

@@ -23,6 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (pathname?.startsWith('/admin/customers')) return 'Quản lý người dùng';
     if (pathname?.startsWith('/admin/products/brands')) return 'Quản lý thương hiệu';
     if (pathname?.startsWith('/admin/products/categories')) return 'Quản lý danh mục';
+    if (pathname?.startsWith('/admin/products/tags')) return 'Quản lý tag';
     if (pathname?.startsWith('/admin/products/create')) return 'Thêm sản phẩm';
     if (pathname?.startsWith('/admin/products/edit')) return 'Chỉnh sửa sản phẩm';
     if (pathname?.startsWith('/admin/products')) return 'Quản lý sản phẩm';
