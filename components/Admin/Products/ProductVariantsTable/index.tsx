@@ -5,12 +5,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import type { ColDef, CellValueChangedEvent } from 'ag-grid-community';
 
-import {
-  useVariants,
-  fakeProductVariants,
-  ProductVariantStatus,
-  type ProductVariantItem,
-} from '@/hooks/useVariants';
+import { useVariants, ProductVariantStatus, type ProductVariantItem } from '@/hooks/useVariants';
 
 import DataGrid from '@/components/DataGrid';
 
@@ -64,27 +59,17 @@ interface ProductVariantsTableProps {
 }
 
 export default function ProductVariantsTable({ productId, variantsFromDetail }: ProductVariantsTableProps) {
-  const shouldUseVariantApi = variantsFromDetail === undefined;
-  const { getAllVariants, putVariantsAction, putVariantsMutation } = useVariants(productId, {
-    fetchList: shouldUseVariantApi,
-  });
+  const isFromProductDetail = variantsFromDetail !== undefined;
+  const { putVariantsAction, putVariantsMutation } = useVariants(productId);
 
   const [rows, setRows] = useState<EditableVariantRow[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [bulkField, setBulkField] = useState<BulkField>('listPrice');
   const [bulkValue, setBulkValue] = useState('');
 
-  const apiRows = useMemo<ProductVariantItem[]>(() => {
-    return Array.isArray(getAllVariants.data?.data) ? getAllVariants.data.data : [];
-  }, [getAllVariants.data?.data]);
-
   const sourceRows = useMemo<ProductVariantItem[]>(() => {
-    if (!shouldUseVariantApi) {
-      return variantsFromDetail ?? [];
-    }
-
-    return apiRows.length > 0 ? apiRows : fakeProductVariants;
-  }, [apiRows, shouldUseVariantApi, variantsFromDetail]);
+    return variantsFromDetail ?? [];
+  }, [variantsFromDetail]);
 
   const sourceSignature = useMemo(() => JSON.stringify(sourceRows), [sourceRows]);
 
@@ -187,14 +172,10 @@ export default function ProductVariantsTable({ productId, variantsFromDetail }: 
 
     await putVariantsAction(payload);
 
-    if (shouldUseVariantApi) {
-      await getAllVariants.mutate();
-    }
-
     setIsDirty(false);
   };
 
-  const isLoading = shouldUseVariantApi && Boolean(productId) && getAllVariants.isLoading;
+  const isLoading = false;
 
   return (
     <div className="space-y-3">
@@ -258,16 +239,16 @@ export default function ProductVariantsTable({ productId, variantsFromDetail }: 
         </button>
       </div>
 
-      {!shouldUseVariantApi && (
+      {isFromProductDetail && (
         <p className="text-[1.2rem] text-muted-foreground">
           Variants đang lấy trực tiếp từ Product Detail response, nút lưu gọi API bulk update riêng.
         </p>
       )}
 
-      {!productId && shouldUseVariantApi && (
+      {!productId && (
         <p className="text-[1.2rem] text-muted-foreground">
-          Bạn đang ở chế độ tạo mới nên bảng dùng dữ liệu mẫu. Sau khi tạo sản phẩm, nút lưu variants sẽ khả
-          dụng.
+          Bạn đang ở chế độ tạo mới nên chưa có variants để cập nhật. Sau khi tạo sản phẩm sẽ có dữ liệu để
+          lưu bulk variants.
         </p>
       )}
 
