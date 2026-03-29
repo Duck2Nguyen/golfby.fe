@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo, useState } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 import {
   Eye,
   Tag,
@@ -19,13 +19,16 @@ import * as yup from 'yup';
 import { useRouter } from 'next/navigation';
 import { useFormik, FormikProvider } from 'formik';
 
+import type { ProductVariantItem } from '@/hooks/useVariants';
+import type {
+  AdminProductDetail,
+  CreateAdminProductPayload,
+  TriggerUpdateAdminProductPayload,
+} from '@/hooks/admin/useAdminProduct';
+
 import { toSlug } from '@/utils/common';
 
-import {
-  useAdminProduct,
-  type CreateAdminProductPayload,
-  buildCreateProductMultipartPayload,
-} from '@/hooks/admin/useAdminProduct';
+import { useAdminProduct, buildCreateProductMultipartPayload } from '@/hooks/admin/useAdminProduct';
 
 import { Field } from '@/elements';
 
@@ -36,8 +39,9 @@ import CkEditorField from '../CkEditorField';
 import CollectionPicker from '../CollectionPicker';
 import MultiUploadImage from '../MultiUploadImage';
 import ProductOptionManager from '../ProductOptionManager';
+import ProductVariantsTable from '../ProductVariantsTable';
+import { productTagOptions, type ProductOption } from '../product-types';
 import MultiSelectDropdown, { type MultiSelectItem } from '../MultiSelectDropdown';
-import { mockProducts, productTagOptions, type ProductOption } from '../product-types';
 
 function FormSection({
   children,
@@ -85,26 +89,15 @@ interface ProductFormValues {
   thumbnail: string;
 }
 
-const validationSchema = yup.object({
-  name: yup.string().trim().required('Vui lòng nhập tên sản phẩm'),
-  selectedBrandIds: yup
+const buildValidationSchema = (isEdit: boolean) => {
+  const baseOptionSchema = yup.object({
+    name: yup.string().trim().required(),
+    values: yup.array().of(yup.string().trim()).min(1).required(),
+  });
+
+  const createProductOptionsSchema = yup
     .array()
-    .of(yup.string())
-    .min(1, 'Vui lòng chọn thương hiệu')
-    .required('Vui lòng chọn thương hiệu'),
-  selectedCollections: yup
-    .array()
-    .of(yup.string())
-    .min(1, 'Vui lòng chọn collection')
-    .required('Vui lòng chọn collection'),
-  productOptions: yup
-    .array()
-    .of(
-      yup.object({
-        name: yup.string().trim().required(),
-        values: yup.array().of(yup.string().trim()).min(1).required(),
-      }),
-    )
+    .of(baseOptionSchema)
     .min(1, 'Vui lòng tạo ít nhất 1 option cho sản phẩm')
     .test('valid-product-options', 'Mỗi option cần có tên và ít nhất 1 value', value => {
       if (!value || value.length === 0) return false;
@@ -115,8 +108,23 @@ const validationSchema = yup.object({
 
         return hasName && hasValues;
       });
-    }),
-});
+    });
+
+  return yup.object({
+    name: yup.string().trim().required('Vui lòng nhập tên sản phẩm'),
+    selectedBrandIds: isEdit
+      ? yup.array().of(yup.string())
+      : yup
+          .array()
+          .of(yup.string())
+          .min(1, 'Vui lòng chọn thương hiệu')
+          .required('Vui lòng chọn thương hiệu'),
+    selectedCollections: isEdit
+      ? yup.array().of(yup.string())
+      : yup.array().of(yup.string()).min(1, 'Vui lòng chọn collection').required('Vui lòng chọn collection'),
+    productOptions: isEdit ? yup.array().of(baseOptionSchema) : createProductOptionsSchema,
+  });
+};
 
 const collectErrorMessages = (input: unknown): string[] => {
   if (!input) return [];
@@ -131,66 +139,212 @@ const collectErrorMessages = (input: unknown): string[] => {
   return [];
 };
 
+const toNumberOrZero = (value: unknown): number => {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const mapStatusToForm = (status?: AdminProductDetail['status']): ProductFormValues['status'] => {
+  if (status === 'ACTIVE') return 'active';
+  if (status === 'ARCHIVED') return 'archived';
+  return 'draft';
+};
+
+const mapDetailImages = (images?: AdminProductDetail['images']) => {
+  const items = (images ?? [])
+    .map(image => ({
+      isPrimary: Boolean(image.isPrimary),
+      url: image.url?.trim() ?? '',
+    }))
+    .filter(image => Boolean(image.url));
+
+  if (items.length === 0) {
+    return {
+      images: [] as string[],
+      thumbnail: '',
+    };
+  }
+
+  const primaryIndex = items.findIndex(image => image.isPrimary);
+  const thumbnailIndex = primaryIndex >= 0 ? primaryIndex : 0;
+
+  return {
+    images: items.filter((_, index) => index !== thumbnailIndex).map(image => image.url),
+    thumbnail: items[thumbnailIndex]?.url ?? '',
+  };
+};
+
+const mapDetailOptionsToForm = (options?: AdminProductDetail['options']): ProductOption[] => {
+  return (options ?? []).map(option => ({
+    id: option.id,
+    name: option.name,
+    values: (option.values ?? []).map(value => value.value).filter(Boolean),
+  }));
+};
+
+const mapDetailVariantsToTableRows = (variants?: AdminProductDetail['variants']): ProductVariantItem[] => {
+  return (variants ?? []).map(variant => ({
+    barcode: variant.barcode ?? '',
+    costPrice: toNumberOrZero(variant.costPrice),
+    id: variant.id,
+    listPrice: toNumberOrZero(variant.listPrice),
+    salePrice: toNumberOrZero(variant.salePrice),
+    sku: variant.sku ?? '',
+    stock: toNumberOrZero(variant.stock),
+    variantId: variant.id,
+  }));
+};
+
 export default function ProductForm({ productId }: ProductFormProps) {
   const router = useRouter();
   const isEdit = Boolean(productId);
-  const { createProductMutation } = useAdminProduct();
+  const {
+    createProductMutation,
+    getAdminProductById,
+    triggerUpdateAdminProduct,
+    updateAdminProductMutation,
+  } = useAdminProduct({
+    detailProductId: isEdit ? productId : undefined,
+  });
+  const hasLoggedDetailRef = useRef(false);
   const submitStatusRef = useRef<'active' | 'draft'>('active');
 
   const [tags, setTags] = useState<MultiSelectItem[]>(productTagOptions);
-  const editingProduct = useMemo(() => {
-    if (!isEdit || !productId) return null;
-    return mockProducts.find(item => item.id === productId) || null;
-  }, [isEdit, productId]);
+  const detailProduct = getAdminProductById.data?.data;
 
-  const initialValues = useMemo<ProductFormValues>(
-    () => ({
-      brand: editingProduct?.brand ?? '',
-      description: editingProduct?.description ?? '',
-      featured: editingProduct?.featured ?? false,
+  useEffect(() => {
+    hasLoggedDetailRef.current = false;
+  }, [productId]);
+
+  useEffect(() => {
+    if (!isEdit || hasLoggedDetailRef.current) return;
+
+    if (!detailProduct) return;
+
+    console.log('[Admin Products] Product detail response:', detailProduct);
+    hasLoggedDetailRef.current = true;
+  }, [detailProduct, isEdit]);
+
+  const mergedTagItems = useMemo<MultiSelectItem[]>(() => {
+    const tagMap = new Map<string, MultiSelectItem>();
+
+    tags.forEach(item => {
+      tagMap.set(item.id, item);
+    });
+
+    (detailProduct?.tags ?? []).forEach(tag => {
+      if (!tagMap.has(tag.id)) {
+        tagMap.set(tag.id, {
+          id: tag.id,
+          label: tag.name,
+        });
+      }
+    });
+
+    return Array.from(tagMap.values());
+  }, [detailProduct?.tags, tags]);
+
+  const detailVariantRows = useMemo<ProductVariantItem[]>(() => {
+    if (!isEdit) {
+      return [];
+    }
+
+    return mapDetailVariantsToTableRows(detailProduct?.variants);
+  }, [detailProduct?.variants, isEdit]);
+
+  const validationSchema = useMemo(() => buildValidationSchema(isEdit), [isEdit]);
+
+  const initialValues = useMemo<ProductFormValues>(() => {
+    if (!isEdit || !detailProduct) {
+      return {
+        brand: '',
+        description: '',
+        featured: false,
+        imageFiles: [],
+        images: [],
+        name: '',
+        productOptions: [],
+        selectedBrandIds: [],
+        selectedCollections: [],
+        selectedTags: [],
+        status: 'draft',
+        thumbnail: '',
+      };
+    }
+
+    const mappedImages = mapDetailImages(detailProduct.images);
+
+    return {
+      brand: detailProduct.brand?.name ?? '',
+      description: detailProduct.description ?? '',
+      featured: false,
       imageFiles: [],
-      images: editingProduct?.images ?? [],
-      name: editingProduct?.name ?? '',
-      productOptions: editingProduct?.productOptions ?? [],
-      selectedBrandIds: editingProduct?.vendorIds ?? [],
-      selectedCollections: editingProduct?.collectionIds ?? [],
-      selectedTags: editingProduct?.tagIds ?? [],
-      status: editingProduct?.status ?? 'draft',
-      thumbnail: editingProduct?.thumbnail ?? '',
-    }),
-    [editingProduct],
-  );
+      images: mappedImages.images,
+      name: detailProduct.name ?? '',
+      productOptions: mapDetailOptionsToForm(detailProduct.options),
+      selectedBrandIds: detailProduct.brandId ? [detailProduct.brandId] : [],
+      selectedCollections: detailProduct.categoryId ? [detailProduct.categoryId] : [],
+      selectedTags: (detailProduct.tags ?? []).map(tag => tag.id),
+      status: mapStatusToForm(detailProduct.status),
+      thumbnail: mappedImages.thumbnail,
+    };
+  }, [detailProduct, isEdit]);
 
   const formik = useFormik<ProductFormValues>({
     enableReinitialize: true,
     initialValues,
     onSubmit: async values => {
       const finalStatus = submitStatusRef.current || values.status;
-
-      const productPayload: CreateAdminProductPayload = {
-        brandId: values.selectedBrandIds[0],
-        categoryId: values.selectedCollections[0],
-        costPrice: '0',
-        currency: 'VND',
-        description: values.description.trim() || undefined,
-        listPrice: '0',
-        name: values.name.trim(),
-        productOptions: values.productOptions
-          .filter(option => option.name.trim() && option.values.filter(Boolean).length > 0)
-          .map(option => ({
-            name: option.name.trim(),
-            values: option.values.filter(Boolean).map(value => ({
-              value,
-            })),
-          })),
-        salePrice: '0',
-        slug: toSlug(values.name) || `product-${Date.now()}`,
-        status: mapStatusToApi(finalStatus),
-      };
+      const normalizedName = values.name.trim();
+      const normalizedDescription = values.description.trim();
 
       try {
-        const formData = buildCreateProductMultipartPayload(productPayload, values.imageFiles);
-        await createProductMutation.trigger(formData);
+        if (isEdit && productId) {
+          const updatePayload: TriggerUpdateAdminProductPayload = {
+            brandId: values.selectedBrandIds[0] ?? null,
+            categoryId: values.selectedCollections[0] ?? null,
+            costPrice: detailProduct?.costPrice != null ? String(detailProduct.costPrice) : undefined,
+            csrf: true,
+            currency: detailProduct?.currency ?? 'VND',
+            description: normalizedDescription || undefined,
+            id: productId,
+            listPrice: detailProduct?.listPrice != null ? String(detailProduct.listPrice) : undefined,
+            name: normalizedName,
+            salePrice: detailProduct?.salePrice != null ? String(detailProduct.salePrice) : undefined,
+            slug: toSlug(normalizedName) || detailProduct?.slug || `product-${Date.now()}`,
+            status: mapStatusToApi(finalStatus),
+            subcategoryId: detailProduct?.subcategoryId ?? null,
+            // TODO: add productTagIds / productTagsNew when BE update-tags contract is ready.
+            // TODO: add productOptions when BE supports options update on PATCH product.
+          };
+
+          await triggerUpdateAdminProduct(updatePayload);
+        } else {
+          const productPayload: CreateAdminProductPayload = {
+            brandId: values.selectedBrandIds[0],
+            categoryId: values.selectedCollections[0],
+            costPrice: '0',
+            currency: 'VND',
+            description: normalizedDescription || undefined,
+            listPrice: '0',
+            name: normalizedName,
+            productOptions: values.productOptions
+              .filter(option => option.name.trim() && option.values.filter(Boolean).length > 0)
+              .map(option => ({
+                name: option.name.trim(),
+                values: option.values.filter(Boolean).map(value => ({
+                  value,
+                })),
+              })),
+            salePrice: '0',
+            slug: toSlug(normalizedName) || `product-${Date.now()}`,
+            status: mapStatusToApi(finalStatus),
+          };
+
+          const formData = buildCreateProductMultipartPayload(productPayload, values.imageFiles);
+          await createProductMutation.trigger(formData);
+        }
+
         router.push('/admin/products');
       } catch {
         return;
@@ -247,6 +401,8 @@ export default function ProductForm({ productId }: ProductFormProps) {
     return 'DRAFT';
   };
 
+  const isSubmitting = createProductMutation.isMutating || updateAdminProductMutation.isMutating;
+
   const handleSubmitAction = async (submitStatus?: 'active' | 'draft') => {
     const finalStatus = submitStatus || formik.values.status;
     submitStatusRef.current = finalStatus === 'draft' ? 'draft' : 'active';
@@ -283,7 +439,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
           <div className="flex items-center gap-2">
             <button
               className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-4 text-[1.3rem] font-500 text-foreground transition-colors hover:bg-muted"
-              disabled={createProductMutation.isMutating}
+              disabled={isSubmitting}
               onClick={() => handleSubmitAction('draft')}
               type="button"
             >
@@ -292,12 +448,12 @@ export default function ProductForm({ productId }: ProductFormProps) {
             </button>
             <button
               className="flex h-9 items-center gap-1.5 rounded-lg bg-primary px-5 text-[1.3rem] font-500 text-white transition-colors hover:bg-primary-dark"
-              disabled={createProductMutation.isMutating}
+              disabled={isSubmitting}
               onClick={() => handleSubmitAction('active')}
               type="button"
             >
               <Save className="h-4 w-4" />
-              {createProductMutation.isMutating ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Đăng bán'}
+              {isSubmitting ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Đăng bán'}
             </button>
           </div>
         </div>
@@ -371,6 +527,17 @@ export default function ProductForm({ productId }: ProductFormProps) {
                 </p>
               )}
             </FormSection>
+
+            <FormSection
+              description="Chỉnh sửa trực tiếp toàn bộ variants và áp dụng nhanh giá trị cho cả cột"
+              icon={<Package className="h-4 w-4 text-primary" />}
+              title="Variants"
+            >
+              <ProductVariantsTable
+                productId={productId}
+                variantsFromDetail={isEdit ? detailVariantRows : undefined}
+              />
+            </FormSection>
           </div>
 
           <div className="space-y-6">
@@ -381,7 +548,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
             >
               <MultiSelectDropdown
                 allowMultiple
-                items={tags}
+                items={mergedTagItems}
                 label="Tags"
                 onAddNewAction={label => {
                   const newTag = createOption('tag', label);
@@ -503,6 +670,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
         <div className="fixed right-0 bottom-0 left-0 z-30 flex items-center justify-end gap-2 border-t border-border bg-white p-4 xl:hidden">
           <button
             className="h-10 rounded-lg border border-border px-5 text-[1.4rem] font-500 text-foreground transition-colors hover:bg-muted"
+            disabled={isSubmitting}
             onClick={() => handleSubmitAction('draft')}
             type="button"
           >
@@ -510,10 +678,11 @@ export default function ProductForm({ productId }: ProductFormProps) {
           </button>
           <button
             className="h-10 rounded-lg bg-primary px-6 text-[1.4rem] font-500 text-white transition-colors hover:bg-primary-dark"
+            disabled={isSubmitting}
             onClick={() => handleSubmitAction('active')}
             type="button"
           >
-            {isEdit ? 'Cập nhật' : 'Đăng bán'}
+            {isSubmitting ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Đăng bán'}
           </button>
         </div>
 

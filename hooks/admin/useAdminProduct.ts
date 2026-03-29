@@ -30,7 +30,26 @@ export interface CreateAdminProductPayload {
   subcategoryId?: string;
 }
 
-export type UpdateAdminProductPayload = Partial<CreateAdminProductPayload>;
+export interface UpdateAdminProductPayload {
+  brandId?: string | null;
+  categoryId?: string | null;
+  costPrice?: string;
+  currency?: string;
+  description?: string;
+  listPrice?: string;
+  name?: string;
+  salePrice?: string;
+  slug?: string;
+  status?: Exclude<AdminProductStatus, 'DELETED'>;
+  subcategoryId?: string | null;
+  // TODO: add `productTagIds` / `productTagsNew` after BE update-tags contract is finalized.
+  // TODO: add `productOptions` after BE supports options update via PATCH product API.
+}
+
+export interface TriggerUpdateAdminProductPayload extends UpdateAdminProductPayload {
+  csrf?: boolean;
+  id: string;
+}
 
 export interface GetAllAdminProductParams {
   brandId?: string;
@@ -77,6 +96,108 @@ export interface AdminProductListOption {
   id?: string;
   name: string;
   values?: AdminProductListOptionValue[];
+}
+
+export interface AdminProductTag {
+  createdAt?: string | null;
+  id: string;
+  name: string;
+  slug: string;
+  updatedAt?: string | null;
+}
+
+export interface AdminProductDetailBrand {
+  createdAt?: string | null;
+  description?: string | null;
+  id: string;
+  logoUrl?: string | null;
+  name: string;
+  slug?: string;
+  updatedAt?: string | null;
+}
+
+export interface AdminProductDetailCategory {
+  createdAt?: string | null;
+  description?: string | null;
+  id: string;
+  name: string;
+  parentId?: string | null;
+  slug?: string;
+  updatedAt?: string | null;
+}
+
+export interface AdminProductDetailSubcategory {
+  categoryId?: string | null;
+  createdAt?: string | null;
+  description?: string | null;
+  id: string;
+  name: string;
+  slug?: string;
+  updatedAt?: string | null;
+}
+
+export interface AdminProductDetailOptionValue {
+  id: string;
+  optionId: string;
+  value: string;
+}
+
+export interface AdminProductDetailOption {
+  id: string;
+  name: string;
+  productId: string;
+  values: AdminProductDetailOptionValue[];
+}
+
+export interface AdminProductVariantSelectedOptionValue {
+  optionValue?: AdminProductDetailOptionValue | null;
+  productOptionValueId: string;
+  variantId: string;
+}
+
+export interface AdminProductDetailVariant {
+  barcode?: string | null;
+  costPrice?: string | number | null;
+  createdAt?: string | null;
+  deletedAt?: string | null;
+  id: string;
+  listPrice?: string | number | null;
+  productId: string;
+  salePrice?: string | number | null;
+  selectedOptionValues?: AdminProductVariantSelectedOptionValue[];
+  sku?: string | null;
+  status?: AdminProductStatus;
+  stock?: number | null;
+  updatedAt?: string | null;
+}
+
+export interface AdminProductDetailImage extends AdminProductImage {
+  createdAt?: string | null;
+  productVariantId?: string | null;
+}
+
+export interface AdminProductDetail {
+  brand?: AdminProductDetailBrand | null;
+  brandId?: string | null;
+  category?: AdminProductDetailCategory | null;
+  categoryId?: string | null;
+  costPrice?: string | number | null;
+  createdAt?: string | null;
+  currency?: string | null;
+  description?: string | null;
+  id: string;
+  images?: AdminProductDetailImage[];
+  listPrice?: string | number | null;
+  name: string;
+  options?: AdminProductDetailOption[];
+  salePrice?: string | number | null;
+  slug?: string;
+  status?: AdminProductStatus;
+  subcategory?: AdminProductDetailSubcategory | null;
+  subcategoryId?: string | null;
+  tags?: AdminProductTag[];
+  updatedAt?: string | null;
+  variants?: AdminProductDetailVariant[];
 }
 
 export interface AdminProductListItem {
@@ -159,6 +280,32 @@ export const buildCreateProductMultipartPayload = (product: CreateAdminProductPa
   return formData;
 };
 
+export const buildUpdateAdminProductPayload = (
+  payload: TriggerUpdateAdminProductPayload,
+): TriggerUpdateAdminProductPayload => {
+  const normalizedPayload: TriggerUpdateAdminProductPayload = {
+    id: payload.id,
+  };
+
+  if (payload.csrf) normalizedPayload.csrf = true;
+  if (payload.name !== undefined) normalizedPayload.name = payload.name;
+  if (payload.slug !== undefined) normalizedPayload.slug = payload.slug;
+  if (payload.description !== undefined) normalizedPayload.description = payload.description;
+  if (payload.costPrice !== undefined) normalizedPayload.costPrice = payload.costPrice;
+  if (payload.listPrice !== undefined) normalizedPayload.listPrice = payload.listPrice;
+  if (payload.salePrice !== undefined) normalizedPayload.salePrice = payload.salePrice;
+  if (payload.currency !== undefined) normalizedPayload.currency = payload.currency;
+  if (payload.status !== undefined) normalizedPayload.status = payload.status;
+  if (payload.brandId !== undefined) normalizedPayload.brandId = payload.brandId;
+  if (payload.categoryId !== undefined) normalizedPayload.categoryId = payload.categoryId;
+  if (payload.subcategoryId !== undefined) normalizedPayload.subcategoryId = payload.subcategoryId;
+
+  // TODO: add `productTagIds` / `productTagsNew` once BE update-tags API contract is stable.
+  // TODO: add `productOptions` once BE supports options update in PATCH /admin/products/{id}.
+
+  return normalizedPayload;
+};
+
 const buildUploadImagePayload = (payload: UploadProductImagePayload) => {
   const formData = new FormData();
   formData.append('id', payload.id);
@@ -234,7 +381,7 @@ export const useAdminProduct = (options?: UseAdminProductOptions) => {
     },
   );
 
-  const getAdminProductById = useSWRWrapper<Record<string, unknown>>(
+  const getAdminProductById = useSWRWrapper<AdminProductDetail>(
     options?.detailProductId ? `/api/v1/admin/products/${options.detailProductId}` : null,
     {
       method: METHOD.GET,
@@ -309,6 +456,12 @@ export const useAdminProduct = (options?: UseAdminProductOptions) => {
     return uploadProductImageMutation.trigger(buildUploadImagePayload(payload));
   };
 
+  const triggerUpdateAdminProduct = (payload: TriggerUpdateAdminProductPayload) => {
+    return updateAdminProductMutation.trigger(
+      buildUpdateAdminProductPayload(payload) as unknown as Record<string, unknown>,
+    );
+  };
+
   return {
     createProductMutation,
     deleteAdminProductMutation,
@@ -317,6 +470,7 @@ export const useAdminProduct = (options?: UseAdminProductOptions) => {
     removeProductImageMutation,
     setPrimaryProductImageMutation,
     triggerUploadProductImage,
+    triggerUpdateAdminProduct,
     updateAdminProductMutation,
   };
 };
