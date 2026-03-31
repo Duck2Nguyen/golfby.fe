@@ -24,6 +24,11 @@ export type UpdateTagPayload = Partial<CreateTagPayload> & {
   id: string;
 };
 
+export interface DeleteTagPayload {
+  csrf?: boolean;
+  id: string;
+}
+
 export const useTags = (options?: UseTagsOptions) => {
   const getAllTags = useSWRWrapper<Tag[]>('/api/v1/tags', {
     method: METHOD.GET,
@@ -56,8 +61,19 @@ export const useTags = (options?: UseTagsOptions) => {
     url: '/api/v1/admin/tags/{id}',
   });
 
+  const deleteTagMutation = useMutation<boolean>('/api/v1/admin/tags/{id}', {
+    loading: true,
+    method: METHOD.DELETE,
+    notification: {
+      content: 'Xóa tag thành công',
+      title: 'Thành công',
+    },
+    url: '/api/v1/admin/tags/{id}',
+  });
+
   return {
     createTagMutation,
+    deleteTagMutation,
     getAllTags,
     getTagById,
     updateTagMutation,

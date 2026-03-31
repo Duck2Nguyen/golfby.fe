@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pencil } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 
 import type { ColDef, ICellRendererParams } from 'ag-grid-community';
 
@@ -8,12 +8,14 @@ import type { TagFormData } from './TagFormModal';
 interface GetColumnDefsParams {
   currentPage: number;
   itemsPerPage: number;
+  onDelete: (tag: TagFormData) => void;
   onEdit: (tag: TagFormData) => void;
 }
 
 export const getColumnDefs = ({
   currentPage,
   itemsPerPage,
+  onDelete,
   onEdit,
 }: GetColumnDefsParams): ColDef<TagFormData>[] => {
   return [
@@ -67,13 +69,24 @@ export const getColumnDefs = ({
             },
             React.createElement(Pencil, { className: 'h-4 w-4' }),
           ),
+          React.createElement(
+            'button',
+            {
+              className:
+                'cursor-pointer flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-red-50 hover:text-red-500',
+              onClick: () => onDelete(tag),
+              title: 'Xóa',
+              type: 'button',
+            },
+            React.createElement(Trash2, { className: 'h-4 w-4' }),
+          ),
         );
       },
       colId: 'actions',
       headerClass: 'text-left text-[1.2rem] tracking-wider text-gray-500',
       headerName: 'THAO TÁC',
-      maxWidth: 120,
-      minWidth: 100,
+      maxWidth: 140,
+      minWidth: 120,
       sortable: false,
     },
   ];

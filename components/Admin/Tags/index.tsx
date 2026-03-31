@@ -11,6 +11,7 @@ import DataGrid from '@/components/DataGrid';
 
 import { getColumnDefs } from './config';
 import TagFormModal, { type TagFormData } from './TagFormModal';
+import DeleteConfirmModal from '../Categories/DeleteConfirmModal';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -27,8 +28,10 @@ export default function Tags() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [editingTag, setEditingTag] = useState<TagFormData | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingTag, setDeletingTag] = useState<TagFormData | null>(null);
 
-  const { createTagMutation, getAllTags, updateTagMutation } = useTags();
+  const { createTagMutation, deleteTagMutation, getAllTags, updateTagMutation } = useTags();
 
   const allTags = useMemo(() => {
     return (getAllTags.data?.data ?? []).map(mapTagToFormData);
@@ -63,6 +66,25 @@ export default function Tags() {
     setShowFormModal(true);
   };
 
+  const handleDelete = (tag: TagFormData) => {
+    setDeletingTag(tag);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirmAction = async () => {
+    if (!deletingTag?.id) return;
+
+    await deleteTagMutation.trigger({
+      csrf: true,
+      id: deletingTag.id,
+    });
+
+    await getAllTags.mutate();
+
+    setShowDeleteModal(false);
+    setDeletingTag(null);
+  };
+
   const handleSubmitAction = async (data: TagFormData) => {
     if (formMode === 'create') {
       await createTagMutation.trigger({
@@ -90,9 +112,10 @@ export default function Tags() {
       getColumnDefs({
         currentPage,
         itemsPerPage: ITEMS_PER_PAGE,
+        onDelete: handleDelete,
         onEdit: handleEdit,
       }),
-    [currentPage],
+    [currentPage, handleDelete, handleEdit],
   );
 
   return (
@@ -148,6 +171,16 @@ export default function Tags() {
         mode={formMode}
         onCloseAction={() => setShowFormModal(false)}
         onSubmitAction={handleSubmitAction}
+      />
+
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        itemName={deletingTag?.name || ''}
+        onCloseAction={() => {
+          setShowDeleteModal(false);
+          setDeletingTag(null);
+        }}
+        onConfirmAction={handleDeleteConfirmAction}
       />
     </>
   );

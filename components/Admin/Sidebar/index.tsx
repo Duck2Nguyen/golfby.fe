@@ -58,6 +58,8 @@ const MENU_ITEMS: SidebarItem[] = [
       { href: '/admin/products/create', label: 'Thêm sản phẩm' },
       { href: '/admin/products/brands', label: 'Quản lý thương hiệu' },
       { href: '/admin/products/categories', label: 'Quản lý danh mục' },
+      { exact: true, href: '/admin/products/collections', label: 'Quản lý collection' },
+      { href: '/admin/products/collections-preview', label: 'Preview collection tree' },
       { href: '/admin/products/tags', label: 'Quản lý tag' },
     ],
   },
