@@ -140,7 +140,7 @@ export default function CollectionFormModal({
               <Field.Text label="Slug" name="slug" placeholder="collection-slug" required />
 
               <div className="space-y-2">
-                <label className="text-[1.3rem] font-600 text-gray-700">Collection cha (parentId)</label>
+                <label className="text-[1.3rem] font-600 text-gray-700">Collection cha</label>
                 <select
                   className="h-10 w-full rounded-lg border border-gray-200 px-3 text-[1.4rem] outline-none focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500"
                   disabled={!canSelectParent || isSubmitting}

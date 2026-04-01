@@ -3,8 +3,8 @@
 import { Plus, Search } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 
+import type { CategoryBase } from '@/hooks/useCategorires';
 import type { CollectionTreeNode } from '@/hooks/useCollections';
-import type { CategoryWithSubcategories } from '@/hooks/useCategorires';
 
 import { useCollections } from '@/hooks/useCollections';
 import { useCategorires } from '@/hooks/useCategorires';
@@ -33,7 +33,7 @@ const flattenCollectionsToRows = (
       categoryIds: node.categories.map(category => category.id),
       depth,
       description: node.description || '',
-      displayName: `${'-- '.repeat(depth)}${node.name}`,
+      displayName: node.name,
       id: node.id,
       name: node.name,
       parentId: node.parentId || null,
@@ -98,9 +98,7 @@ const buildCategoryCatalogFromTree = (nodes: CollectionTreeNode[]): CategoryCata
   return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, 'vi'));
 };
 
-const buildCategoryCatalogFromCategories = (
-  categories: CategoryWithSubcategories[],
-): CategoryCatalogItem[] => {
+const buildCategoryCatalogFromCategories = (categories: CategoryBase[]): CategoryCatalogItem[] => {
   const map = new Map<string, CategoryCatalogItem>();
 
   for (const category of categories) {
@@ -110,15 +108,6 @@ const buildCategoryCatalogFromCategories = (
       name: category.name,
       slug: category.slug,
     });
-
-    for (const subcategory of category.subcategories) {
-      map.set(subcategory.id, {
-        id: subcategory.id,
-        label: `${category.name} / ${subcategory.name}`,
-        name: subcategory.name,
-        slug: subcategory.slug,
-      });
-    }
   }
 
   return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, 'vi'));

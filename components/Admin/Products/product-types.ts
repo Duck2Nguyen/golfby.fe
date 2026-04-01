@@ -4,6 +4,18 @@ export interface ProductOption {
   values: string[];
 }
 
+export interface ProductOptionFormValue {
+  clientId: string;
+  id?: string;
+  value: string;
+}
+
+export interface ProductOptionForm {
+  id: string;
+  name: string;
+  values: ProductOptionFormValue[];
+}
+
 export interface AdminProduct {
   brand: string;
   category: string;

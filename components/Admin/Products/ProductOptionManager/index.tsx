@@ -3,20 +3,23 @@
 import { useState } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 
-import type { ProductOption } from '../product-types';
+import type { ProductOptionForm } from '../product-types';
+
+const generateLocalOptionId = () => `LOCAL_OPT_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+const generateLocalValueId = () => `LOCAL_VAL_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
 interface ProductOptionManagerProps {
-  onChangeAction: (productOptions: ProductOption[]) => void;
-  productOptions: ProductOption[];
+  onChangeAction: (productOptions: ProductOptionForm[]) => void;
+  productOptions: ProductOptionForm[];
 }
 
 interface ProductOptionCardProps {
   index: number;
   onAddValueAction: (value: string) => void;
   onRemoveAction: () => void;
-  onRemoveValueAction: (index: number) => void;
+  onRemoveValueAction: (clientId: string) => void;
   onUpdateNameAction: (name: string) => void;
-  productOption: ProductOption;
+  productOption: ProductOptionForm;
 }
 
 function ProductOptionCard({
@@ -69,12 +72,12 @@ function ProductOptionCard({
           {productOption.values.map((value, valueIndex) => (
             <div
               className="flex items-center gap-1.5 rounded-md border border-border bg-input-background px-2.5 py-1 text-[1.3rem]"
-              key={`${productOption.id}-${valueIndex}`}
+              key={`${productOption.id}-${value.clientId}-${valueIndex}`}
             >
-              <span>{value}</span>
+              <span>{value.value}</span>
               <button
                 className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-destructive"
-                onClick={() => onRemoveValueAction(valueIndex)}
+                onClick={() => onRemoveValueAction(value.clientId)}
                 type="button"
               >
                 <X className="h-3.5 w-3.5" />
@@ -114,8 +117,8 @@ function ProductOptionCard({
 
 export default function ProductOptionManager({ onChangeAction, productOptions }: ProductOptionManagerProps) {
   const handleAddProductOption = () => {
-    const newProductOption: ProductOption = {
-      id: `OPT${Date.now()}`,
+    const newProductOption: ProductOptionForm = {
+      id: generateLocalOptionId(),
       name: '',
       values: [],
     };
@@ -134,16 +137,24 @@ export default function ProductOptionManager({ onChangeAction, productOptions }:
   const handleAddValue = (optionId: string, value: string) => {
     onChangeAction(
       productOptions.map(option =>
-        option.id === optionId ? { ...option, values: [...option.values, value] } : option,
+        option.id === optionId
+          ? {
+              ...option,
+              values: [...option.values, { clientId: generateLocalValueId(), value }],
+            }
+          : option,
       ),
     );
   };
 
-  const handleRemoveValue = (optionId: string, valueIndex: number) => {
+  const handleRemoveValue = (optionId: string, valueClientId: string) => {
     onChangeAction(
       productOptions.map(option =>
         option.id === optionId
-          ? { ...option, values: option.values.filter((_, index) => index !== valueIndex) }
+          ? {
+              ...option,
+              values: option.values.filter(value => value.clientId !== valueClientId),
+            }
           : option,
       ),
     );
@@ -157,7 +168,7 @@ export default function ProductOptionManager({ onChangeAction, productOptions }:
           key={option.id}
           onAddValueAction={value => handleAddValue(option.id, value)}
           onRemoveAction={() => handleRemoveProductOption(option.id)}
-          onRemoveValueAction={valueIndex => handleRemoveValue(option.id, valueIndex)}
+          onRemoveValueAction={valueClientId => handleRemoveValue(option.id, valueClientId)}
           onUpdateNameAction={name => handleUpdateProductOptionName(option.id, name)}
           productOption={option}
         />

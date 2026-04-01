@@ -3,7 +3,7 @@
 import { Plus, Search } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 
-import type { CategoryWithSubcategories } from '@/hooks/useCategorires';
+import type { CategoryBase } from '@/hooks/useCategorires';
 
 import { useCategorires } from '@/hooks/useCategorires';
 
@@ -15,7 +15,7 @@ import CategoryFormModal, { type CategoryFormData } from './CategoryFormModal';
 
 const ITEMS_PER_PAGE = 10;
 
-const mapCategoryToFormData = (category: CategoryWithSubcategories): CategoryFormData => ({
+const mapCategoryToFormData = (category: CategoryBase): CategoryFormData => ({
   description: category.description || '',
   id: category.id,
   name: category.name,

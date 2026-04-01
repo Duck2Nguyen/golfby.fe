@@ -1,19 +1,7 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
-import {
-  X,
-  User,
-  Mail,
-  Menu,
-  Heart,
-  Phone,
-  Search,
-  MapPin,
-  LogOut,
-  ChevronDown,
-  ShoppingCart,
-} from 'lucide-react';
+import { useRef, useMemo, useState, useEffect } from 'react';
+import { X, User, Menu, Heart, Search, MapPin, LogOut, ChevronDown, ShoppingCart } from 'lucide-react';
 
 import * as Yup from 'yup';
 import Link from 'next/link';
@@ -21,6 +9,8 @@ import { Form, Field, Formik } from 'formik';
 
 import { useSession } from '@/hooks/auth';
 import { useCarts } from '@/hooks/useCarts';
+import { useBrands, type Brand } from '@/hooks/useBrands';
+import { useCollections, type CollectionTreeNode } from '@/hooks/useCollections';
 
 import InputField from '@/elements/InputField';
 
@@ -39,133 +29,128 @@ interface NavItem {
   label: string;
   href: string;
   highlight?: boolean;
+  separatorAfter?: boolean;
   dropdown?: DropdownColumn[];
 }
 
-const navItems: NavItem[] = [
-  {
-    label: 'Gậy Golf',
-    href: '/category/gay-golf',
-    dropdown: [
-      {
-        title: 'Gậy Custom (Thửa)',
-        items: [
-          { label: 'Custom Driver', href: '/category/gay-golf?type=custom-driver' },
-          { label: 'Custom Fairway/Gỗ', href: '/category/gay-golf?type=custom-fairway' },
-          { label: 'Custom Hybrid/Rescue', href: '/category/gay-golf?type=custom-hybrid' },
-          { label: 'Custom Iron', href: '/category/gay-golf?type=custom-iron' },
-          { label: 'Custom Driving Iron', href: '/category/gay-golf?type=custom-driving-iron' },
-          { label: 'Custom Wedge', href: '/category/gay-golf?type=custom-wedge' },
-          { label: 'Custom Putter', href: '/category/gay-golf?type=custom-putter' },
-        ],
-      },
-      {
-        title: 'Gậy',
-        items: [
-          { label: 'Fullset', href: '/category/gay-golf?type=fullset' },
-          { label: 'Driver', href: '/category/gay-golf?type=driver' },
-          { label: 'Fairway/Gỗ', href: '/category/gay-golf?type=fairway' },
-          { label: 'Hybrid/Rescue', href: '/category/gay-golf?type=hybrid' },
-          { label: 'Sắt', href: '/category/gay-golf?type=sat' },
-          { label: 'Wedge', href: '/category/gay-golf?type=wedge' },
-          { label: 'Putter', href: '/category/gay-golf?type=putter' },
-          { label: 'Tất Cả', href: '/category/gay-golf' },
-        ],
-      },
-      {
-        title: 'Theo Hãng',
-        items: [
-          { label: 'Titleist', href: '/category/gay-golf?brand=titleist' },
-          { label: 'TaylorMade', href: '/category/gay-golf?brand=taylormade' },
-          { label: 'Ping', href: '/category/gay-golf?brand=ping' },
-          { label: 'Callaway', href: '/category/gay-golf?brand=callaway' },
-          { label: 'Mizuno', href: '/category/gay-golf?brand=mizuno' },
-          { label: 'XXIO', href: '/category/gay-golf?brand=xxio' },
-          { label: 'Tất Cả', href: '/category/gay-golf' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Shaft Gậy',
-    href: '/category/shaft-gay',
-    dropdown: [
-      {
-        title: '',
-        items: [
-          { label: 'Driver', href: '/category/shaft-gay?type=driver' },
-          { label: 'Fairway/Gỗ', href: '/category/shaft-gay?type=fairway' },
-          { label: 'Sắt', href: '/category/shaft-gay?type=sat' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Bóng Golf',
-    href: '/category/bong-golf',
-    dropdown: [
-      {
-        title: '',
-        items: [
-          { label: 'Titleist', href: '/category/bong-golf?brand=titleist' },
-          { label: 'TaylorMade', href: '/category/bong-golf?brand=taylormade' },
-          { label: 'Callaway', href: '/category/bong-golf?brand=callaway' },
-          { label: 'Bridgestone', href: '/category/bong-golf?brand=bridgestone' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Phụ Kiện',
-    href: '/category/phu-kien',
-    dropdown: [
-      {
-        title: 'Phụ Kiện',
-        items: [
-          { label: 'Túi Golf', href: '/category/phu-kien?type=tui' },
-          { label: 'Găng Tay', href: '/category/phu-kien?type=gang-tay' },
-          { label: 'Mũ Golf', href: '/category/phu-kien?type=mu' },
-          { label: 'Kính Golf', href: '/category/phu-kien?type=kinh' },
-          { label: 'Tất Cả', href: '/category/phu-kien' },
-        ],
-      },
-      {
-        title: 'Thiết Bị',
-        items: [
-          { label: 'Máy Đo Khoảng Cách', href: '/category/phu-kien?type=rangefinder' },
-          { label: 'Đồng Hồ GPS', href: '/category/phu-kien?type=gps' },
-          { label: 'Xe Đẩy Golf', href: '/category/phu-kien?type=xe-day' },
-          { label: 'Tất Cả', href: '/category/phu-kien' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Thời Trang Golf',
-    href: '/category/thoi-trang',
-    dropdown: [
-      {
-        title: 'Nam',
-        items: [
-          { label: 'Áo Polo', href: '/category/thoi-trang?type=ao-polo-nam' },
-          { label: 'Quần Golf', href: '/category/thoi-trang?type=quan-nam' },
-          { label: 'Giày Golf', href: '/category/thoi-trang?type=giay-nam' },
-          { label: 'Tất Cả', href: '/category/thoi-trang?gender=nam' },
-        ],
-      },
-      {
-        title: 'Nữ',
-        items: [
-          { label: 'Áo Polo', href: '/category/thoi-trang?type=ao-polo-nu' },
-          { label: 'Váy Golf', href: '/category/thoi-trang?type=vay' },
-          { label: 'Giày Golf', href: '/category/thoi-trang?type=giay-nu' },
-          { label: 'Tất Cả', href: '/category/thoi-trang?gender=nu' },
-        ],
-      },
-    ],
-  },
-  { label: 'Khuyến Mãi', highlight: true, href: '/category/khuyen-mai' },
-];
+const PROMOTION_NAV_ITEM: NavItem = { label: 'Khuyến Mãi', highlight: true, href: '/category/khuyen-mai' };
+const BRAND_NAV_ITEM_LABEL = 'Thương hiệu';
+const BRAND_NAV_ITEM_HREF = '/category/thuong-hieu';
+
+const buildCategoryHref = (slug: string) => {
+  return `/category/${slug}`;
+};
+
+const flattenCollectionNodes = (nodes: CollectionTreeNode[]): CollectionTreeNode[] => {
+  return nodes.flatMap(node => [node, ...flattenCollectionNodes(node.children ?? [])]);
+};
+
+const buildDropdownItems = (collection: CollectionTreeNode): DropdownColumn['items'] => {
+  const items: { label: string; href: string }[] = [];
+  const seenHrefs = new Set<string>();
+
+  // Add categories first
+  for (const category of collection.categories ?? []) {
+    const categoryHref = buildCategoryHref(category.slug);
+
+    if (!seenHrefs.has(categoryHref)) {
+      items.push({
+        href: categoryHref,
+        label: category.name,
+      });
+      seenHrefs.add(categoryHref);
+    }
+  }
+
+  // Add "Tất Cả" at the end
+  const collectionHref = buildCategoryHref(collection.slug);
+  if (!seenHrefs.has(collectionHref)) {
+    items.push({
+      href: collectionHref,
+      label: 'Tất Cả',
+    });
+  }
+
+  return items;
+};
+
+const buildBrandNavItem = (brands: Brand[]): NavItem => {
+  const items: DropdownColumn['items'] = [];
+  const seenHrefs = new Set<string>();
+
+  for (const brand of brands) {
+    if (!brand.name || !brand.slug) {
+      continue;
+    }
+
+    const brandHref = buildCategoryHref(brand.slug);
+
+    if (seenHrefs.has(brandHref)) {
+      continue;
+    }
+
+    items.push({
+      href: brandHref,
+      label: brand.name,
+    });
+    seenHrefs.add(brandHref);
+  }
+
+  if (!seenHrefs.has(BRAND_NAV_ITEM_HREF)) {
+    items.push({
+      href: BRAND_NAV_ITEM_HREF,
+      label: 'Tất Cả',
+    });
+  }
+
+  return {
+    ...(items.length > 0 && {
+      dropdown: [
+        {
+          items,
+          title: '',
+        },
+      ],
+    }),
+    href: BRAND_NAV_ITEM_HREF,
+    label: BRAND_NAV_ITEM_LABEL,
+    separatorAfter: true,
+  };
+};
+
+const buildNavItemsFromCollections = (collections: CollectionTreeNode[]): NavItem[] => {
+  const roots = collections.filter(collection => !collection.parentId);
+  const rootCollections = roots.length > 0 ? roots : collections;
+
+  return rootCollections
+    .filter(collection => Boolean(collection.name && collection.slug))
+    .map(root => {
+      const rootHref = buildCategoryHref(root.slug);
+      const hasNestedData = (root.categories?.length ?? 0) > 0 || (root.children?.length ?? 0) > 0;
+
+      if (!hasNestedData) {
+        return {
+          href: rootHref,
+          label: root.name,
+        };
+      }
+
+      const hasChildren = (root.children?.length ?? 0) > 0;
+      const dropdownCollections = hasChildren ? flattenCollectionNodes(root.children ?? []) : [root];
+      const dropdown = dropdownCollections
+        .map(collection => ({
+          items: buildDropdownItems(collection),
+          title: collection.name,
+        }))
+        .filter(column => column.items.length > 0);
+
+      return {
+        ...(dropdown.length > 0 && { dropdown }),
+        href: rootHref,
+        label: root.name,
+      };
+    });
+};
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -174,7 +159,23 @@ export function Header() {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const { logout, data } = useSession();
+  const { getAllBrands } = useBrands();
   const { getMyCart } = useCarts();
+  const { getAllCollections } = useCollections();
+  const brands = getAllBrands.data?.data;
+  const collectionTree = getAllCollections.data?.data;
+
+  const navItems = useMemo(() => {
+    const brandNavItem = buildBrandNavItem(brands ?? []);
+    const mappedNavItems = buildNavItemsFromCollections(collectionTree ?? []);
+
+    if (mappedNavItems.length === 0) {
+      return [brandNavItem];
+    }
+
+    return [brandNavItem, ...mappedNavItems, PROMOTION_NAV_ITEM];
+  }, [brands, collectionTree]);
+
   const cartItems = getMyCart.data?.data ?? [];
   const cartCount = cartItems.length ?? 0;
 
@@ -194,7 +195,7 @@ export function Header() {
   return (
     <header className="w-full sticky top-0 z-50">
       {/* Top Bar */}
-      <div className="bg-primary text-primary-foreground">
+      {/* <div className="bg-primary text-primary-foreground">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-9">
           <div className="flex items-center gap-5 text-[1.3rem]">
             <a href="#" className="flex items-center gap-1.5 hover:text-white/80 transition-colors">
@@ -221,7 +222,7 @@ export function Header() {
             </a>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Main Header */}
       <div className="bg-white border-b border-border shadow-sm">
@@ -375,17 +376,17 @@ export function Header() {
       </div>
 
       {/* Navigation Bar */}
-      <nav className="bg-white border-b border-border hidden lg:block">
+      <nav className="border-b border-border hidden lg:block bg-primary">
         <div className="max-w-7xl mx-auto px-4">
           <ul className="flex items-center gap-0">
-            {navItems.map(item => (
-              <li key={item.label} className="relative group/nav">
+            {navItems.map(item => [
+              <li key={item.href} className="relative group/nav">
                 <Link
                   href={item.href}
                   className={`flex items-center gap-1 px-5 h-12 text-[1.5rem] transition-colors relative ${
                     item.highlight
-                      ? 'text-destructive hover:text-destructive'
-                      : 'text-foreground hover:text-primary'
+                      ? 'text-white hover:text-white/80 transition-colors'
+                      : 'text-white hover:text-white/80 transition-colors'
                   }`}
                   style={{ fontWeight: 500 }}
                 >
@@ -407,17 +408,17 @@ export function Header() {
                       {/* Mega menu (multi-column) */}
                       {item.dropdown.length > 1 ? (
                         <div
-                          className="grid gap-0 p-6"
+                          className="grid gap-0 px-6 py-4"
                           style={{ gridTemplateColumns: `repeat(${item.dropdown.length}, 1fr)` }}
                         >
-                          {item.dropdown.map(col => (
+                          {item.dropdown.map((col, colIndex) => (
                             <div
-                              key={col.title}
-                              className="pr-6 last:pr-0 border-r border-border/50 last:border-r-0 pl-6 first:pl-0"
+                              key={`${col.title || 'column'}-${colIndex}`}
+                              className="pr-6 last:pr-0 pl-6 first:pl-0"
                             >
                               {col.title && (
                                 <h4
-                                  className="text-[1.4rem] text-foreground mb-3 pb-2 border-b border-border/50 whitespace-nowrap"
+                                  className="text-[1.4rem] text-foreground pb-2 whitespace-nowrap"
                                   style={{ fontWeight: 700 }}
                                 >
                                   {col.title}
@@ -425,10 +426,12 @@ export function Header() {
                               )}
                               <ul className="space-y-0.5">
                                 {col.items.map(subItem => (
-                                  <li key={subItem.label}>
+                                  <li key={subItem.href}>
                                     <Link
                                       href={subItem.href}
-                                      className="block py-1.5 text-[1.4rem] text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
+                                      className={`block py-1.5 text-[1.4rem] ${
+                                        item.href === BRAND_NAV_ITEM_HREF ? 'text-foreground' : 'text-muted-foreground'
+                                      } hover:text-primary transition-colors whitespace-nowrap`}
                                       style={{ fontWeight: 400 }}
                                     >
                                       {subItem.label}
@@ -441,24 +444,47 @@ export function Header() {
                         </div>
                       ) : (
                         /* Simple dropdown (single column) */
-                        <div className="py-2">
-                          {item.dropdown[0].items.map(subItem => (
-                            <Link
-                              key={subItem.label}
-                              href={subItem.href}
-                              className="block px-5 py-2.5 text-[1.4rem] text-foreground hover:bg-muted hover:text-primary transition-colors"
-                              style={{ fontWeight: 400 }}
+                        <div className="px-6 py-4">
+                          {item.dropdown[0].title && (
+                            <h4
+                              className="text-[1.4rem] text-foreground pb-2 whitespace-nowrap"
+                              style={{ fontWeight: 700 }}
                             >
-                              {subItem.label}
-                            </Link>
-                          ))}
+                              {item.dropdown[0].title}
+                            </h4>
+                          )}
+                          <ul className="space-y-0.5">
+                            {item.dropdown[0].items.map(subItem => (
+                              <li key={subItem.href}>
+                                <Link
+                                  href={subItem.href}
+                                  className={`block py-[6px] text-[1.4rem] ${
+                                    item.href === BRAND_NAV_ITEM_HREF ? 'text-foreground' : 'text-muted-foreground'
+                                  } hover:text-primary transition-colors whitespace-nowrap`}
+                                  style={{ fontWeight: 400 }}
+                                >
+                                  {subItem.label}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                       )}
                     </div>
                   </div>
                 )}
-              </li>
-            ))}
+              </li>,
+              item.separatorAfter ? (
+                <li
+                  key={`${item.href}-separator`}
+                  aria-hidden="true"
+                  className="px-1 text-white/40 text-[1.5rem]"
+                  style={{ fontWeight: 400 }}
+                >
+                  |
+                </li>
+              ) : null,
+            ])}
           </ul>
         </div>
       </nav>
@@ -492,7 +518,7 @@ export function Header() {
             </Formik>
             <ul className="space-y-1">
               {navItems.map(item => (
-                <li key={item.label}>
+                <li key={item.href}>
                   <Link
                     href={item.href}
                     className={`block px-3 py-2.5 rounded-lg text-[1.5rem] ${

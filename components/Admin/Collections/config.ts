@@ -56,8 +56,8 @@ export const getColumnDefs = ({
             {
               className:
                 collection.typeLabel === 'Cha'
-                  ? 'rounded-md bg-emerald-50 px-2 py-0.5 text-[1.1rem] font-600 text-emerald-700'
-                  : 'rounded-md bg-sky-50 px-2 py-0.5 text-[1.1rem] font-600 text-sky-700',
+                  ? 'rounded-md bg-emerald-50 px-2 py-0.5 text-[1.1rem] font-600 text-emerald-700 h-[2.8rem] flex items-center'
+                  : 'rounded-md bg-sky-50 px-2 py-0.5 text-[1.1rem] font-600 text-sky-700 h-[2.8rem] flex items-center',
             },
             collection.typeLabel,
           ),
@@ -94,7 +94,7 @@ export const getColumnDefs = ({
       headerName: 'COLLECTION CHA',
       minWidth: 200,
       sortable: false,
-      valueGetter: params => params.data?.parentName || '-',
+      valueGetter: params => params.data?.parentName || '',
     },
     {
       cellClass: 'text-[1.3rem] text-gray-500',

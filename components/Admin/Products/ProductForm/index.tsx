@@ -22,7 +22,9 @@ import { useFormik, FormikProvider } from 'formik';
 import type { ProductVariantItem } from '@/hooks/useVariants';
 import type {
   AdminProductDetail,
+  AdminProductOptionPayload,
   CreateAdminProductPayload,
+  AdminProductOptionUpdatePayload,
   TriggerUpdateAdminProductPayload,
 } from '@/hooks/admin/useAdminProduct';
 
@@ -42,7 +44,7 @@ import MultiUploadImage from '../MultiUploadImage';
 import ProductOptionManager from '../ProductOptionManager';
 import ProductVariantsTable from '../ProductVariantsTable';
 
-import type { ProductOption } from '../product-types';
+import type { ProductOptionForm } from '../product-types';
 
 function FormSection({
   children,
@@ -82,7 +84,7 @@ interface ProductFormValues {
   imageFiles: File[];
   images: string[];
   name: string;
-  productOptions: ProductOption[];
+  productOptions: ProductOptionForm[];
   selectedBrandIds: string[];
   selectedCollections: string[];
   selectedTags: string[];
@@ -91,9 +93,16 @@ interface ProductFormValues {
 }
 
 const buildValidationSchema = (isEdit: boolean) => {
+  const baseOptionValueSchema = yup.object({
+    clientId: yup.string().required(),
+    id: yup.string().optional(),
+    value: yup.string().trim().required(),
+  });
+
   const baseOptionSchema = yup.object({
+    id: yup.string().required(),
     name: yup.string().trim().required(),
-    values: yup.array().of(yup.string().trim()).min(1).required(),
+    values: yup.array().of(baseOptionValueSchema).min(1).required(),
   });
 
   const createProductOptionsSchema = yup
@@ -105,7 +114,9 @@ const buildValidationSchema = (isEdit: boolean) => {
 
       return value.every(option => {
         const hasName = (option.name ?? '').trim().length > 0;
-        const hasValues = (option.values ?? []).filter(Boolean).length > 0;
+        const hasValues =
+          (option.values ?? []).filter(optionValue => (optionValue?.value ?? '').trim().length > 0).length >
+          0;
 
         return hasName && hasValues;
       });
@@ -174,12 +185,120 @@ const mapDetailImages = (images?: AdminProductDetail['images']) => {
   };
 };
 
-const mapDetailOptionsToForm = (options?: AdminProductDetail['options']): ProductOption[] => {
+const mapDetailOptionsToForm = (options?: AdminProductDetail['options']): ProductOptionForm[] => {
   return (options ?? []).map(option => ({
     id: option.id,
     name: option.name,
-    values: (option.values ?? []).map(value => value.value).filter(Boolean),
+    values: (option.values ?? [])
+      .map(value => ({
+        clientId: value.id,
+        id: value.id,
+        value: value.value,
+      }))
+      .filter(value => Boolean(value.value?.trim())),
   }));
+};
+
+interface ProductOptionPatchPayload {
+  productOptionsDelete: string[];
+  productOptionsNew: AdminProductOptionPayload[];
+  productOptionsUpdate: AdminProductOptionUpdatePayload[];
+}
+
+const buildProductOptionsPatchPayload = (
+  currentOptions: ProductOptionForm[],
+  originalOptions?: AdminProductDetail['options'],
+): ProductOptionPatchPayload => {
+  const productOptionsDelete: string[] = [];
+  const productOptionsNew: AdminProductOptionPayload[] = [];
+  const productOptionsUpdate: AdminProductOptionUpdatePayload[] = [];
+
+  const originalList = originalOptions ?? [];
+  const originalById = new Map(originalList.map(option => [option.id, option]));
+  const currentOptionIds = new Set(currentOptions.map(option => option.id));
+
+  for (const originalOption of originalList) {
+    if (!currentOptionIds.has(originalOption.id)) {
+      productOptionsDelete.push(originalOption.id);
+    }
+  }
+
+  for (const option of currentOptions) {
+    const normalizedName = option.name.trim();
+    const normalizedValues = option.values
+      .map(value => ({
+        id: value.id,
+        value: value.value.trim(),
+      }))
+      .filter(value => Boolean(value.value));
+
+    if (!normalizedName || normalizedValues.length === 0) {
+      continue;
+    }
+
+    const original = originalById.get(option.id);
+    if (!original) {
+      productOptionsNew.push({
+        name: normalizedName,
+        values: normalizedValues.map(value => ({
+          value: value.value,
+        })),
+      });
+
+      continue;
+    }
+
+    const originalValueById = new Map((original.values ?? []).map(value => [value.id, value.value]));
+    const currentValueIds = new Set(
+      normalizedValues.map(value => value.id).filter((id): id is string => Boolean(id)),
+    );
+    const removedValueIds = (original.values ?? [])
+      .filter(value => !currentValueIds.has(value.id))
+      .map(value => value.id);
+
+    const changedOrAddedValues = normalizedValues.reduce<
+      NonNullable<AdminProductOptionUpdatePayload['values']>
+    >((accumulator, value) => {
+      if (!value.id) {
+        accumulator.push({ value: value.value });
+        return accumulator;
+      }
+
+      const originalValue = originalValueById.get(value.id);
+      if (originalValue === undefined || originalValue !== value.value) {
+        accumulator.push({
+          id: value.id,
+          value: value.value,
+        });
+      }
+
+      return accumulator;
+    }, []);
+
+    const optionPatch: AdminProductOptionUpdatePayload = {
+      optionId: original.id,
+    };
+
+    if (normalizedName !== original.name.trim()) {
+      optionPatch.name = normalizedName;
+    }
+    if (changedOrAddedValues.length > 0) {
+      optionPatch.values = changedOrAddedValues;
+    }
+    if (removedValueIds.length > 0) {
+      optionPatch.removedValueIds = removedValueIds;
+    }
+
+    if (optionPatch.name || optionPatch.values || optionPatch.removedValueIds) {
+      productOptionsUpdate.push(optionPatch);
+    }
+  }
+
+  return {
+    productOptionsDelete,
+    productOptionsNew,
+    productOptionsUpdate,
+  };
 };
 
 const mapDetailVariantsToTableRows = (variants?: AdminProductDetail['variants']): ProductVariantItem[] => {
@@ -283,6 +402,12 @@ export default function ProductForm({ productId }: ProductFormProps) {
 
       try {
         if (isEdit && productId) {
+          const optionPatch = buildProductOptionsPatchPayload(values.productOptions, detailProduct?.options);
+          const hasOptionPatch =
+            optionPatch.productOptionsDelete.length > 0 ||
+            optionPatch.productOptionsNew.length > 0 ||
+            optionPatch.productOptionsUpdate.length > 0;
+
           const updatePayload: TriggerUpdateAdminProductPayload = {
             brandId: values.selectedBrandIds[0] ?? null,
             categoryId: values.selectedCollections[0] ?? null,
@@ -299,7 +424,13 @@ export default function ProductForm({ productId }: ProductFormProps) {
             status: mapStatusToApi(finalStatus),
             subcategoryId: detailProduct?.subcategoryId ?? null,
             // TODO: add productTagsNew when BE update-tags contract is ready.
-            // TODO: add productOptions when BE supports options update on PATCH product.
+            ...(hasOptionPatch
+              ? {
+                  productOptionsDelete: optionPatch.productOptionsDelete,
+                  productOptionsNew: optionPatch.productOptionsNew,
+                  productOptionsUpdate: optionPatch.productOptionsUpdate,
+                }
+              : {}),
           };
 
           await triggerUpdateAdminProduct(updatePayload);
@@ -318,13 +449,16 @@ export default function ProductForm({ productId }: ProductFormProps) {
             listPrice: '0',
             name: normalizedName,
             productOptions: values.productOptions
-              .filter(option => option.name.trim() && option.values.filter(Boolean).length > 0)
               .map(option => ({
                 name: option.name.trim(),
-                values: option.values.filter(Boolean).map(value => ({
-                  value,
-                })),
-              })),
+                values: option.values
+                  .map(value => value.value.trim())
+                  .filter(Boolean)
+                  .map(value => ({
+                    value,
+                  })),
+              }))
+              .filter(option => option.name && option.values.length > 0),
             productTagIds: values.selectedTags,
             salePrice: '0',
             slug: toSlug(normalizedName) || `product-${Date.now()}`,
@@ -356,14 +490,14 @@ export default function ProductForm({ productId }: ProductFormProps) {
   const productOptionStats = useMemo(() => {
     const optionCount = formik.values.productOptions.length;
     const totalValues = formik.values.productOptions.reduce(
-      (sum, option) => sum + option.values.filter(Boolean).length,
+      (sum, option) => sum + option.values.filter(value => Boolean(value.value.trim())).length,
       0,
     );
     const combinationCount =
       optionCount === 0
         ? 0
         : formik.values.productOptions.reduce((acc, option) => {
-            const valueCount = option.values.filter(Boolean).length;
+            const valueCount = option.values.filter(value => Boolean(value.value.trim())).length;
 
             return acc * Math.max(1, valueCount);
           }, 1);

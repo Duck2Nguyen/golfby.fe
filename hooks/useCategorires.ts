@@ -12,23 +12,12 @@ export interface CategoryBase {
   updatedAt?: string | null;
 }
 
-export interface Subcategory extends CategoryBase {
-  category?: CategoryBase;
-  categoryId: string;
-}
-
-export interface CategoryWithSubcategories extends CategoryBase {
-  subcategories: Subcategory[];
-}
-
-export interface CategoryDetail extends CategoryWithSubcategories {
+export interface CategoryDetail extends CategoryBase {
   products?: Record<string, unknown>[];
 }
 
 export interface UseCategoriresOptions {
   categoryId?: string;
-  subcategoryId?: string;
-  subcategoriesByCategoryId?: string;
 }
 
 export interface CreateCategoryPayload {
@@ -48,25 +37,8 @@ export interface DeleteCategoryPayload {
   id: string;
 }
 
-export interface CreateSubcategoryPayload {
-  categoryId: string;
-  csrf?: boolean;
-  description?: string;
-  name: string;
-  slug: string;
-}
-
-export type UpdateSubcategoryPayload = Partial<CreateSubcategoryPayload> & {
-  id: string;
-};
-
-export interface DeleteSubcategoryPayload {
-  csrf?: boolean;
-  id: string;
-}
-
 export const useCategorires = (options?: UseCategoriresOptions) => {
-  const getAllCategories = useSWRWrapper<CategoryWithSubcategories[]>('/api/v1/categories', {
+  const getAllCategories = useSWRWrapper<CategoryBase[]>('/api/v1/categories', {
     method: METHOD.GET,
     url: '/api/v1/categories',
   });
@@ -110,45 +82,12 @@ export const useCategorires = (options?: UseCategoriresOptions) => {
     url: '/api/v1/admin/categories/{id}',
   });
 
-  const createSubcategoryMutation = useMutation<Subcategory>('/api/v1/admin/subcategories', {
-    loading: true,
-    method: METHOD.POST,
-    notification: {
-      content: 'Tạo danh mục con thành công',
-      title: 'Thành công',
-    },
-    url: '/api/v1/admin/subcategories',
-  });
-
-  const updateSubcategoryMutation = useMutation<Subcategory>('/api/v1/admin/subcategories/{id}', {
-    loading: true,
-    method: METHOD.PATCH,
-    notification: {
-      content: 'Cập nhật danh mục con thành công',
-      title: 'Thành công',
-    },
-    url: '/api/v1/admin/subcategories/{id}',
-  });
-
-  const deleteSubcategoryMutation = useMutation<boolean>('/api/v1/admin/subcategories/{id}', {
-    loading: true,
-    method: METHOD.DELETE,
-    notification: {
-      content: 'Xóa danh mục con thành công',
-      title: 'Thành công',
-    },
-    url: '/api/v1/admin/subcategories/{id}',
-  });
-
   return {
     createCategoryMutation,
-    createSubcategoryMutation,
     deleteCategoryMutation,
-    deleteSubcategoryMutation,
     getAllCategories,
     getCategoryById,
     updateCategoryMutation,
-    updateSubcategoryMutation,
   };
 };
 

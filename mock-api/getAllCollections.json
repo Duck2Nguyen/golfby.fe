@@ -1,0 +1,157 @@
+{
+  "success": true,
+  "message": "Success",
+  "data": [
+    {
+      "id": "col-root-clubs",
+      "name": "Golf Clubs",
+      "slug": "golf-clubs",
+      "description": "All club-related collections",
+      "parentId": null,
+      "createdAt": "2026-03-31T02:00:00.000Z",
+      "updatedAt": "2026-03-31T02:00:00.000Z",
+      "categories": [
+        {
+          "id": "cat-driver",
+          "name": "Driver",
+          "slug": "driver",
+          "description": "High distance drivers",
+          "collectionId": "col-root-clubs",
+          "createdAt": "2026-03-31T02:00:00.000Z",
+          "updatedAt": "2026-03-31T02:00:00.000Z"
+        },
+        {
+          "id": "cat-iron-set",
+          "name": "Iron Set",
+          "slug": "iron-set",
+          "description": "Forged and cavity-back irons",
+          "collectionId": "col-root-clubs",
+          "createdAt": "2026-03-31T02:05:00.000Z",
+          "updatedAt": "2026-03-31T02:05:00.000Z"
+        }
+      ],
+      "children": [
+        {
+          "id": "col-drivers",
+          "name": "Drivers",
+          "slug": "drivers",
+          "description": "Driver lineup by launch profile",
+          "parentId": "col-root-clubs",
+          "createdAt": "2026-03-31T02:10:00.000Z",
+          "updatedAt": "2026-03-31T02:10:00.000Z",
+          "categories": [
+            {
+              "id": "cat-low-spin-driver",
+              "name": "Low Spin Driver",
+              "slug": "low-spin-driver",
+              "description": "Low spin head models",
+              "collectionId": "col-drivers",
+              "createdAt": "2026-03-31T02:12:00.000Z",
+              "updatedAt": "2026-03-31T02:12:00.000Z"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "col-irons",
+          "name": "Irons",
+          "slug": "irons",
+          "description": "Irons by skill level",
+          "parentId": "col-root-clubs",
+          "createdAt": "2026-03-31T02:15:00.000Z",
+          "updatedAt": "2026-03-31T02:15:00.000Z",
+          "categories": [
+            {
+              "id": "cat-game-improvement-irons",
+              "name": "Game Improvement",
+              "slug": "game-improvement-irons",
+              "description": "Forgiveness-focused irons",
+              "collectionId": "col-irons",
+              "createdAt": "2026-03-31T02:16:00.000Z",
+              "updatedAt": "2026-03-31T02:16:00.000Z"
+            }
+          ],
+          "children": [
+            {
+              "id": "col-irons-premium",
+              "name": "Premium Irons",
+              "slug": "premium-irons",
+              "description": "Top-end forged iron sets",
+              "parentId": "col-irons",
+              "createdAt": "2026-03-31T02:20:00.000Z",
+              "updatedAt": "2026-03-31T02:20:00.000Z",
+              "categories": [
+                {
+                  "id": "cat-forged-premium",
+                  "name": "Forged Premium",
+                  "slug": "forged-premium",
+                  "description": "Tour-style forged irons",
+                  "collectionId": "col-irons-premium",
+                  "createdAt": "2026-03-31T02:21:00.000Z",
+                  "updatedAt": "2026-03-31T02:21:00.000Z"
+                }
+              ],
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "col-root-balls",
+      "name": "Golf Balls",
+      "slug": "golf-balls",
+      "description": "Ball collections by feel and spin",
+      "parentId": null,
+      "createdAt": "2026-03-31T03:00:00.000Z",
+      "updatedAt": "2026-03-31T03:00:00.000Z",
+      "categories": [
+        {
+          "id": "cat-tour-ball",
+          "name": "Tour Ball",
+          "slug": "tour-ball",
+          "description": "High control multi-layer balls",
+          "collectionId": "col-root-balls",
+          "createdAt": "2026-03-31T03:01:00.000Z",
+          "updatedAt": "2026-03-31T03:01:00.000Z"
+        }
+      ],
+      "children": [
+        {
+          "id": "col-distance-ball",
+          "name": "Distance Balls",
+          "slug": "distance-balls",
+          "description": "Long carry two-piece balls",
+          "parentId": "col-root-balls",
+          "createdAt": "2026-03-31T03:05:00.000Z",
+          "updatedAt": "2026-03-31T03:05:00.000Z",
+          "categories": [
+            {
+              "id": "cat-soft-distance-ball",
+              "name": "Soft Distance",
+              "slug": "soft-distance-ball",
+              "description": "Soft-feel distance-focused balls",
+              "collectionId": "col-distance-ball",
+              "createdAt": "2026-03-31T03:06:00.000Z",
+              "updatedAt": "2026-03-31T03:06:00.000Z"
+            }
+          ],
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "col-root-accessories",
+      "name": "Accessories",
+      "slug": "accessories",
+      "description": "Bags, gloves, tees, and more",
+      "parentId": null,
+      "createdAt": "2026-03-31T04:00:00.000Z",
+      "updatedAt": "2026-03-31T04:00:00.000Z",
+      "categories": [],
+      "children": []
+    }
+  ],
+  "error": null,
+  "meta": {}
+}

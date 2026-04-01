@@ -17,6 +17,18 @@ export interface AdminProductOptionPayload {
   values: AdminProductOptionValuePayload[];
 }
 
+export interface AdminProductOptionUpdateValuePayload {
+  id?: string;
+  value: string;
+}
+
+export interface AdminProductOptionUpdatePayload {
+  name?: string;
+  optionId: string;
+  removedValueIds?: string[];
+  values?: AdminProductOptionUpdateValuePayload[];
+}
+
 export interface CreateAdminProductPayload {
   categoryId?: string;
   brandId?: string;
@@ -41,13 +53,15 @@ export interface UpdateAdminProductPayload {
   description?: string;
   listPrice?: string;
   name?: string;
+  productOptionsDelete?: string[];
+  productOptionsNew?: AdminProductOptionPayload[];
+  productOptionsUpdate?: AdminProductOptionUpdatePayload[];
   productTagIds?: string[];
   salePrice?: string;
   slug?: string;
   status?: Exclude<AdminProductStatus, 'DELETED'>;
   subcategoryId?: string | null;
   // TODO: add `productTagsNew` after BE update-tags contract is finalized.
-  // TODO: add `productOptions` after BE supports options update via PATCH product API.
 }
 
 export interface TriggerUpdateAdminProductPayload extends UpdateAdminProductPayload {
@@ -305,9 +319,17 @@ export const buildUpdateAdminProductPayload = (
   if (payload.categoryId !== undefined) normalizedPayload.categoryId = payload.categoryId;
   if (payload.subcategoryId !== undefined) normalizedPayload.subcategoryId = payload.subcategoryId;
   if (payload.productTagIds !== undefined) normalizedPayload.productTagIds = payload.productTagIds;
+  if ((payload.productOptionsNew?.length ?? 0) > 0) {
+    normalizedPayload.productOptionsNew = payload.productOptionsNew;
+  }
+  if ((payload.productOptionsUpdate?.length ?? 0) > 0) {
+    normalizedPayload.productOptionsUpdate = payload.productOptionsUpdate;
+  }
+  if ((payload.productOptionsDelete?.length ?? 0) > 0) {
+    normalizedPayload.productOptionsDelete = payload.productOptionsDelete;
+  }
 
   // TODO: add `productTagsNew` once BE update-tags API contract is stable.
-  // TODO: add `productOptions` once BE supports options update in PATCH /admin/products/{id}.
 
   return normalizedPayload;
 };
