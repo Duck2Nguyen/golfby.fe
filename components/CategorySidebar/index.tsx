@@ -7,7 +7,7 @@ import { FormCheckbox } from '@/elements/FormCheckbox';
 
 interface FilterSection {
   title: string;
-  options: { label: string; count: number; checked?: boolean }[];
+  options: { label: string; count?: number; checked?: boolean }[];
 }
 
 interface PriceRange {
@@ -18,9 +18,10 @@ interface PriceRange {
 interface CategorySidebarProps {
   priceRange: PriceRange;
   maxPrice: number;
-  onPriceChange: (range: PriceRange) => void;
+  onPriceChangeAction: (range: PriceRange) => void;
   filters: FilterSection[];
-  onFilterChange: (sectionTitle: string, label: string, checked: boolean) => void;
+  onFilterChangeAction: (sectionTitle: string, label: string, checked: boolean) => void;
+  showCount?: boolean;
 }
 
 function PriceSlider({
@@ -140,15 +141,21 @@ function CollapsibleSection({
 export function CategorySidebar({
   priceRange,
   maxPrice,
-  onPriceChange,
+  onPriceChangeAction,
   filters,
-  onFilterChange,
+  onFilterChangeAction,
+  showCount = true,
 }: CategorySidebarProps) {
   return (
     <aside className="w-full">
       {/* Price Filter */}
       <CollapsibleSection title="Giá">
-        <PriceSlider min={priceRange.min} max={priceRange.max} maxPrice={maxPrice} onChange={onPriceChange} />
+        <PriceSlider
+          min={priceRange.min}
+          max={priceRange.max}
+          maxPrice={maxPrice}
+          onChange={onPriceChangeAction}
+        />
       </CollapsibleSection>
 
       {/* Dynamic Filters */}
@@ -159,9 +166,11 @@ export function CategorySidebar({
               <FormCheckbox
                 label={option.label}
                 checked={option.checked || false}
-                onCheckedChange={checked => onFilterChange(section.title, option.label, checked)}
+                onCheckedChange={checked => onFilterChangeAction(section.title, option.label, checked)}
               />
-              <span className="text-[1.2rem] text-muted-foreground">({option.count})</span>
+              {showCount && typeof option.count === 'number' && (
+                <span className="text-[1.2rem] text-muted-foreground">({option.count})</span>
+              )}
             </div>
           ))}
         </CollapsibleSection>

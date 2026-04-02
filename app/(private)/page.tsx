@@ -2,14 +2,12 @@ import React from 'react';
 
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { Features } from '@/components/Features';
 import { HeroBanner } from '@/components/HeroBanner';
 import { Newsletter } from '@/components/Newsletter';
 import { BrandSlider } from '@/components/BrandSlider';
 import { PromoBanner } from '@/components/PromoBanner';
-import { CategoryGrid } from '@/components/CategoryGrid';
 import { ProductSection } from '@/components/ProductSection';
-import { clubProducts, ballProducts, accessoryProducts } from '@/components/mock-data';
+import TopSellingSection from '@/components/TopSellingSection';
 
 export default function HomePage() {
   return (
@@ -18,16 +16,12 @@ export default function HomePage() {
 
       <main>
         <HeroBanner />
-        <Features />
-        <CategoryGrid />
+        {/* <Features /> */}
+        {/* <CategoryGrid /> */}
         <BrandSlider />
 
-        <ProductSection
-          title="Gậy Golf Bán Chạy"
-          subtitle="Dòng gậy được golfer tin dùng nhiều nhất"
-          products={clubProducts}
-          tabs={['Bán chạy', 'Mới nhất', 'Giảm giá']}
-        />
+        <ProductSection />
+        <TopSellingSection limit={10} />
 
         <PromoBanner
           layout="two-col"
@@ -48,20 +42,6 @@ export default function HomePage() {
               align: 'right',
             },
           ]}
-        />
-
-        <ProductSection
-          title="Bóng Golf"
-          subtitle="Chọn bóng phù hợp cho mọi phong cách chơi"
-          products={ballProducts}
-          bgColor="bg-muted"
-        />
-
-        <ProductSection
-          title="Phụ Kiện & Thời Trang"
-          subtitle="Hoàn thiện phong cách golfer của bạn"
-          products={accessoryProducts}
-          tabs={['Tất cả', 'Phụ kiện', 'Thời trang']}
         />
 
         <PromoBanner

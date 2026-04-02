@@ -1,72 +1,176 @@
+import { notFound } from 'next/navigation';
+
 import type { Product } from '@/components/mock-data';
+import type { RestResponse, PaginatedResponse } from '@/interfaces/response';
 
-import ProductDetailPageClient from '@/components/ProductDetail/ProductDetailClient';
-import { clubProducts, ballProducts, accessoryProducts } from '@/components/mock-data';
+import ProductDetailPageClient, {
+  type ProductDetailViewData,
+} from '@/components/ProductDetail/ProductDetailClient';
 
-// Combine all products for lookup
-const allProducts: Product[] = [...clubProducts, ...ballProducts, ...accessoryProducts];
+interface ApiProductBrand {
+  name?: string | null;
+}
 
-// Extended product detail data
-const productDetails: Record<
-  number,
-  {
-    sku: string;
-    shortDescription: string;
-    images: string[];
-    options: { label: string; values: string[] }[];
-    category: string;
+interface ApiProductCategory {
+  id: string;
+  name: string;
+  slug?: string | null;
+}
+
+interface ApiProductImage {
+  key?: string | null;
+  url?: string | null;
+}
+
+interface ApiProductOptionValue {
+  value: string;
+}
+
+interface ApiProductOption {
+  name: string;
+  values?: ApiProductOptionValue[];
+}
+
+interface ApiProductVariant {
+  sku?: string | null;
+  stock?: number | null;
+}
+
+interface ApiProductListItem {
+  brand?: ApiProductBrand | null;
+  id: string;
+  images?: ApiProductImage[];
+  listPrice?: string | null;
+  name: string;
+  salePrice?: string | null;
+}
+
+interface ApiProductDetail extends ApiProductListItem {
+  brandId?: string | null;
+  category?: ApiProductCategory | null;
+  categoryId?: string | null;
+  collectionId?: string | null;
+  description?: string | null;
+  options?: ApiProductOption[];
+  variants?: ApiProductVariant[];
+}
+
+const API_BASE_URL = process.env.BASE_API_URL ?? 'http://localhost:8000';
+const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
+const RELATED_PRODUCTS_LIMIT = 8;
+
+const toNumber = (value?: string | null) => {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const fetchApi = async <T,>(endpoint: string): Promise<T> => {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    cache: 'no-store',
+  });
+
+  if (response.status === 404) {
+    notFound();
   }
-> = {};
 
-// Generate detail data for all products
-allProducts.forEach(product => {
-  productDetails[product.id] = {
-    sku: `GS-${String(product.id).padStart(5, '0')}`,
-    shortDescription: `Trung tâm phân phối chính hãng ${product.brand}. Sản phẩm ${product.name} — được thiết kế dành cho golfer từ trung bình đến chuyên nghiệp. Cam kết hàng chính hãng 100%, bảo hành theo chính sách nhà sản xuất.`,
-    images: generateGalleryImages(product),
-    options: generateOptions(product),
-    category: getCategoryForProduct(product.id),
+  if (!response.ok) {
+    throw new Error(`Request failed: ${endpoint} (${response.status})`);
+  }
+
+  const payload = (await response.json()) as RestResponse<T>;
+  return payload.data;
+};
+
+const mapApiProductToCardData = (item: ApiProductListItem): Product => {
+  const salePrice = toNumber(item.salePrice);
+  const listPrice = toNumber(item.listPrice);
+
+  const price = salePrice > 0 ? salePrice : listPrice;
+  const originalPrice = salePrice > 0 && listPrice > salePrice ? listPrice : undefined;
+  const discount =
+    originalPrice && originalPrice > 0
+      ? Math.round(((originalPrice - price) / originalPrice) * 100)
+      : undefined;
+
+  return {
+    brand: item.brand?.name ?? 'GolfBy',
+    ...(discount ? { badge: 'sale' } : {}),
+    ...(discount ? { discount } : {}),
+    id: item.id,
+    image: item.images?.[0]?.url || item.images?.[0]?.key || PRODUCT_IMAGE_FALLBACK,
+    name: item.name,
+    ...(originalPrice ? { originalPrice } : {}),
+    price,
+    rating: 0,
+    reviews: 0,
   };
-});
+};
 
-function generateGalleryImages(product: Product): string[] {
-  // Use product image + some related images
-  const extraImages = [
-    'https://images.unsplash.com/photo-1675106643681-da7ad12e926f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2xmJTIwY2x1YiUyMGNsb3NldXAlMjBkZXRhaWx8ZW58MXx8fHwxNzczNjI5MTI5fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    'https://images.unsplash.com/photo-1662224107272-c964ea82bd3d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2xmJTIwY2x1YiUyMHNldCUyMGlyb24lMjB3b29kfGVufDF8fHx8MTc3MzYyOTEyOXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    'https://images.unsplash.com/photo-1592459777315-00ab1374a953?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2xmJTIwd29vZCUyMGNsdWIlMjBzcG9ydCUyMGVxdWlwbWVudHxlbnwxfHx8fDE3NzM2MjkxMzN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    'https://images.unsplash.com/photo-1675106645743-1e47fd7206a5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2xmJTIwZHJpdmVyJTIwdGVlJTIwc3BvcnR8ZW58MXx8fHwxNzczNjI5MTM0fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-  ];
-  return [product.image, ...extraImages.slice(0, 3)];
-}
+const mapApiProductToDetailData = (item: ApiProductDetail): ProductDetailViewData => {
+  const images =
+    (item.images ?? [])
+      .map(image => image.url || image.key)
+      .filter((image): image is string => Boolean(image)) || [];
 
-function generateOptions(product: Product): { label: string; values: string[] }[] {
-  const id = product.id;
-  // Clubs
-  if (id <= 4)
-    return [
-      { label: 'Tay Thuận', values: ['Phải', 'Trái'] },
-      { label: 'Độ Cứng (Flex)', values: ['R', 'SR', 'S'] },
-      { label: 'Loft', values: ['9°', '10.5°', '12°'] },
-    ];
-  // Balls
-  if (id <= 8)
-    return [
-      { label: 'Màu Sắc', values: ['Trắng', 'Vàng', 'Cam'] },
-      { label: 'Số Lượng', values: ['12 bóng', '24 bóng', '48 bóng'] },
-    ];
-  // Accessories
-  return [
-    { label: 'Size', values: ['S', 'M', 'L', 'XL'] },
-    { label: 'Màu Sắc', values: ['Đen', 'Trắng', 'Xanh Navy'] },
-  ];
-}
+  const options =
+    (item.options ?? [])
+      .map(option => ({
+        label: option.name,
+        values: (option.values ?? [])
+          .map(value => value.value)
+          .filter((value): value is string => Boolean(value)),
+      }))
+      .filter(option => option.values.length > 0) || [];
 
-function getCategoryForProduct(id: number): string {
-  if (id <= 4) return 'Gậy Golf';
-  if (id <= 8) return 'Bóng Golf';
-  return 'Phụ Kiện';
-}
+  const hasVariants = (item.variants?.length ?? 0) > 0;
+  const inStock = hasVariants ? (item.variants ?? []).some(variant => (variant.stock ?? 0) > 0) : true;
+
+  const sku =
+    (item.variants ?? []).find(variant => Boolean(variant.sku))?.sku ||
+    `SP-${item.id.slice(0, 8).toUpperCase()}`;
+
+  return {
+    category: item.category?.name ?? 'Sản phẩm',
+    categorySlug: item.category?.slug ?? undefined,
+    descriptionHtml:
+      item.description?.trim() ||
+      `<p>Sản phẩm chính hãng ${item.brand?.name ?? 'GolfBy'}, thông tin mô tả đang được cập nhật.</p>`,
+    images: images.length > 0 ? images : [PRODUCT_IMAGE_FALLBACK],
+    inStock,
+    options,
+    sku,
+  };
+};
+
+const getRelatedProducts = async (product: ApiProductDetail): Promise<Product[]> => {
+  const query = new URLSearchParams({
+    page: '1',
+    size: String(RELATED_PRODUCTS_LIMIT + 1),
+  });
+
+  if (product.categoryId) {
+    query.set('categoryId', product.categoryId);
+  }
+
+  const related = await fetchApi<PaginatedResponse<ApiProductListItem>>(
+    `/api/v1/products?${query.toString()}`,
+  );
+  let relatedItems = (related.items ?? []).filter(item => item.id !== product.id);
+
+  if (relatedItems.length === 0 && product.categoryId) {
+    const fallbackQuery = new URLSearchParams({
+      page: '1',
+      size: String(RELATED_PRODUCTS_LIMIT + 1),
+    });
+
+    const fallback = await fetchApi<PaginatedResponse<ApiProductListItem>>(
+      `/api/v1/products?${fallbackQuery.toString()}`,
+    );
+    relatedItems = (fallback.items ?? []).filter(item => item.id !== product.id);
+  }
+
+  return relatedItems.slice(0, RELATED_PRODUCTS_LIMIT).map(mapApiProductToCardData);
+};
 
 interface ProductDetailPageProps {
   params: Promise<{ id: string }>;
@@ -74,18 +178,11 @@ interface ProductDetailPageProps {
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { id } = await params;
-  const productId = Number(id) || 1;
-  const product = allProducts.find(p => p.id === productId) || allProducts[0];
-  const detail = productDetails[product.id] || productDetails[allProducts[0].id];
+  const productDetail = await fetchApi<ApiProductDetail>(`/api/v1/products/${encodeURIComponent(id)}`);
 
-  // Related products (same category, excluding current)
-  const relatedProducts = allProducts.filter(
-    p => p.id !== product.id && getCategoryForProduct(p.id) === detail.category,
-  );
+  const product = mapApiProductToCardData(productDetail);
+  const detail = mapApiProductToDetailData(productDetail);
+  const displayRelated = await getRelatedProducts(productDetail);
 
-  // If no related in same category, use all others
-  const displayRelated =
-    relatedProducts.length >= 2 ? relatedProducts : allProducts.filter(p => p.id !== product.id).slice(0, 4);
-
-  return <ProductDetailPageClient product={product} detail={detail} displayRelated={displayRelated} />;
+  return <ProductDetailPageClient detail={detail} displayRelated={displayRelated} product={product} />;
 }

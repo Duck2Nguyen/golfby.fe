@@ -33,25 +33,55 @@ interface NavItem {
   dropdown?: DropdownColumn[];
 }
 
-const PROMOTION_NAV_ITEM: NavItem = { label: 'Khuyến Mãi', highlight: true, href: '/category/khuyen-mai' };
+const PROMOTION_NAV_ITEM: NavItem = { label: 'Khuyến Mãi', highlight: true, href: '/collection/khuyen-mai' };
 const BRAND_NAV_ITEM_LABEL = 'Thương hiệu';
-const BRAND_NAV_ITEM_HREF = '/category/thuong-hieu';
+const BRAND_NAV_ITEM_HREF = '/collection';
 
-const buildCategoryHref = (slug: string) => {
-  return `/category/${slug}`;
+const buildCollectionHref = (...slugSegments: string[]) => {
+  const normalizedSegments = slugSegments.filter(Boolean);
+
+  if (normalizedSegments.length === 0) {
+    return '/collection';
+  }
+
+  return `/collection/${normalizedSegments.join('/')}`;
 };
 
-const flattenCollectionNodes = (nodes: CollectionTreeNode[]): CollectionTreeNode[] => {
-  return nodes.flatMap(node => [node, ...flattenCollectionNodes(node.children ?? [])]);
+const buildBrandHref = (slug: string) => {
+  const query = new URLSearchParams({ brand: slug });
+
+  return `/collection?${query.toString()}`;
 };
 
-const buildDropdownItems = (collection: CollectionTreeNode): DropdownColumn['items'] => {
+interface CollectionPathNode {
+  collection: CollectionTreeNode;
+  pathSlugs: string[];
+}
+
+const flattenCollectionNodesWithPath = (
+  nodes: CollectionTreeNode[],
+  parentPathSlugs: string[] = [],
+): CollectionPathNode[] => {
+  return nodes.flatMap(node => {
+    const currentPathSlugs = [...parentPathSlugs, node.slug];
+
+    return [
+      {
+        collection: node,
+        pathSlugs: currentPathSlugs,
+      },
+      ...flattenCollectionNodesWithPath(node.children ?? [], currentPathSlugs),
+    ];
+  });
+};
+
+const buildDropdownItems = (collection: CollectionTreeNode, pathSlugs: string[]): DropdownColumn['items'] => {
   const items: { label: string; href: string }[] = [];
   const seenHrefs = new Set<string>();
 
   // Add categories first
   for (const category of collection.categories ?? []) {
-    const categoryHref = buildCategoryHref(category.slug);
+    const categoryHref = buildCollectionHref(...pathSlugs, category.slug);
 
     if (!seenHrefs.has(categoryHref)) {
       items.push({
@@ -63,7 +93,7 @@ const buildDropdownItems = (collection: CollectionTreeNode): DropdownColumn['ite
   }
 
   // Add "Tất Cả" at the end
-  const collectionHref = buildCategoryHref(collection.slug);
+  const collectionHref = buildCollectionHref(...pathSlugs);
   if (!seenHrefs.has(collectionHref)) {
     items.push({
       href: collectionHref,
@@ -83,7 +113,7 @@ const buildBrandNavItem = (brands: Brand[]): NavItem => {
       continue;
     }
 
-    const brandHref = buildCategoryHref(brand.slug);
+    const brandHref = buildBrandHref(brand.slug);
 
     if (seenHrefs.has(brandHref)) {
       continue;
@@ -125,7 +155,7 @@ const buildNavItemsFromCollections = (collections: CollectionTreeNode[]): NavIte
   return rootCollections
     .filter(collection => Boolean(collection.name && collection.slug))
     .map(root => {
-      const rootHref = buildCategoryHref(root.slug);
+      const rootHref = buildCollectionHref(root.slug);
       const hasNestedData = (root.categories?.length ?? 0) > 0 || (root.children?.length ?? 0) > 0;
 
       if (!hasNestedData) {
@@ -136,11 +166,14 @@ const buildNavItemsFromCollections = (collections: CollectionTreeNode[]): NavIte
       }
 
       const hasChildren = (root.children?.length ?? 0) > 0;
-      const dropdownCollections = hasChildren ? flattenCollectionNodes(root.children ?? []) : [root];
+      const dropdownCollections = hasChildren
+        ? flattenCollectionNodesWithPath(root.children ?? [], [root.slug])
+        : [{ collection: root, pathSlugs: [root.slug] }];
+
       const dropdown = dropdownCollections
-        .map(collection => ({
-          items: buildDropdownItems(collection),
-          title: collection.name,
+        .map(item => ({
+          items: buildDropdownItems(item.collection, item.pathSlugs),
+          title: item.collection.name,
         }))
         .filter(column => column.items.length > 0);
 
@@ -430,7 +463,9 @@ export function Header() {
                                     <Link
                                       href={subItem.href}
                                       className={`block py-1.5 text-[1.4rem] ${
-                                        item.href === BRAND_NAV_ITEM_HREF ? 'text-foreground' : 'text-muted-foreground'
+                                        item.href === BRAND_NAV_ITEM_HREF
+                                          ? 'text-foreground'
+                                          : 'text-muted-foreground'
                                       } hover:text-primary transition-colors whitespace-nowrap`}
                                       style={{ fontWeight: 400 }}
                                     >
@@ -459,7 +494,9 @@ export function Header() {
                                 <Link
                                   href={subItem.href}
                                   className={`block py-[6px] text-[1.4rem] ${
-                                    item.href === BRAND_NAV_ITEM_HREF ? 'text-foreground' : 'text-muted-foreground'
+                                    item.href === BRAND_NAV_ITEM_HREF
+                                      ? 'text-foreground'
+                                      : 'text-muted-foreground'
                                   } hover:text-primary transition-colors whitespace-nowrap`}
                                   style={{ fontWeight: 400 }}
                                 >

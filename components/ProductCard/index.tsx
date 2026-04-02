@@ -1,4 +1,4 @@
-import { Eye, Star, Heart, ShoppingCart } from 'lucide-react';
+import { Eye, Heart, ShoppingCart } from 'lucide-react';
 
 import Link from 'next/link';
 
@@ -77,31 +77,24 @@ export function ProductCard({ product }: { product: Product }) {
           {product.brand}
         </p>
         <h3
-          className="text-[1.4rem] text-foreground mb-2 line-clamp-2 leading-snug min-h-[2.5em]"
+          className="text-[1.4rem] text-foreground mb-3 line-clamp-2 leading-snug min-h-[2.5em]"
           style={{ fontWeight: 500 }}
         >
           {product.name}
         </h3>
 
-        {/* Rating */}
-        <div className="flex items-center gap-1 mb-2.5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star
-              key={i}
-              className={`w-3.5 h-3.5 ${
-                i < product.rating ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'
-              }`}
-            />
-          ))}
-          <span className="text-[1.2rem] text-muted-foreground ml-1">({product.reviews})</span>
-        </div>
-
         {/* Price */}
         <div className="flex items-end gap-2">
-          <span className="text-[1.7rem] text-primary" style={{ fontWeight: 700 }}>
-            {formatPrice(product.price)}
-          </span>
-          {product.originalPrice && (
+          {product.price > 0 ? (
+            <span className="text-[1.7rem] text-primary" style={{ fontWeight: 700 }}>
+              {formatPrice(product.price)}
+            </span>
+          ) : (
+            <span className="text-[1.7rem] text-foreground" style={{ fontWeight: 700 }}>
+              Giá: Liên hệ
+            </span>
+          )}
+          {product.price > 0 && product.originalPrice && (
             <span className="text-[1.3rem] text-muted-foreground line-through">
               {formatPrice(product.originalPrice)}
             </span>

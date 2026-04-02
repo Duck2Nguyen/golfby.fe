@@ -12,16 +12,26 @@ import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
 import ProductInfo from '@/components/ProductDetail/ProductInfo';
 import ProductGallery from '@/components/ProductDetail/ProductGallery';
-import {
-  ProductTabs,
-  PaymentPolicyTab,
-  ShippingPolicyTab,
-  ProductDescriptionTab,
-} from '@/components/ProductDetail/ProductTabs';
+import { ProductTabs, PaymentPolicyTab, ShippingPolicyTab } from '@/components/ProductDetail/ProductTabs';
+
+export interface ProductDetailOption {
+  label: string;
+  values: string[];
+}
+
+export interface ProductDetailViewData {
+  category: string;
+  categorySlug?: string;
+  descriptionHtml: string;
+  images: string[];
+  inStock: boolean;
+  options: ProductDetailOption[];
+  sku: string;
+}
 
 interface ProductDetailClientProps {
   product: Product;
-  detail: any;
+  detail: ProductDetailViewData;
   displayRelated: Product[];
 }
 
@@ -31,6 +41,9 @@ export default function ProductDetailPageClient({
   displayRelated,
 }: ProductDetailClientProps) {
   const relatedScrollRef = useRef<HTMLDivElement>(null);
+  const categoryHref = detail.categorySlug ? `/collection/${detail.categorySlug}` : '/collection';
+  const descriptionMarkup =
+    detail.descriptionHtml?.trim() || '<p>Thông tin mô tả sản phẩm đang được cập nhật.</p>';
 
   const scrollRelated = (direction: 'left' | 'right') => {
     if (relatedScrollRef.current) {
@@ -43,7 +56,14 @@ export default function ProductDetailPageClient({
   };
 
   const tabs = [
-    { label: 'Thông tin chung', content: <ProductDescriptionTab /> },
+    {
+      label: 'Thông tin chung',
+      content: (
+        <div className="max-w-3xl text-[1.6rem] leading-[2.8rem] text-muted-foreground [&_a]:text-primary [&_figure]:my-4 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-xl [&_li]:mb-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-4 [&_strong]:text-foreground [&_strong]:font-700 [&_ul]:list-disc [&_ul]:pl-6">
+          <div dangerouslySetInnerHTML={{ __html: descriptionMarkup }} />
+        </div>
+      ),
+    },
     { label: 'Chính sách giao hàng và trả hàng', content: <ShippingPolicyTab /> },
     { label: 'Chính sách thanh toán', content: <PaymentPolicyTab /> },
   ];
@@ -63,7 +83,7 @@ export default function ProductDetailPageClient({
           </Link>
           <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
           <Link
-            href={`/category/${detail.category.toLowerCase().replace(/\s+/g, '-')}`}
+            href={categoryHref}
             className="text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
           >
             {detail.category}
@@ -76,7 +96,7 @@ export default function ProductDetailPageClient({
         <section className="flex flex-col lg:flex-row gap-8 lg:gap-12 pb-12">
           {/* Gallery */}
           <div className="w-full lg:w-[55%] lg:max-w-[580px]">
-            <ProductGallery images={detail.images} productName={product.name} />
+            <ProductGallery discount={product.discount} images={detail.images} productName={product.name} />
           </div>
 
           {/* Product Info */}
@@ -85,14 +105,11 @@ export default function ProductDetailPageClient({
               name={product.name}
               brand={product.brand}
               sku={detail.sku}
-              shortDescription={detail.shortDescription}
               price={product.price}
               originalPrice={product.originalPrice}
               discount={product.discount}
-              rating={product.rating}
-              reviews={product.reviews}
               options={detail.options}
-              inStock
+              inStock={detail.inStock}
             />
           </div>
         </section>
@@ -132,9 +149,9 @@ export default function ProductDetailPageClient({
             style={{ scrollbarWidth: 'none' }}
           >
             {displayRelated.map(rp => (
-              <Link href={`/product/${rp.id}`} key={rp.id} className="shrink-0 w-[260px] snap-start">
+              <div key={rp.id} className="shrink-0 w-[260px] snap-start">
                 <ProductCard product={rp} />
-              </Link>
+              </div>
             ))}
           </div>
         </section>

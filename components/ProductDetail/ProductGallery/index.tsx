@@ -6,11 +6,12 @@ import { ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 
 interface ProductGalleryProps {
+  discount?: number;
   images: string[];
   productName: string;
 }
 
-export default function ProductGallery({ images, productName }: ProductGalleryProps) {
+export default function ProductGallery({ discount, images, productName }: ProductGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [zoomed, setZoomed] = useState(false);
 
@@ -59,9 +60,11 @@ export default function ProductGallery({ images, productName }: ProductGalleryPr
         )}
 
         {/* Badge */}
-        <span className="absolute top-4 left-4 px-3 py-1 bg-destructive text-white rounded-lg text-[11px] uppercase tracking-wide font-700">
-          Sale
-        </span>
+        {discount && discount > 0 && (
+          <span className="absolute top-4 left-4 px-3 py-1 bg-destructive text-white rounded-lg text-[11px] uppercase tracking-wide font-700">
+            -{discount}%
+          </span>
+        )}
       </div>
 
       {/* Thumbnails */}

@@ -24,12 +24,11 @@ interface ProductInfoProps {
   name: string;
   brand: string;
   sku: string;
-  shortDescription: string;
   price: number;
   originalPrice?: number;
   discount?: number;
-  rating: number;
-  reviews: number;
+  rating?: number;
+  reviews?: number;
   options: ProductOption[];
   inStock: boolean;
 }
@@ -38,7 +37,6 @@ export default function ProductInfo({
   name,
   brand,
   sku,
-  shortDescription,
   price,
   originalPrice,
   discount,
@@ -56,6 +54,7 @@ export default function ProductInfo({
     return defaults;
   });
   const [wishlisted, setWishlisted] = useState(false);
+  const showRating = typeof rating === 'number' && typeof reviews === 'number' && reviews > 0;
 
   const formatPrice = (v: number) => new Intl.NumberFormat('vi-VN').format(v) + ' VNĐ';
 
@@ -73,23 +72,24 @@ export default function ProductInfo({
       {/* Title */}
       <h1 className="text-[24px] text-foreground leading-tight font-700">{name}</h1>
 
-      {/* Short Description */}
-      <p className="text-[14px] text-muted-foreground leading-relaxed">{shortDescription}</p>
-
       {/* Rating */}
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-0.5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star
-              key={i}
-              className={`w-4 h-4 ${
-                i < rating ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'
-              }`}
-            />
-          ))}
-        </div>
-        <span className="text-[13px] text-muted-foreground">({reviews} đánh giá)</span>
-        <span className="w-px h-3.5 bg-border" />
+        {showRating && (
+          <>
+            <div className="flex items-center gap-0.5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  className={`w-4 h-4 ${
+                    i < (rating ?? 0) ? 'fill-amber-400 text-amber-400' : 'fill-gray-200 text-gray-200'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-[13px] text-muted-foreground">({reviews} đánh giá)</span>
+            <span className="w-px h-3.5 bg-border" />
+          </>
+        )}
         <span className={`text-[13px] font-500 ${inStock ? 'text-primary' : 'text-destructive'}`}>
           {inStock ? 'Còn hàng' : 'Hết hàng'}
         </span>
@@ -106,11 +106,15 @@ export default function ProductInfo({
 
       {/* Price */}
       <div className="flex items-end gap-3">
-        {originalPrice && (
+        {price > 0 && originalPrice && (
           <span className="text-[16px] text-muted-foreground line-through">{formatPrice(originalPrice)}</span>
         )}
-        <span className="text-[28px] text-destructive font-700">{formatPrice(price)}</span>
-        {discount && (
+        {price > 0 ? (
+          <span className="text-[28px] text-destructive font-700">{formatPrice(price)}</span>
+        ) : (
+          <span className="text-[28px] text-foreground font-700">Giá: Liên hệ</span>
+        )}
+        {price > 0 && discount && (
           <span className="text-[13px] text-destructive bg-destructive/10 px-2.5 py-1 rounded-lg font-600">
             -{discount}%
           </span>
@@ -173,7 +177,9 @@ export default function ProductInfo({
       {/* Total Price */}
       <div className="flex items-center gap-2">
         <span className="text-[14px] text-muted-foreground">Tổng cộng:</span>
-        <span className="text-[20px] text-primary font-700">{formatPrice(price * quantity)}</span>
+        <span className="text-[20px] text-primary font-700">
+          {price > 0 ? formatPrice(price * quantity) : 'Liên hệ'}
+        </span>
       </div>
 
       <div className="h-px bg-border/60" />

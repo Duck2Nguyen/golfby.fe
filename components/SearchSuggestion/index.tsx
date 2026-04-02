@@ -7,12 +7,12 @@ import { ImageWithFallback } from '../figma/ImageWithFallback';
 const popularKeywords = ['g10', 'g430', 'taylormade', 'ping', 'prov1', 'bóng golf', 'titleist', 'callaway'];
 
 const categories = [
-  { label: 'Gậy golf', href: '/category/gay-golf', icon: '🏌️' },
-  { label: 'Shaft gậy', href: '/category/shaft-gay', icon: '📏' },
-  { label: 'Bóng golf', href: '/category/bong-golf', icon: '⛳' },
-  { label: 'Túi golf', href: '/category/tui-golf', icon: '🎒' },
-  { label: 'Thời trang', href: '/category/thoi-trang', icon: '👕' },
-  { label: 'Phụ kiện', href: '/category/phu-kien', icon: '🧢' },
+  { label: 'Gậy golf', href: '/collection/gay-golf', icon: '🏌️' },
+  { label: 'Shaft gậy', href: '/collection/shaft-gay', icon: '📏' },
+  { label: 'Bóng golf', href: '/collection/bong-golf', icon: '⛳' },
+  { label: 'Túi golf', href: '/collection/tui-golf', icon: '🎒' },
+  { label: 'Thời trang', href: '/collection/thoi-trang', icon: '👕' },
+  { label: 'Phụ kiện', href: '/collection/phu-kien', icon: '🧢' },
   { label: 'Tin tức', href: '#', icon: '📰' },
 ];
 
