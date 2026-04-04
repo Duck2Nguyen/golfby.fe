@@ -36,4 +36,9 @@
   .ag-center-cols-viewport::-webkit-scrollbar-thumb:hover {
     background: rgba(107, 114, 128, 0.45);
   }
+
+  .ag-cell {
+    display: flex;
+    align-items: center;
+  }
 }

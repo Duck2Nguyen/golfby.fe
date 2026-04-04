@@ -21,9 +21,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const pageTitle = useMemo(() => {
     if (pathname?.startsWith('/admin/customers')) return 'Quản lý người dùng';
+    if (pathname?.startsWith('/admin/orders')) return 'Quản lý đơn hàng';
     if (pathname?.startsWith('/admin/products/brands')) return 'Quản lý thương hiệu';
     if (pathname?.startsWith('/admin/products/categories')) return 'Quản lý danh mục';
-    if (pathname?.startsWith('/admin/products/collections-preview')) return 'Preview collection tree';
     if (pathname?.startsWith('/admin/products/collections')) return 'Quản lý collection';
     if (pathname?.startsWith('/admin/products/tags')) return 'Quản lý tag';
     if (pathname?.startsWith('/admin/products/create')) return 'Thêm sản phẩm';
