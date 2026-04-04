@@ -1,11 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ArrowLeft, RefreshCcw } from 'lucide-react';
 
 import Link from 'next/link';
 import { Spinner } from '@heroui/spinner';
-import { useSearchParams } from 'next/navigation';
 
 import { useOrders } from '@/hooks/useOrders';
 
@@ -115,9 +114,24 @@ const getPaymentMethodLabel = (paymentMethod?: string) => {
 };
 
 export default function CheckoutPayment() {
-  const searchParams = useSearchParams();
-  const orderId = searchParams.get('orderId')?.trim() || '';
-  const vietqrUrl = searchParams.get('vietqrUrl')?.trim() || '';
+  const [isQueryReady, setIsQueryReady] = useState(false);
+  const [queryParams, setQueryParams] = useState({
+    orderId: '',
+    vietqrUrl: '',
+  });
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+
+    setQueryParams({
+      orderId: searchParams.get('orderId')?.trim() || '',
+      vietqrUrl: searchParams.get('vietqrUrl')?.trim() || '',
+    });
+    setIsQueryReady(true);
+  }, []);
+
+  const { orderId, vietqrUrl } = queryParams;
+
   const { getOrderDetail } = useOrders({
     enabledOrderDetail: Boolean(orderId),
     orderId: orderId || undefined,
@@ -149,7 +163,11 @@ export default function CheckoutPayment() {
           <span className="text-foreground font-500">Quét QR</span>
         </nav>
 
-        {!orderId ? (
+        {!isQueryReady ? (
+          <div className="flex items-center justify-center py-20">
+            <Spinner label="Đang chuẩn bị thanh toán" size="lg" />
+          </div>
+        ) : !orderId ? (
           <section className="rounded-2xl border border-border bg-white p-8 text-center">
             <p className="text-[1.6rem] font-600 text-foreground">
               Không tìm thấy thông tin đơn hàng để thanh toán.

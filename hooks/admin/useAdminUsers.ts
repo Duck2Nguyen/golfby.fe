@@ -14,6 +14,37 @@ export const useAdminUsers = (page: number, size: number) => {
   });
 };
 
+export interface AdminUserOrder {
+  address?: string | null;
+  commune?: string | null;
+  createdAt?: string | null;
+  discountTotal?: number | null;
+  district?: string | null;
+  id: string;
+  orderNumber?: string | null;
+  paymentMethod?: string | null;
+  paymentStatus?: string | null;
+  province?: string | null;
+  shippingFee?: number | null;
+  status?: string | null;
+  subtotal?: number | null;
+  total?: number | null;
+}
+
+export interface AdminUserDetail extends UserInfo {
+  district?: string | null;
+  orders?: AdminUserOrder[];
+}
+
+export const useAdminUserDetail = (id?: string, enabled: boolean = true) => {
+  const shouldFetch = Boolean(id && enabled);
+
+  return useSWRWrapper<AdminUserDetail>(shouldFetch ? `/api/v1/admin/users/${id}` : null, {
+    method: METHOD.GET,
+    url: id ? `/api/v1/admin/users/${id}` : '/api/v1/admin/users',
+  });
+};
+
 export interface CreateAdminUserPayload {
   csrf?: boolean;
   email: string;

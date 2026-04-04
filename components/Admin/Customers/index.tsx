@@ -12,6 +12,7 @@ import { ROLE, USER_STATUS } from '@/global/common';
 import DataGrid from '@/components/DataGrid';
 
 import { getColumnDefs } from './config';
+import UserDetailModal from './UserDetailModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import UserFormModal, { type UserFormData } from './UserFormModal';
 
@@ -55,6 +56,8 @@ export default function Customers() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [editingUser, setEditingUser] = useState<UserFormData | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingUser, setDeletingUser] = useState<UserFormData | null>(null);
 
@@ -134,6 +137,15 @@ export default function Customers() {
     setShowDeleteModal(true);
   };
 
+  const handleView = (user: UserFormData) => {
+    if (!user.id) {
+      return;
+    }
+
+    setViewingUserId(user.id);
+    setShowDetailModal(true);
+  };
+
   const handleFormSubmitAction = async (data: UserFormData) => {
     if (formMode === 'create') {
       await createUser({
@@ -191,8 +203,9 @@ export default function Customers() {
         itemsPerPage: ITEMS_PER_PAGE,
         onDelete: handleDelete,
         onEdit: handleEdit,
+        onView: handleView,
       }),
-    [currentPage, handleDelete, handleEdit],
+    [currentPage, handleDelete, handleEdit, handleView],
   );
 
   return (
@@ -380,6 +393,15 @@ export default function Customers() {
           setDeletingUser(null);
         }}
         onConfirmAction={handleDeleteConfirmAction}
+      />
+
+      <UserDetailModal
+        isOpen={showDetailModal}
+        onCloseAction={() => {
+          setShowDetailModal(false);
+          setViewingUserId(null);
+        }}
+        userId={viewingUserId}
       />
     </>
   );

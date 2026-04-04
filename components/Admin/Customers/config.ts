@@ -15,6 +15,7 @@ interface GetColumnDefsParams {
   itemsPerPage: number;
   onDelete: (user: UserFormData) => void;
   onEdit: (user: UserFormData) => void;
+  onView: (user: UserFormData) => void;
 }
 
 export const getColumnDefs = ({
@@ -23,6 +24,7 @@ export const getColumnDefs = ({
   itemsPerPage,
   onDelete,
   onEdit,
+  onView,
 }: GetColumnDefsParams): ColDef<UserFormData>[] => {
   return [
     {
@@ -92,6 +94,7 @@ export const getColumnDefs = ({
           ...params,
           onDelete,
           onEdit,
+          onView,
         });
       },
       colId: 'actions',
