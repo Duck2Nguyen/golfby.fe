@@ -1,11 +1,16 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import Link from 'next/link';
 
 import type { Product } from '@/components/mock-data';
+import type { PaginatedResponse } from '@/interfaces/response';
+
+import { useSWRWrapper } from '@/hooks/swr';
+
+import { METHOD } from '@/global/common';
 
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -14,9 +19,212 @@ import ProductInfo from '@/components/ProductDetail/ProductInfo';
 import ProductGallery from '@/components/ProductDetail/ProductGallery';
 import { ProductTabs, PaymentPolicyTab, ShippingPolicyTab } from '@/components/ProductDetail/ProductTabs';
 
+interface ApiProductBrand {
+  name?: string | null;
+}
+
+interface ApiProductCategory {
+  id: string;
+  name: string;
+  slug?: string | null;
+}
+
+interface ApiProductImage {
+  key?: string | null;
+  url?: string | null;
+}
+
+interface ApiProductOptionValue {
+  id: string;
+  optionId?: string;
+  value: string;
+}
+
+interface ApiProductOption {
+  id: string;
+  name: string;
+  values?: ApiProductOptionValue[];
+}
+
+interface ApiProductVariantSelectedOptionValue {
+  optionValue?: ApiProductOptionValue | null;
+  productOptionValueId: string;
+}
+
+interface ApiProductVariant {
+  id: string;
+  listPrice?: string | number | null;
+  salePrice?: string | number | null;
+  selectedOptionValues?: ApiProductVariantSelectedOptionValue[];
+  sku?: string | null;
+  stock?: number | null;
+}
+
+interface ApiProductListItem {
+  brand?: ApiProductBrand | null;
+  id: string;
+  images?: ApiProductImage[];
+  listPrice?: string | null;
+  name: string;
+  salePrice?: string | null;
+}
+
+interface ApiProductDetail extends ApiProductListItem {
+  category?: ApiProductCategory | null;
+  categoryId?: string | null;
+  description?: string | null;
+  options?: ApiProductOption[];
+  variants?: ApiProductVariant[];
+}
+
+const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
+const RELATED_PRODUCTS_LIMIT = 8;
+const PRODUCT_DETAIL_CACHE_MS = 60 * 1000;
+
+const toNumber = (value?: string | number | null) => {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const mapApiProductToCardData = (item: ApiProductListItem): Product => {
+  const salePrice = toNumber(item.salePrice);
+  const listPrice = toNumber(item.listPrice);
+
+  const price = salePrice > 0 ? salePrice : listPrice;
+  const originalPrice = salePrice > 0 && listPrice > salePrice ? listPrice : undefined;
+  const discount =
+    originalPrice && originalPrice > 0
+      ? Math.round(((originalPrice - price) / originalPrice) * 100)
+      : undefined;
+
+  return {
+    brand: item.brand?.name ?? 'GolfBy',
+    ...(discount ? { badge: 'sale' } : {}),
+    ...(discount ? { discount } : {}),
+    id: item.id,
+    image: item.images?.[0]?.url || item.images?.[0]?.key || PRODUCT_IMAGE_FALLBACK,
+    name: item.name,
+    ...(originalPrice ? { originalPrice } : {}),
+    price,
+    rating: 0,
+    reviews: 0,
+  };
+};
+
+const mapApiProductToDetailData = (item: ApiProductDetail): ProductDetailViewData => {
+  const images =
+    (item.images ?? [])
+      .map(image => image.url || image.key)
+      .filter((image): image is string => Boolean(image)) || [];
+
+  const options =
+    (item.options ?? [])
+      .map(option => ({
+        id: option.id,
+        label: option.name,
+        values: (option.values ?? [])
+          .map(value => ({
+            id: value.id,
+            value: value.value,
+          }))
+          .filter(value => Boolean(value.value)),
+      }))
+      .filter(option => option.values.length > 0) || [];
+
+  const optionValueLookup = new Map<string, { optionId?: string; optionLabel: string; value: string }>();
+
+  options.forEach(option => {
+    option.values.forEach(value => {
+      if (!value.id) {
+        return;
+      }
+
+      optionValueLookup.set(value.id, {
+        optionId: option.id,
+        optionLabel: option.label,
+        value: value.value,
+      });
+    });
+  });
+
+  const variants =
+    (item.variants ?? []).map(variant => {
+      const listPrice = toNumber(variant.listPrice);
+      const salePrice = toNumber(variant.salePrice);
+
+      const selections: ProductDetailVariantSelection[] = (variant.selectedOptionValues ?? []).flatMap(
+        selected => {
+          const fallbackOptionValue = optionValueLookup.get(selected.productOptionValueId);
+          const optionValue = selected.optionValue?.value ?? fallbackOptionValue?.value ?? null;
+
+          if (!optionValue && !selected.productOptionValueId) {
+            return [];
+          }
+
+          return [
+            {
+              optionId: selected.optionValue?.optionId ?? fallbackOptionValue?.optionId ?? null,
+              optionLabel: fallbackOptionValue?.optionLabel ?? null,
+              optionValue,
+              optionValueId: selected.productOptionValueId ?? selected.optionValue?.id ?? null,
+            },
+          ];
+        },
+      );
+
+      return {
+        id: variant.id,
+        ...(listPrice > 0 ? { listPrice } : {}),
+        ...(salePrice > 0 ? { salePrice } : {}),
+        selections,
+        sku: variant.sku ?? null,
+        stock: variant.stock ?? null,
+      };
+    }) || [];
+
+  const hasVariants = variants.length > 0;
+  const inStock = hasVariants ? variants.some(variant => (variant.stock ?? 0) > 0) : true;
+
+  const sku =
+    variants.find(variant => Boolean(variant.sku))?.sku || `SP-${item.id.slice(0, 8).toUpperCase()}`;
+
+  return {
+    category: item.category?.name ?? 'Sản phẩm',
+    categorySlug: item.category?.slug ?? undefined,
+    descriptionHtml:
+      item.description?.trim() ||
+      `<p>Sản phẩm chính hãng ${item.brand?.name ?? 'GolfBy'}, thông tin mô tả đang được cập nhật.</p>`,
+    images: images.length > 0 ? images : [PRODUCT_IMAGE_FALLBACK],
+    inStock,
+    options,
+    sku,
+    variants,
+  };
+};
+
 export interface ProductDetailOption {
+  id?: string;
   label: string;
-  values: string[];
+  values: {
+    id?: string;
+    value: string;
+  }[];
+}
+
+export interface ProductDetailVariantSelection {
+  optionId?: string | null;
+  optionLabel?: string | null;
+  optionValue?: string | null;
+  optionValueId?: string | null;
+}
+
+export interface ProductDetailVariant {
+  id: string;
+  listPrice?: number;
+  salePrice?: number;
+  selections: ProductDetailVariantSelection[];
+  sku?: string | null;
+  stock?: number | null;
 }
 
 export interface ProductDetailViewData {
@@ -27,20 +235,148 @@ export interface ProductDetailViewData {
   inStock: boolean;
   options: ProductDetailOption[];
   sku: string;
+  variants: ProductDetailVariant[];
 }
 
 interface ProductDetailClientProps {
-  product: Product;
-  detail: ProductDetailViewData;
-  displayRelated: Product[];
+  productId: string;
 }
 
-export default function ProductDetailPageClient({
-  product,
-  detail,
-  displayRelated,
-}: ProductDetailClientProps) {
+export default function ProductDetailPageClient({ productId }: ProductDetailClientProps) {
   const relatedScrollRef = useRef<HTMLDivElement>(null);
+  const encodedProductId = useMemo(() => encodeURIComponent(productId), [productId]);
+
+  const {
+    data: productDetailResponse,
+    error: productDetailError,
+    isLoading: isProductDetailLoading,
+  } = useSWRWrapper<ApiProductDetail>(productId ? `products:detail:${encodedProductId}` : null, {
+    dedupingInterval: PRODUCT_DETAIL_CACHE_MS,
+    method: METHOD.GET,
+    refreshInterval: PRODUCT_DETAIL_CACHE_MS,
+    url: `/api/v1/products/${encodedProductId}`,
+  });
+
+  const productDetail = productDetailResponse?.data;
+
+  const relatedPrimaryQuery = useMemo(() => {
+    if (!productDetail) {
+      return null;
+    }
+
+    const query = new URLSearchParams({
+      page: '1',
+      size: String(RELATED_PRODUCTS_LIMIT + 1),
+    });
+
+    if (productDetail.categoryId) {
+      query.set('categoryId', productDetail.categoryId);
+    }
+
+    return query.toString();
+  }, [productDetail]);
+
+  const { data: primaryRelatedResponse, isLoading: isPrimaryRelatedLoading } = useSWRWrapper<
+    PaginatedResponse<ApiProductListItem>
+  >(
+    productDetail && relatedPrimaryQuery
+      ? `products:related:${encodedProductId}:${relatedPrimaryQuery}`
+      : null,
+    {
+      dedupingInterval: PRODUCT_DETAIL_CACHE_MS,
+      method: METHOD.GET,
+      refreshInterval: PRODUCT_DETAIL_CACHE_MS,
+      url: relatedPrimaryQuery ? `/api/v1/products?${relatedPrimaryQuery}` : undefined,
+    },
+  );
+
+  const primaryRelatedItems = useMemo(() => {
+    const items = primaryRelatedResponse?.data?.items ?? [];
+    return items.filter(item => item.id !== productDetail?.id);
+  }, [primaryRelatedResponse?.data?.items, productDetail?.id]);
+
+  const shouldFetchFallbackRelated = Boolean(
+    productDetail?.categoryId && !isPrimaryRelatedLoading && primaryRelatedItems.length === 0,
+  );
+
+  const fallbackRelatedQuery = useMemo(() => {
+    const query = new URLSearchParams({
+      page: '1',
+      size: String(RELATED_PRODUCTS_LIMIT + 1),
+    });
+
+    return query.toString();
+  }, []);
+
+  const { data: fallbackRelatedResponse } = useSWRWrapper<PaginatedResponse<ApiProductListItem>>(
+    shouldFetchFallbackRelated ? `products:related:fallback:${encodedProductId}` : null,
+    {
+      dedupingInterval: PRODUCT_DETAIL_CACHE_MS,
+      method: METHOD.GET,
+      refreshInterval: PRODUCT_DETAIL_CACHE_MS,
+      url: `/api/v1/products?${fallbackRelatedQuery}`,
+    },
+  );
+
+  const displayRelated = useMemo(() => {
+    const sourceItems = shouldFetchFallbackRelated
+      ? (fallbackRelatedResponse?.data?.items ?? []).filter(item => item.id !== productDetail?.id)
+      : primaryRelatedItems;
+
+    return sourceItems.slice(0, RELATED_PRODUCTS_LIMIT).map(mapApiProductToCardData);
+  }, [
+    fallbackRelatedResponse?.data?.items,
+    primaryRelatedItems,
+    productDetail?.id,
+    shouldFetchFallbackRelated,
+  ]);
+
+  const product = useMemo(() => {
+    if (!productDetail) {
+      return null;
+    }
+
+    return mapApiProductToCardData(productDetail);
+  }, [productDetail]);
+
+  const detail = useMemo(() => {
+    if (!productDetail) {
+      return null;
+    }
+
+    return mapApiProductToDetailData(productDetail);
+  }, [productDetail]);
+
+  if (isProductDetailLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="mx-auto max-w-7xl px-4 py-20 text-center text-[1.4rem] text-muted-foreground">
+          Đang tải sản phẩm...
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (productDetailError || !product || !detail) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="mx-auto max-w-7xl px-4 py-20 text-center">
+          <h1 className="mb-3 text-[2.4rem] text-foreground font-700">Không tìm thấy sản phẩm</h1>
+          <p className="mb-6 text-[1.4rem] text-muted-foreground">
+            Sản phẩm không tồn tại hoặc đã được gỡ khỏi hệ thống.
+          </p>
+          <Link href="/collection" className="text-[1.4rem] text-primary" style={{ fontWeight: 600 }}>
+            Quay về trang sản phẩm
+          </Link>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   const categoryHref = detail.categorySlug ? `/collection/${detail.categorySlug}` : '/collection';
   const descriptionMarkup =
     detail.descriptionHtml?.trim() || '<p>Thông tin mô tả sản phẩm đang được cập nhật.</p>';
@@ -102,6 +438,7 @@ export default function ProductDetailPageClient({
           {/* Product Info */}
           <div className="flex-1">
             <ProductInfo
+              productId={String(product.id)}
               name={product.name}
               brand={product.brand}
               sku={detail.sku}
@@ -109,6 +446,7 @@ export default function ProductDetailPageClient({
               originalPrice={product.originalPrice}
               discount={product.discount}
               options={detail.options}
+              variants={detail.variants}
               inStock={detail.inStock}
             />
           </div>

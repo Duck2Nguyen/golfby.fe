@@ -19,16 +19,16 @@ export default function ShippingMethodSection({
         <label className="flex items-center gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-[#fafafa]">
           <input
             type="radio"
-            checked={shippingMethod === 'standard'}
-            onChange={() => onShippingMethodChange('standard')}
+            checked={shippingMethod === 'STANDARD'}
+            onChange={() => onShippingMethodChange('STANDARD')}
           />
           <p className="text-[14px] font-600">Giao hàng tiêu chuẩn — MIỄN PHÍ</p>
         </label>
         <label className="flex items-center gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-[#fafafa]">
           <input
             type="radio"
-            checked={shippingMethod === 'express'}
-            onChange={() => onShippingMethodChange('express')}
+            checked={shippingMethod === 'EXPRESS'}
+            onChange={() => onShippingMethodChange('EXPRESS')}
           />
           <p className="text-[14px] font-600">Giao hàng nhanh — 50.000 ₫</p>
         </label>

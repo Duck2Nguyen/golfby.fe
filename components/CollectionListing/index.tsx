@@ -19,7 +19,6 @@ import { type ViewMode, CategoryToolbar } from '@/components/CategoryToolbar';
 
 import {
   toSlug,
-  toPriceRange,
   type PriceRange,
   DEFAULT_MAX_PRICE,
   DEFAULT_MIN_PRICE,
@@ -48,7 +47,10 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
   const [selectedBrandSlug, setSelectedBrandSlug] = useState<string | null>(() =>
     toSlug(searchParams.get('brand')),
   );
-  const [priceRange, setPriceRange] = useState<PriceRange>(() => toPriceRange(searchParams));
+  const [priceRange, setPriceRange] = useState<PriceRange>({
+    max: DEFAULT_MAX_PRICE,
+    min: DEFAULT_MIN_PRICE,
+  });
 
   const { getAllBrands } = useBrands();
   const { getAllCollections } = useCollections();
@@ -57,12 +59,8 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
 
   useEffect(() => {
     const brandFromUrl = toSlug(searchParams.get('brand'));
-    const nextPriceRange = toPriceRange(searchParams);
 
     setSelectedBrandSlug(current => (current === brandFromUrl ? current : brandFromUrl));
-    setPriceRange(current =>
-      current.min === nextPriceRange.min && current.max === nextPriceRange.max ? current : nextPriceRange,
-    );
   }, [searchParams]);
 
   const selectedBrand = useMemo<Brand | undefined>(() => {
@@ -83,6 +81,9 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
     const currentQuery = searchParams.toString();
     const nextSearchParams = new URLSearchParams(currentQuery);
 
+    nextSearchParams.delete('minPrice');
+    nextSearchParams.delete('maxPrice');
+
     if (selectedBrandSlug) {
       nextSearchParams.set('brand', selectedBrandSlug);
     } else {
@@ -90,15 +91,15 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
     }
 
     if (priceRange.min > DEFAULT_MIN_PRICE) {
-      nextSearchParams.set('minPrice', String(priceRange.min));
+      nextSearchParams.set('fromPrice', String(priceRange.min));
     } else {
-      nextSearchParams.delete('minPrice');
+      nextSearchParams.delete('fromPrice');
     }
 
     if (priceRange.max < DEFAULT_MAX_PRICE) {
-      nextSearchParams.set('maxPrice', String(priceRange.max));
+      nextSearchParams.set('toPrice', String(priceRange.max));
     } else {
-      nextSearchParams.delete('maxPrice');
+      nextSearchParams.delete('toPrice');
     }
 
     const nextQuery = nextSearchParams.toString();
@@ -136,13 +137,16 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
       return undefined;
     }
 
+    const hasPriceFilter = priceRange.min > DEFAULT_MIN_PRICE || priceRange.max < DEFAULT_MAX_PRICE;
+
     return {
       ...(selectedBrand?.id ? { brandId: selectedBrand.id } : {}),
+      ...(hasPriceFilter ? { fromPrice: priceRange.min, toPrice: priceRange.max } : {}),
       page: 1,
       size: DEFAULT_PAGE_SIZE,
       ...(resolvedRoute?.params ?? {}),
     };
-  }, [canFetchProducts, resolvedRoute?.params, selectedBrand?.id]);
+  }, [canFetchProducts, priceRange.max, priceRange.min, resolvedRoute?.params, selectedBrand?.id]);
 
   const { getAllProducts } = useProducts({
     enabled: canFetchProducts,
@@ -177,18 +181,8 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
     return sorted;
   }, [products, sortBy]);
 
-  const filteredProducts = useMemo(() => {
-    return sortedProducts.filter(product => {
-      if (product.price <= 0) {
-        return true;
-      }
-
-      return product.price >= priceRange.min && product.price <= priceRange.max;
-    });
-  }, [priceRange.max, priceRange.min, sortedProducts]);
-
-  const displayedProducts = filteredProducts.slice(0, visibleCount);
-  const totalProducts = filteredProducts.length;
+  const displayedProducts = sortedProducts.slice(0, visibleCount);
+  const totalProducts = sortedProducts.length;
   const hasMore = visibleCount < totalProducts;
   const hasPriceFilter = priceRange.min !== DEFAULT_MIN_PRICE || priceRange.max !== DEFAULT_MAX_PRICE;
   const activeFilterCount = (selectedBrand ? 1 : 0) + (hasPriceFilter ? 1 : 0);

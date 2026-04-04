@@ -1,10 +1,22 @@
 'use client';
 
 import { useRef, useMemo, useState, useEffect } from 'react';
-import { X, User, Menu, Heart, Search, MapPin, LogOut, ChevronDown, ShoppingCart } from 'lucide-react';
+import {
+  X,
+  User,
+  Menu,
+  Heart,
+  Search,
+  MapPin,
+  LogOut,
+  ReceiptText,
+  ChevronDown,
+  ShoppingCart,
+} from 'lucide-react';
 
 import * as Yup from 'yup';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Form, Field, Formik } from 'formik';
 
 import { useSession } from '@/hooks/auth';
@@ -186,6 +198,7 @@ const buildNavItemsFromCollections = (collections: CollectionTreeNode[]): NavIte
 };
 
 export function Header() {
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -224,6 +237,20 @@ export function Header() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const submitSearch = (query: string) => {
+    const trimmedQuery = query.trim();
+    const nextSearchParams = new URLSearchParams();
+
+    if (trimmedQuery) {
+      nextSearchParams.set('search', trimmedQuery);
+    }
+
+    const nextQuery = nextSearchParams.toString();
+
+    router.push(nextQuery ? `/collection?${nextQuery}` : '/collection');
+    setSearchOpen(false);
+  };
 
   return (
     <header className="w-full sticky top-0 z-50">
@@ -286,38 +313,48 @@ export function Header() {
               initialValues={{ query: '' }}
               validationSchema={searchSchema}
               onSubmit={values => {
-                console.log('Search:', values.query);
-                setSearchOpen(false);
+                submitSearch(values.query);
               }}
             >
-              {({ setFieldTouched }) => (
-                <Form className="relative">
-                  <Field
-                    name="query"
-                    placeholder="Tìm kiếm sản phẩm golf..."
-                    component={InputField}
-                    onFocus={() => setSearchOpen(true)}
-                    classNames={{
-                      inputWrapper: [
-                        '!bg-[#f5f5f5] !border-transparent',
-                        searchOpen
-                          ? '!rounded-t-xl !rounded-b-none !border-primary !bg-white ring-2 ring-primary/20'
-                          : '!rounded-xl',
-                        '!pr-12 !h-11',
-                      ].join(' '),
-                      input: '!text-[1.5rem]',
-                    }}
-                  />
-                  <button
-                    type="submit"
-                    className="absolute right-1.5 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg bg-primary transition-colors hover:bg-primary-dark"
-                  >
-                    <Search className="h-4 w-4 text-white" />
-                  </button>
-                </Form>
+              {({ setFieldValue, values }) => (
+                <>
+                  <Form className="relative">
+                    <Field
+                      name="query"
+                      placeholder="Tìm kiếm sản phẩm golf..."
+                      component={InputField}
+                      onFocus={() => setSearchOpen(true)}
+                      classNames={{
+                        inputWrapper: [
+                          '!bg-[#f5f5f5] !border-transparent',
+                          searchOpen
+                            ? '!rounded-t-xl !rounded-b-none !border-primary !bg-white ring-2 ring-primary/20'
+                            : '!rounded-xl',
+                          '!pr-12 !h-11',
+                        ].join(' '),
+                        input: '!text-[1.5rem]',
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      className="absolute right-1.5 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg bg-primary transition-colors hover:bg-primary-dark"
+                    >
+                      <Search className="h-4 w-4 text-white" />
+                    </button>
+                  </Form>
+                  {searchOpen && (
+                    <SearchSuggestion
+                      onClose={() => setSearchOpen(false)}
+                      onSearchTextChange={value => {
+                        void setFieldValue('query', value);
+                      }}
+                      onSubmitSearch={submitSearch}
+                      searchText={values.query}
+                    />
+                  )}
+                </>
               )}
             </Formik>
-            {searchOpen && <SearchSuggestion onClose={() => setSearchOpen(false)} />}
           </div>
 
           {/* Right Actions */}
@@ -374,6 +411,15 @@ export function Header() {
                       <MapPin className="w-4 h-4" />
                       Địa chỉ
                     </Link>
+                    <Link
+                      href="/orders"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-[1.4rem] text-foreground hover:bg-muted hover:text-primary transition-colors"
+                      style={{ fontWeight: 500 }}
+                    >
+                      <ReceiptText className="w-4 h-4" />
+                      Lịch sử đơn hàng
+                    </Link>
                     <button
                       onClick={() => logout()}
                       className="flex w-full items-center gap-2.5 px-4 py-2.5 text-[1.4rem] text-foreground hover:bg-muted hover:text-destructive transition-colors disabled:opacity-60"
@@ -410,22 +456,20 @@ export function Header() {
 
       {/* Navigation Bar */}
       <nav className="border-b border-border hidden lg:block bg-primary">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-[180rem] mx-auto px-4 flex justify-center">
           <ul className="flex items-center gap-0">
             {navItems.map(item => [
-              <li key={item.href} className="relative group/nav">
+              <li key={item.href} className="relative group/nav min-w-0">
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-1 px-5 h-12 text-[1.5rem] transition-colors relative ${
-                    item.highlight
-                      ? 'text-white hover:text-white/80 transition-colors'
-                      : 'text-white hover:text-white/80 transition-colors'
+                  className={`relative flex h-12 max-w-[16rem] min-w-0 items-center gap-1 overflow-hidden px-5 text-[1.5rem] transition-colors ${
+                    item.highlight ? 'text-white hover:text-white/80' : 'text-white hover:text-white/80'
                   }`}
                   style={{ fontWeight: 500 }}
                 >
-                  {item.label}
+                  <span className="min-w-0 flex-1 truncate whitespace-nowrap">{item.label}</span>
                   {item.dropdown && (
-                    <ChevronDown className="w-3.5 h-3.5 opacity-50 group-hover/nav:opacity-100 transition-all duration-200 group-hover/nav:rotate-180" />
+                    <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-50 group-hover/nav:opacity-100 transition-all duration-200 group-hover/nav:rotate-180" />
                   )}
                   <span className="absolute bottom-0 left-5 right-5 h-0.5 bg-primary scale-x-0 group-hover/nav:scale-x-100 transition-transform origin-left rounded-full" />
                 </Link>
@@ -534,7 +578,7 @@ export function Header() {
               initialValues={{ query: '' }}
               validationSchema={searchSchema}
               onSubmit={values => {
-                console.log('Mobile Search:', values.query);
+                submitSearch(values.query);
                 setMobileMenuOpen(false);
               }}
             >

@@ -1,0 +1,122 @@
+import { useMutation, useSWRWrapper } from '@/hooks/swr';
+
+import { METHOD } from '@/global/common';
+
+import { useSession } from './auth';
+
+export type CheckoutPaymentMethod = 'CASH_ON_DELIVERY' | 'BANK_TRANSFER' | 'ONLINE_GATEWAY';
+export type OrderStatus = 'PENDING' | 'PAID' | 'SHIPPED' | 'COMPLETED' | 'CANCELED' | 'REFUNDED';
+export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED' | 'FAILED';
+
+export interface CheckoutOrderLine {
+  createdAt?: string;
+  id: string;
+  lineTotal?: number;
+  product?: {
+    id?: string;
+    name?: string;
+    slug?: string;
+  } | null;
+  productId?: string;
+  productName?: string;
+  quantity?: number;
+  sku?: string | null;
+  unitPrice?: number;
+  variant?: {
+    id?: string;
+    sku?: string;
+  } | null;
+  variantId?: string | null;
+}
+
+export interface OrderShippingMethod {
+  code?: string;
+  fee?: number;
+  id?: string;
+  name?: string;
+}
+
+export interface CheckoutPayload {
+  address: string;
+  commune: string;
+  csrf?: boolean;
+  discountCode?: string;
+  district: string;
+  fullName: string;
+  note?: string;
+  paymentMethod: CheckoutPaymentMethod;
+  phoneNumber: string;
+  province: string;
+  shippingCode: string;
+}
+
+export interface CheckoutOrder {
+  address?: string;
+  commune?: string;
+  createdAt?: string;
+  discountId?: string | null;
+  discountTotal?: number;
+  district?: string;
+  fullName?: string;
+  id: string;
+  note?: string | null;
+  orderNumber?: string;
+  paymentMethod?: CheckoutPaymentMethod;
+  paymentStatus?: PaymentStatus;
+  phoneNumber?: string;
+  province?: string;
+  lines?: CheckoutOrderLine[];
+  shippingMethod?: OrderShippingMethod | null;
+  shippingFee?: number;
+  shippingMethodId?: string;
+  status?: OrderStatus;
+  subtotal?: number;
+  total?: number;
+  updatedAt?: string;
+  userId?: string;
+  vietqrUrl?: string;
+}
+
+export interface CheckoutOrderDetail extends CheckoutOrder {
+  lines?: CheckoutOrderLine[];
+  shippingMethod?: OrderShippingMethod | null;
+}
+
+export interface UseOrdersOptions {
+  enabledOrderDetail?: boolean;
+  orderId?: string;
+}
+
+export const useOrders = (options?: UseOrdersOptions) => {
+  const { data: session } = useSession();
+  const shouldFetchOrderDetail = Boolean(
+    session?.isAuthenticated && options?.orderId && (options?.enabledOrderDetail ?? true),
+  );
+
+  const getMyOrders = useSWRWrapper<CheckoutOrder[]>(session?.isAuthenticated ? '/api/v1/orders' : null, {
+    method: METHOD.GET,
+    url: '/api/v1/orders',
+  });
+
+  const getOrderDetail = useSWRWrapper<CheckoutOrderDetail>(
+    shouldFetchOrderDetail ? `orders:detail:${options?.orderId}` : null,
+    {
+      method: METHOD.GET,
+      url: options?.orderId ? `/api/v1/orders/${options.orderId}` : '/api/v1/orders',
+    },
+  );
+
+  const checkoutMutation = useMutation<CheckoutOrder>('/api/v1/orders/checkout', {
+    loading: true,
+    method: METHOD.POST,
+    url: '/api/v1/orders/checkout',
+  });
+
+  return {
+    checkoutMutation,
+    getOrderDetail,
+    getMyOrders,
+  };
+};
+
+export type UseOrdersReturn = ReturnType<typeof useOrders>;

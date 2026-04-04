@@ -29,9 +29,8 @@ export interface PriceRange {
 }
 
 export const DEFAULT_PAGE_SIZE = 24;
-export const DEFAULT_MAX_PRICE = 8000000;
+export const DEFAULT_MAX_PRICE = 100000000;
 export const DEFAULT_MIN_PRICE = 0;
-const PRICE_STEP = 100000;
 const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
 
 const toNumber = (value?: string | null) => {
@@ -51,22 +50,6 @@ export const normalizeSlugSegments = (slugSegments: string[]) => {
 };
 
 const buildRouteKey = (slugSegments: string[]) => slugSegments.join('/');
-
-export const toPriceRange = (query: { get: (name: string) => string | null }): PriceRange => {
-  const minFromQuery = Number(query.get('minPrice'));
-  const maxFromQuery = Number(query.get('maxPrice'));
-
-  const parsedMin = Number.isFinite(minFromQuery) ? minFromQuery : DEFAULT_MIN_PRICE;
-  const parsedMax = Number.isFinite(maxFromQuery) ? maxFromQuery : DEFAULT_MAX_PRICE;
-
-  const boundedMin = Math.max(DEFAULT_MIN_PRICE, Math.min(parsedMin, DEFAULT_MAX_PRICE - PRICE_STEP));
-  const boundedMax = Math.min(DEFAULT_MAX_PRICE, Math.max(parsedMax, boundedMin + PRICE_STEP));
-
-  return {
-    max: boundedMax,
-    min: boundedMin,
-  };
-};
 
 export const mapApiProductToCardData = (item: ProductListItem): Product => {
   const salePrice = toNumber(item.salePrice);

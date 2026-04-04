@@ -282,7 +282,10 @@ function TreeNode({ ancestorsHasNext, isLast = false, isRoot = false, node }: Tr
                 return (
                   <div className="flex items-center gap-2 leading-[2.1rem]" key={category.id}>
                     {childAncestors.map((hasNext, ancestorIndex) => (
-                      <span className="relative h-6 w-4 shrink-0" key={`${category.id}-ancestor-${ancestorIndex}`}>
+                      <span
+                        className="relative h-6 w-4 shrink-0"
+                        key={`${category.id}-ancestor-${ancestorIndex}`}
+                      >
                         {hasNext && <span className="absolute left-2 top-0 h-full w-px bg-slate-300/90" />}
                       </span>
                     ))}

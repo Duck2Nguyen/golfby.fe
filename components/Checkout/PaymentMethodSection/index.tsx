@@ -1,8 +1,10 @@
 import { CreditCard } from 'lucide-react';
 
+import type { CheckoutPaymentMethod } from '@/hooks/useOrders';
+
 interface PaymentMethodSectionProps {
-  paymentMethod: string;
-  onPaymentMethodChange: (value: string) => void;
+  paymentMethod: CheckoutPaymentMethod;
+  onPaymentMethodChange: (value: CheckoutPaymentMethod) => void;
 }
 
 export default function PaymentMethodSection({
@@ -19,16 +21,16 @@ export default function PaymentMethodSection({
         <label className="flex items-center gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-[#fafafa]">
           <input
             type="radio"
-            checked={paymentMethod === 'bank_transfer'}
-            onChange={() => onPaymentMethodChange('bank_transfer')}
+            checked={paymentMethod === 'BANK_TRANSFER'}
+            onChange={() => onPaymentMethodChange('BANK_TRANSFER')}
           />
           <p className="text-[14px] font-600">Chuyển khoản ngân hàng</p>
         </label>
         <label className="flex items-center gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-[#fafafa]">
           <input
             type="radio"
-            checked={paymentMethod === 'cod'}
-            onChange={() => onPaymentMethodChange('cod')}
+            checked={paymentMethod === 'CASH_ON_DELIVERY'}
+            onChange={() => onPaymentMethodChange('CASH_ON_DELIVERY')}
           />
           <p className="text-[14px] font-600">Thanh toán khi nhận hàng (COD)</p>
         </label>

@@ -67,7 +67,24 @@ export default function Cart() {
         const hasSalePrice = salePrice > 0;
 
         const firstImage = product.images?.[0];
+        const optionSpecs = (variant?.selectedOptionValues ?? [])
+          .map(selected => {
+            const optionName = selected.optionValue?.option?.name;
+            const optionValue = selected.optionValue?.value;
+
+            if (!optionName || !optionValue) {
+              return null;
+            }
+
+            return {
+              label: optionName,
+              value: optionValue,
+            };
+          })
+          .filter((spec): spec is { label: string; value: string } => Boolean(spec));
+
         const specs = [
+          ...optionSpecs,
           variant?.sku ? { label: 'SKU', value: variant.sku } : null,
           variant?.barcode ? { label: 'Barcode', value: variant.barcode } : null,
         ].filter((spec): spec is { label: string; value: string } => Boolean(spec));

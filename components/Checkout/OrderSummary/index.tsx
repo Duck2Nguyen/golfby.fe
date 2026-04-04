@@ -8,9 +8,11 @@ import Link from 'next/link';
 import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 
 interface OrderSummaryItem {
-  id: number;
+  id: number | string;
+  productId: string;
   name: string;
   price: number;
+  originalPrice?: number;
   quantity: number;
   image: string;
   specs?: Array<{ label: string; value: string }>;
@@ -23,8 +25,11 @@ interface OrderSummaryProps {
   total: number;
   couponCode: string;
   couponApplied: boolean;
+  canCheckout?: boolean;
+  isCheckoutLoading?: boolean;
   onCouponCodeChangeAction: (value: string) => void;
   onApplyCouponAction: () => void;
+  onCheckoutAction?: () => void;
 }
 
 export default function OrderSummary({
@@ -34,15 +39,18 @@ export default function OrderSummary({
   total,
   couponCode,
   couponApplied,
+  canCheckout = true,
+  isCheckoutLoading = false,
   onCouponCodeChangeAction,
   onApplyCouponAction,
+  onCheckoutAction,
 }: OrderSummaryProps) {
-  const [expandedItems, setExpandedItems] = useState<number[]>([]);
+  const [expandedItems, setExpandedItems] = useState<Array<number | string>>([]);
 
   const formatPrice = (v: number) => new Intl.NumberFormat('vi-VN').format(v) + ' ₫';
   const totalItems = items.reduce((s, i) => s + i.quantity, 0);
 
-  const toggleItemExpand = (id: number) => {
+  const toggleItemExpand = (id: number | string) => {
     setExpandedItems(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   };
 
@@ -78,7 +86,18 @@ export default function OrderSummary({
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] text-foreground line-clamp-2 mb-1 font-500">{item.name}</p>
+                    <Link href={`/product/${item.productId}`} className="block">
+                      <p className="text-[13px] text-foreground line-clamp-2 mb-1 font-500 hover:text-primary transition-colors">
+                        {item.name}
+                      </p>
+                    </Link>
+
+                    {item.originalPrice && (
+                      <p className="text-[11px] text-muted-foreground line-through mb-1">
+                        {formatPrice(item.originalPrice * item.quantity)}
+                      </p>
+                    )}
+
                     {item.specs && item.specs.length > 0 && (
                       <button
                         onClick={() => toggleItemExpand(item.id)}
@@ -161,9 +180,13 @@ export default function OrderSummary({
 
         {/* Button */}
         <div className="px-5 pb-5">
-          <button className="w-full h-14 bg-primary text-white rounded-xl font-600 hover:bg-primary-dark flex items-center justify-center gap-2">
+          <button
+            onClick={onCheckoutAction}
+            disabled={!canCheckout || isCheckoutLoading}
+            className="w-full h-14 bg-primary text-white text-[1.4rem] rounded-xl font-600 hover:bg-primary-dark flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
             <Lock className="w-4 h-4" />
-            Hoàn Tất Đơn Hàng
+            {isCheckoutLoading ? 'Đang xử lý...' : 'Thanh toán'}
           </button>
         </div>
       </div>

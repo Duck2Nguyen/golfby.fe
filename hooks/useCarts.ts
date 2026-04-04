@@ -2,6 +2,8 @@ import { useMutation, useSWRWrapper } from '@/hooks/swr';
 
 import { METHOD } from '@/global/common';
 
+import { useSession } from './auth';
+
 export interface CartProductImage {
   createdAt?: string | null;
   id: string;
@@ -43,10 +45,29 @@ export interface CartVariant {
   listPrice?: string | null;
   productId: string;
   salePrice?: string | null;
+  selectedOptionValues?: CartVariantSelectedOptionValue[];
   sku?: string | null;
   status?: 'ACTIVE' | 'ARCHIVED' | 'DELETED' | null;
   stock?: number | null;
   updatedAt?: string | null;
+}
+
+export interface CartVariantOption {
+  id: string;
+  name: string;
+}
+
+export interface CartVariantOptionValue {
+  id: string;
+  option?: CartVariantOption | null;
+  optionId: string;
+  value: string;
+}
+
+export interface CartVariantSelectedOptionValue {
+  optionValue?: CartVariantOptionValue | null;
+  productOptionValueId: string;
+  variantId: string;
 }
 
 export interface CartItem {
@@ -80,7 +101,8 @@ export interface RemoveCartItemPayload {
 }
 
 export const useCarts = () => {
-  const getMyCart = useSWRWrapper<CartItem[]>('/api/v1/cart', {
+  const { data: session } = useSession();
+  const getMyCart = useSWRWrapper<CartItem[]>(session?.isAuthenticated ? '/api/v1/cart' : null, {
     method: METHOD.GET,
     url: '/api/v1/cart',
   });

@@ -8,9 +8,11 @@ export interface GetAllProductsParams {
   brandId?: string;
   categoryId?: string;
   collectionId?: string;
+  fromPrice?: number;
   page?: number;
   search?: string;
   size?: number;
+  toPrice?: number;
 }
 
 export interface ProductListBrand {
@@ -54,6 +56,8 @@ const buildQueryString = (params?: GetAllProductsParams) => {
   if (params?.brandId) searchParams.set('brandId', params.brandId);
   if (params?.collectionId) searchParams.set('collectionId', params.collectionId);
   if (params?.categoryId) searchParams.set('categoryId', params.categoryId);
+  if (typeof params?.fromPrice === 'number') searchParams.set('fromPrice', String(params.fromPrice));
+  if (typeof params?.toPrice === 'number') searchParams.set('toPrice', String(params.toPrice));
 
   return searchParams.toString();
 };
@@ -68,6 +72,8 @@ const normalizeGetAllParams = (params?: GetAllProductsParams): GetAllProductsPar
   if (params?.brandId) normalized.brandId = params.brandId;
   if (params?.collectionId) normalized.collectionId = params.collectionId;
   if (params?.categoryId) normalized.categoryId = params.categoryId;
+  if (typeof params?.fromPrice === 'number') normalized.fromPrice = params.fromPrice;
+  if (typeof params?.toPrice === 'number') normalized.toPrice = params.toPrice;
 
   return normalized;
 };
