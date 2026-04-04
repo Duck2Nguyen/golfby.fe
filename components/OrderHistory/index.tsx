@@ -298,7 +298,7 @@ export default function OrderHistory() {
                                 className="min-w-0 text-[1.2rem] text-muted-foreground truncate"
                                 title={line.sku || '--'}
                               >
-                                Variant: {line.sku || '--'} • SL: {line.quantity ?? 0}
+                                SL: {line.quantity ?? 0}
                               </p>
                               <p className="text-[1.2rem] font-700 text-foreground">
                                 {formatCurrency(getLineTotal(line))}

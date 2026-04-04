@@ -122,19 +122,18 @@ export default function UserDetailModal({ isOpen, onCloseAction, userId }: UserD
   }, [user?.email, user?.firstName, user?.lastName]);
 
   const addressLine = useMemo(() => {
-    const directAddressParts = [
-      user?.address,
-      user?.commune,
-      user?.district,
-      user?.province,
-    ].filter(Boolean) as string[];
+    const directAddressParts = [user?.address, user?.commune, user?.district, user?.province].filter(
+      Boolean,
+    ) as string[];
 
     if (directAddressParts.length > 0) {
       return directAddressParts.join(', ');
     }
 
     const latestOrderAddress = orders
-      .map(order => [order.address, order.commune, order.district, order.province].filter(Boolean) as string[])
+      .map(
+        order => [order.address, order.commune, order.district, order.province].filter(Boolean) as string[],
+      )
       .find(parts => parts.length > 0);
 
     if (latestOrderAddress && latestOrderAddress.length > 0) {
@@ -150,7 +149,11 @@ export default function UserDetailModal({ isOpen, onCloseAction, userId }: UserD
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <button className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCloseAction} type="button" />
+      <button
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onCloseAction}
+        type="button"
+      />
 
       <div className="relative mx-4 max-h-[90vh] w-full max-w-[96rem] overflow-y-auto rounded-2xl bg-white shadow-2xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
@@ -181,9 +184,13 @@ export default function UserDetailModal({ isOpen, onCloseAction, userId }: UserD
 
         <div className="space-y-4 p-6">
           {isLoading ? (
-            <div className="py-8 text-center text-[1.4rem] text-gray-500">Đang tải chi tiết khách hàng...</div>
+            <div className="py-8 text-center text-[1.4rem] text-gray-500">
+              Đang tải chi tiết khách hàng...
+            </div>
           ) : error || !user ? (
-            <div className="py-8 text-center text-[1.4rem] text-red-500">Không thể tải chi tiết khách hàng.</div>
+            <div className="py-8 text-center text-[1.4rem] text-red-500">
+              Không thể tải chi tiết khách hàng.
+            </div>
           ) : (
             <>
               <section className="grid gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 md:grid-cols-2">
@@ -210,14 +217,6 @@ export default function UserDetailModal({ isOpen, onCloseAction, userId }: UserD
                   <p className="truncate text-[1.4rem] font-500 text-gray-900" title={addressLine}>
                     {addressLine}
                   </p>
-                </div>
-                <div>
-                  <p className="text-[1.2rem] text-gray-500">Tạo tài khoản</p>
-                  <p className="text-[1.4rem] font-500 text-gray-900">{formatDateTime(user.createdAt)}</p>
-                </div>
-                <div>
-                  <p className="text-[1.2rem] text-gray-500">Cập nhật gần nhất</p>
-                  <p className="text-[1.4rem] font-500 text-gray-900">{formatDateTime(user.updatedAt)}</p>
                 </div>
               </section>
 
