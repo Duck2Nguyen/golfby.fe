@@ -308,12 +308,12 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
                   <span
                     className={`rounded-full px-3 py-1 text-[1.2rem] font-600 ${orderStatusMeta.badgeClassName}`}
                   >
-                    Đơn: {orderStatusMeta.label}
+                    TT Đơn: {orderStatusMeta.label}
                   </span>
                   <span
                     className={`rounded-full px-3 py-1 text-[1.2rem] font-600 ${paymentStatusMeta.badgeClassName}`}
                   >
-                    Thanh toán: {paymentStatusMeta.label}
+                    TT Thanh toán: {paymentStatusMeta.label}
                   </span>
                 </div>
               </div>

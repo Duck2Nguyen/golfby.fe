@@ -7,8 +7,10 @@ import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 import type { WishlistDisplayItem } from '../types';
 
 interface WishlistListItemProps {
+  isAddingToCart: boolean;
   isRemoving: boolean;
   item: WishlistDisplayItem;
+  onAddToCartAction: (item: WishlistDisplayItem) => Promise<void> | void;
   onRemove: (productId: string) => void;
 }
 
@@ -16,7 +18,13 @@ const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN').format(price) + ' ₫';
 };
 
-export default function WishlistListItem({ isRemoving, item, onRemove }: WishlistListItemProps) {
+export default function WishlistListItem({
+  isAddingToCart,
+  isRemoving,
+  item,
+  onAddToCartAction,
+  onRemove,
+}: WishlistListItemProps) {
   return (
     <div className="group bg-white rounded-2xl border border-border/60 overflow-hidden hover:shadow-lg transition-all duration-200 flex">
       <Link
@@ -50,9 +58,20 @@ export default function WishlistListItem({ isRemoving, item, onRemove }: Wishlis
         </div>
 
         <div className="flex sm:flex-col gap-2 shrink-0">
-          <button className="flex items-center justify-center gap-2 px-5 h-10 bg-primary hover:bg-primary/90 text-white rounded-xl text-[13px] transition-colors font-600">
+          <button
+            onClick={() => {
+              if (isAddingToCart) {
+                return;
+              }
+
+              void onAddToCartAction(item);
+            }}
+            type="button"
+            disabled={isAddingToCart}
+            className="flex items-center justify-center gap-2 px-5 h-10 bg-primary hover:bg-primary/90 text-white rounded-xl text-[13px] transition-colors font-600 disabled:cursor-not-allowed disabled:opacity-70"
+          >
             <ShoppingCart className="w-4 h-4" />
-            <span className="hidden sm:inline">Thêm vào giỏ</span>
+            <span className="hidden sm:inline">{isAddingToCart ? 'Đang thêm...' : 'Thêm vào giỏ'}</span>
           </button>
           <button
             onClick={() => onRemove(item.productId)}

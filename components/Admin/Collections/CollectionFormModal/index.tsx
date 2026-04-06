@@ -16,6 +16,7 @@ export interface CollectionFormData {
   id?: string;
   name: string;
   parentId: string;
+  sortOrder: string;
   slug: string;
 }
 
@@ -53,6 +54,23 @@ const validationSchema = yup.object().shape({
   description: yup.string().trim().max(500, 'Mô tả không vượt quá 500 ký tự'),
   name: yup.string().trim().required('Vui lòng nhập tên collection'),
   parentId: yup.string().default(''),
+  sortOrder: yup.string().when('parentId', {
+    is: (parentId?: string) => !parentId,
+    then: schema =>
+      schema
+        .trim()
+        .required('Vui lòng nhập thứ tự')
+        .test('is-positive-integer', 'Thứ tự phải là số nguyên từ 1 trở lên', value => {
+          if (!value) {
+            return false;
+          }
+
+          const parsed = Number(value);
+
+          return Number.isInteger(parsed) && parsed >= 1;
+        }),
+    otherwise: schema => schema.optional(),
+  }),
   slug: yup.string().trim().required('Vui lòng nhập slug'),
 });
 
@@ -74,6 +92,7 @@ export default function CollectionFormModal({
       id: initialData?.id,
       name: initialData?.name || '',
       parentId: initialData?.parentId || '',
+      sortOrder: initialData?.sortOrder || '',
       slug: initialData?.slug || '',
     }),
     [initialData],
@@ -120,20 +139,22 @@ export default function CollectionFormModal({
           onSubmit={async values => {
             const cleanedName = values.name.trim();
             const cleanedSlug = values.slug.trim() || toSlug(cleanedName);
+            const resolvedParentId = canSelectParent ? values.parentId : initialValues.parentId;
 
             await onSubmitAction({
               ...values,
               categoryIds: canSelectCategories ? values.categoryIds : initialValues.categoryIds,
               description: values.description?.trim() || undefined,
               name: cleanedName,
-              parentId: canSelectParent ? values.parentId : initialValues.parentId,
+              parentId: resolvedParentId,
+              sortOrder: resolvedParentId ? '' : values.sortOrder.trim(),
               slug: cleanedSlug,
             });
           }}
           validateOnMount
           validationSchema={validationSchema}
         >
-          {({ isValid, setFieldValue, values }) => (
+          {({ errors, isValid, setFieldValue, touched, values }) => (
             <Form className="space-y-5 p-6">
               <Field.Text label="Tên collection" name="name" placeholder="Nhập tên collection" required />
 
@@ -157,6 +178,28 @@ export default function CollectionFormModal({
                   ))}
                 </select>
               </div>
+
+              {!values.parentId && (
+                <div className="space-y-2">
+                  <label className="text-[1.3rem] font-600 text-gray-700">Thứ tự</label>
+                  <input
+                    className="h-10 w-full rounded-lg border border-gray-200 px-3 text-[1.4rem] outline-none focus:border-emerald-500"
+                    min={1}
+                    onChange={event => {
+                      setFieldValue('sortOrder', event.target.value);
+                    }}
+                    placeholder="Nhập thứ tự từ 1"
+                    step={1}
+                    type="number"
+                    value={values.sortOrder}
+                  />
+                  {touched.sortOrder && errors.sortOrder ? (
+                    <p className="text-[1.2rem] text-red-500">{errors.sortOrder}</p>
+                  ) : (
+                    <p className="text-[1.2rem] text-gray-500">Chỉ áp dụng cho collection cha.</p>
+                  )}
+                </div>
+              )}
 
               {isExistingParentCollection && (
                 <div className="rounded-lg bg-amber-50 px-3 py-2 text-[1.3rem] text-amber-700">

@@ -111,8 +111,8 @@ export const useCarts = () => {
     loading: true,
     method: METHOD.POST,
     notification: {
-      content: 'Thêm sản phẩm vào giỏ hàng thành công',
-      title: 'Thành công',
+      ignoreError: false,
+      ignoreSuccess: true,
     },
     url: '/api/v1/cart',
   });

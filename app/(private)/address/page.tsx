@@ -188,13 +188,6 @@ export default function AddressPage() {
             {addresses.length === 0 ? (
               <div className="text-center py-16">
                 <p className="text-muted-foreground text-[15px] mb-4">Bạn chưa có địa chỉ nào.</p>
-                <button
-                  onClick={handleAddNew}
-                  className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 h-11 rounded-full transition-all duration-200 font-600"
-                >
-                  <Plus className="w-4 h-4" />
-                  Thêm Địa Chỉ Mới
-                </button>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">

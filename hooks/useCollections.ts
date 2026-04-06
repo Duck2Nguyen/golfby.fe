@@ -18,6 +18,7 @@ export interface CollectionBase {
   id: string;
   name: string;
   parentId?: string | null;
+  sortOrder?: number | null;
   slug: string;
   updatedAt?: string | null;
 }
@@ -73,6 +74,7 @@ export interface CreateCollectionPayload {
   description?: string;
   name: string;
   parentId?: string | null;
+  sortOrder?: number;
   slug: string;
 }
 

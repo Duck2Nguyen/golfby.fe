@@ -1,12 +1,15 @@
 'use client';
 
-import { useMemo, useState } from 'react';
 import { CreditCard } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
 
 import Link from 'next/link';
 import { addToast } from '@heroui/toast';
 import { Spinner } from '@heroui/spinner';
 import { useRouter } from 'next/navigation';
+
+import { getSessionKey, removeSessionKey } from '@/utils/localStorage';
+import { normalizeSelectedCartItemIds, CHECKOUT_SELECTED_CART_ITEM_IDS_KEY } from '@/utils/checkoutSelection';
 
 import { useCarts, type CartItem as ApiCartItem } from '@/hooks/useCarts';
 import { useOrders, type CheckoutPaymentMethod } from '@/hooks/useOrders';
@@ -67,17 +70,42 @@ export default function Checkout() {
   const [shippingMethod, setShippingMethod] = useState('STANDARD');
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('BANK_TRANSFER');
   const [note, setNote] = useState('');
+  const [selectedCartItemIds, setSelectedCartItemIds] = useState<string[] | null>(null);
 
   const { getMyCart } = useCarts();
   const { data, error, isLoading } = getMyCart;
   const { checkoutMutation } = useOrders();
 
+  useEffect(() => {
+    const savedCartItemIds = normalizeSelectedCartItemIds(
+      getSessionKey<unknown>(CHECKOUT_SELECTED_CART_ITEM_IDS_KEY),
+    );
+
+    if (savedCartItemIds.length > 0) {
+      setSelectedCartItemIds(savedCartItemIds);
+      return;
+    }
+
+    setSelectedCartItemIds(null);
+  }, []);
+
   const cartApiItems = useMemo<ApiCartItem[]>(() => {
     return Array.isArray(data?.data) ? data.data : [];
   }, [data?.data]);
 
+  const checkoutCartApiItems = useMemo<ApiCartItem[]>(() => {
+    if (!selectedCartItemIds || selectedCartItemIds.length === 0) {
+      return cartApiItems;
+    }
+
+    const selectedCartItemIdSet = new Set(selectedCartItemIds);
+    const filteredItems = cartApiItems.filter(item => selectedCartItemIdSet.has(String(item.id)));
+
+    return filteredItems.length > 0 ? filteredItems : cartApiItems;
+  }, [cartApiItems, selectedCartItemIds]);
+
   const cartItems = useMemo<CheckoutItem[]>(() => {
-    return cartApiItems
+    return checkoutCartApiItems
       .filter(item => Boolean(item.product))
       .map(item => {
         const product = item.product!;
@@ -126,7 +154,7 @@ export default function Checkout() {
           ...(specs.length > 0 ? { specs } : {}),
         };
       });
-  }, [cartApiItems]);
+  }, [checkoutCartApiItems]);
 
   const subtotal = cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
   const couponDiscount = couponApplied ? Math.round(subtotal * 0.05) : 0;
@@ -175,6 +203,7 @@ export default function Checkout() {
     try {
       const response = await checkoutMutation.trigger({
         address: address.trim(),
+        cartItemIds: cartItems.map(item => String(item.id)),
         commune: commune.trim(),
         csrf: true,
         ...(couponApplied && couponCode.trim() ? { discountCode: couponCode.trim() } : {}),
@@ -188,6 +217,7 @@ export default function Checkout() {
       });
 
       await getMyCart.mutate();
+      removeSessionKey(CHECKOUT_SELECTED_CART_ITEM_IDS_KEY);
 
       if (response?.data?.vietqrUrl) {
         const paymentSearchParams = new URLSearchParams({

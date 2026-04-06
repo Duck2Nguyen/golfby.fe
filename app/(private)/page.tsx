@@ -7,7 +7,10 @@ import { Newsletter } from '@/components/Newsletter';
 import { BrandSlider } from '@/components/BrandSlider';
 import { PromoBanner } from '@/components/PromoBanner';
 import { ProductSection } from '@/components/ProductSection';
+import HomeBannerMosaic from '@/components/HomeBannerMosaic';
 import TopSellingSection from '@/components/TopSellingSection';
+
+const SHOW_LEGACY_HERO_BANNER = false;
 
 export default function HomePage() {
   return (
@@ -15,7 +18,8 @@ export default function HomePage() {
       <Header />
 
       <main>
-        <HeroBanner />
+        <HomeBannerMosaic />
+        {SHOW_LEGACY_HERO_BANNER ? <HeroBanner /> : null}
         {/* <Features /> */}
         {/* <CategoryGrid /> */}
         <BrandSlider />

@@ -7,6 +7,8 @@ import Image from 'next/image';
 import { Link } from '@heroui/link';
 
 import { useBrands } from '@/hooks/useBrands';
+import { useWishlistToggle } from '@/hooks/useWishlistToggle';
+import { useAddToCartFromList } from '@/hooks/useAddToCartFromList';
 import { useProducts, type ProductListItem } from '@/hooks/useProducts';
 import { useCollections, type CollectionTreeNode } from '@/hooks/useCollections';
 
@@ -129,6 +131,8 @@ function BrandLogo({ alt, src }: { alt: string; src?: string | null }) {
 }
 
 function CollectionProductSection({ bgColor, collection, brandMetaById }: CollectionProductSectionProps) {
+  const { addToCartFromList, addingProductId } = useAddToCartFromList();
+  const { isWishlisted, togglingProductId, toggleWishlist } = useWishlistToggle();
   const { getAllProducts } = useProducts({
     getAllParams: {
       collectionId: collection.id,
@@ -235,7 +239,25 @@ function CollectionProductSection({ bgColor, collection, brandMetaById }: Collec
             >
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
                 {products.map(product => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard
+                    key={product.id}
+                    isAddingToCart={addingProductId === String(product.id)}
+                    isWishlisted={isWishlisted(String(product.id))}
+                    isWishlistLoading={togglingProductId === String(product.id)}
+                    onAddToCartAction={currentProduct =>
+                      addToCartFromList({
+                        productId: String(currentProduct.id),
+                        productName: currentProduct.name,
+                      })
+                    }
+                    onToggleWishlistAction={currentProduct =>
+                      toggleWishlist({
+                        productId: String(currentProduct.id),
+                        productName: currentProduct.name,
+                      })
+                    }
+                    product={product}
+                  />
                 ))}
               </div>
 

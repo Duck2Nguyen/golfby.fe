@@ -17,7 +17,7 @@ export function BrandSlider() {
   const brands = isExpanded ? allBrands : allBrands.slice(0, INITIAL_VISIBLE_BRANDS);
 
   return (
-    <section className="bg-muted border-y border-border">
+    <section className="border-y border-border">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <p className="text-center text-foreground/50 text-[1.3rem] font-500 mb-6 uppercase tracking-widest">
           Thương hiệu ưa chuộng

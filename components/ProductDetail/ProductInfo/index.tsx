@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 
 import { useSession } from '@/hooks/auth';
 import { useCarts } from '@/hooks/useCarts';
+import { useWishlistToggle } from '@/hooks/useWishlistToggle';
 
 interface ProductOptionValue {
   id?: string;
@@ -80,12 +81,12 @@ export default function ProductInfo({
   const router = useRouter();
   const { data: session } = useSession();
   const { addToCartMutation, getMyCart } = useCarts();
+  const { isWishlisted, togglingProductId, toggleWishlist } = useWishlistToggle();
 
   const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, { value: string; valueId?: string }>>(
     {},
   );
-  const [wishlisted, setWishlisted] = useState(false);
   const showRating = typeof rating === 'number' && typeof reviews === 'number' && reviews > 0;
 
   const toNumber = (value?: number | null) => {
@@ -237,6 +238,8 @@ export default function ProductInfo({
   const hasVariants = variants.length > 0;
   const selectedVariantId = selectedVariant?.id;
   const isActionLoading = addToCartMutation.isMutating;
+  const wishlisted = isWishlisted(productId);
+  const isWishlistLoading = togglingProductId === productId;
 
   const validatePurchaseState = () => {
     if (!session?.isAuthenticated) {
@@ -320,6 +323,13 @@ export default function ProductInfo({
     }
 
     router.push('/checkout');
+  };
+
+  const handleToggleWishlist = async () => {
+    await toggleWishlist({
+      productId,
+      productName: name,
+    });
   };
 
   const formatPrice = (v: number) => new Intl.NumberFormat('vi-VN').format(v) + ' VNĐ';
@@ -478,8 +488,15 @@ export default function ProductInfo({
             Thêm Vào Giỏ Hàng
           </button>
           <button
-            onClick={() => setWishlisted(!wishlisted)}
-            className={`w-13 h-13 rounded-xl border-2 flex items-center justify-center transition-all duration-200 ${
+            onClick={() => {
+              if (isWishlistLoading) {
+                return;
+              }
+
+              void handleToggleWishlist();
+            }}
+            disabled={isWishlistLoading}
+            className={`w-13 h-13 rounded-xl border-2 flex items-center justify-center transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-70 ${
               wishlisted
                 ? 'border-destructive bg-destructive/5 text-destructive'
                 : 'border-border hover:border-primary hover:text-primary'

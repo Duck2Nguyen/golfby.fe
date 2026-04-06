@@ -1,10 +1,11 @@
 'use client';
 
-import { useRef, useMemo, useState, useCallback } from 'react';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ShieldCheck, ChevronRight, ShoppingCart, MessageSquare } from 'lucide-react';
 
 import { Link } from '@heroui/link';
 import { Spinner } from '@heroui/spinner';
+import { Checkbox } from '@heroui/checkbox';
 
 import type { CartItem } from '@/components/Cart/CartItemRow';
 
@@ -40,6 +41,8 @@ const getErrorMessage = (error: unknown) => {
 export default function Cart() {
   const [note, setNote] = useState('');
   const [isClearing, setIsClearing] = useState(false);
+  const [selectedCartItemIds, setSelectedCartItemIds] = useState<string[]>([]);
+  const hasInitializedSelectionRef = useRef(false);
   const relatedScrollRef = useRef<HTMLDivElement>(null);
 
   const { getMyCart, removeCartItemMutation, updateCartItemMutation } = useCarts();
@@ -103,6 +106,53 @@ export default function Cart() {
       });
   }, [cartApiItems]);
 
+  useEffect(() => {
+    if (cartItems.length === 0) {
+      setSelectedCartItemIds([]);
+      hasInitializedSelectionRef.current = false;
+      return;
+    }
+
+    const availableItemIds = new Set(cartItems.map(item => String(item.id)));
+
+    setSelectedCartItemIds(previousSelectedIds => {
+      if (!hasInitializedSelectionRef.current) {
+        hasInitializedSelectionRef.current = true;
+        return cartItems.map(item => String(item.id));
+      }
+
+      return previousSelectedIds.filter(itemId => availableItemIds.has(itemId));
+    });
+  }, [cartItems]);
+
+  const handleSelectItem = useCallback((id: number | string, isSelected: boolean) => {
+    const itemId = String(id);
+
+    setSelectedCartItemIds(previousSelectedIds => {
+      if (isSelected) {
+        if (previousSelectedIds.includes(itemId)) {
+          return previousSelectedIds;
+        }
+
+        return [...previousSelectedIds, itemId];
+      }
+
+      return previousSelectedIds.filter(selectedItemId => selectedItemId !== itemId);
+    });
+  }, []);
+
+  const handleSelectAll = useCallback(
+    (isSelected: boolean) => {
+      if (isSelected) {
+        setSelectedCartItemIds(cartItems.map(item => String(item.id)));
+        return;
+      }
+
+      setSelectedCartItemIds([]);
+    },
+    [cartItems],
+  );
+
   const handleQuantityChange = useCallback(
     async (id: number | string, qty: number) => {
       await updateCartItemMutation.trigger({
@@ -122,6 +172,10 @@ export default function Cart() {
         itemId: String(id),
       });
       await mutate();
+
+      setSelectedCartItemIds(previousSelectedIds =>
+        previousSelectedIds.filter(itemId => itemId !== String(id)),
+      );
     },
     [mutate, removeCartItemMutation],
   );
@@ -142,13 +196,26 @@ export default function Cart() {
         ),
       );
       await mutate();
+      setSelectedCartItemIds([]);
+      hasInitializedSelectionRef.current = false;
     } finally {
       setIsClearing(false);
     }
   }, [cartApiItems, isClearing, mutate, removeCartItemMutation]);
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const selectedCartItemIdSet = useMemo(() => new Set(selectedCartItemIds), [selectedCartItemIds]);
+
+  const selectedCartItems = useMemo(
+    () => cartItems.filter(item => selectedCartItemIdSet.has(String(item.id))),
+    [cartItems, selectedCartItemIdSet],
+  );
+
+  const subtotal = selectedCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const itemCount = selectedCartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const totalCartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const selectedLineCount = selectedCartItems.length;
+  const isAllSelected = cartItems.length > 0 && selectedLineCount === cartItems.length;
+  const isPartiallySelected = selectedLineCount > 0 && !isAllSelected;
 
   const scrollRelated = (direction: 'left' | 'right') => {
     if (relatedScrollRef.current) {
@@ -178,8 +245,10 @@ export default function Cart() {
             <p className="text-[14px] text-muted-foreground mt-1">
               {isLoading
                 ? 'Đang tải giỏ hàng...'
-                : itemCount > 0
-                  ? `Bạn đang có ${itemCount} sản phẩm trong giỏ hàng`
+                : totalCartItemCount > 0
+                  ? selectedLineCount > 0
+                    ? `Bạn đã chọn ${itemCount} sản phẩm để thanh toán (${totalCartItemCount} sản phẩm trong giỏ)`
+                    : `Giỏ hàng có ${totalCartItemCount} sản phẩm. Hãy chọn sản phẩm muốn thanh toán.`
                   : 'Giỏ hàng của bạn đang trống'}
             </p>
           </div>
@@ -218,8 +287,22 @@ export default function Cart() {
           </div>
         ) : cartItems.length > 0 ? (
           <div className="flex flex-col lg:flex-row gap-8 pb-12">
-            <div className="flex-1 min-w-0 space-y-8">
-              <div className="hidden md:grid grid-cols-[1fr_110px_120px_120px] gap-6 px-5 text-[12px] text-muted-foreground uppercase tracking-wider font-600">
+            <div className="flex-1 min-w-0 space-y-4">
+              <div className="hidden md:grid grid-cols-[40px_1fr_110px_120px_120px] gap-6 px-5 text-[12px] text-muted-foreground uppercase tracking-wider font-600">
+                <div className="flex items-center">
+                  <Checkbox
+                    aria-label="Chọn tất cả sản phẩm trong giỏ"
+                    isSelected={isAllSelected}
+                    isIndeterminate={isPartiallySelected}
+                    onValueChange={handleSelectAll}
+                    classNames={{
+                      base: 'm-0 p-0',
+                      wrapper:
+                        'border-2 border-border/70 before:border-transparent group-data-[hover=true]:before:bg-transparent',
+                    }}
+                    radius="sm"
+                  />
+                </div>
                 <span>Sản Phẩm</span>
                 <span className="text-right">Giá</span>
                 <span className="text-center">Số Lượng</span>
@@ -230,7 +313,9 @@ export default function Cart() {
                 {cartItems.map(item => (
                   <CartItemRow
                     key={item.id}
+                    isSelected={selectedCartItemIdSet.has(String(item.id))}
                     item={item}
+                    onSelectChange={handleSelectItem}
                     onQuantityChange={handleQuantityChange}
                     onRemove={handleRemove}
                   />
@@ -256,7 +341,11 @@ export default function Cart() {
             </div>
 
             <div className="w-full lg:w-[380px] shrink-0">
-              <OrderSummary subtotal={subtotal} itemCount={itemCount} />
+              <OrderSummary
+                subtotal={subtotal}
+                itemCount={itemCount}
+                selectedCartItemIds={selectedCartItemIds}
+              />
             </div>
           </div>
         ) : (

@@ -219,7 +219,7 @@ export default function Customers() {
 
           <div className="rounded-xl border border-gray-200 bg-white p-4">
             <p className="mb-1 text-[1.3rem] text-gray-500">Admin</p>
-            <p className="text-[2.8rem] font-700 text-primary-light">{stats.admins}</p>
+            <p className="text-[2.8rem] font-700 text-primary">{stats.admins}</p>
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-white p-4">

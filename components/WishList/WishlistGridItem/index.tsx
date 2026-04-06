@@ -7,8 +7,10 @@ import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 import type { WishlistDisplayItem } from '../types';
 
 interface WishlistGridItemProps {
+  isAddingToCart: boolean;
   isRemoving: boolean;
   item: WishlistDisplayItem;
+  onAddToCartAction: (item: WishlistDisplayItem) => Promise<void> | void;
   onRemove: (productId: string) => void;
 }
 
@@ -16,7 +18,13 @@ const formatPrice = (price: number) => {
   return new Intl.NumberFormat('vi-VN').format(price) + ' ₫';
 };
 
-export default function WishlistGridItem({ isRemoving, item, onRemove }: WishlistGridItemProps) {
+export default function WishlistGridItem({
+  isAddingToCart,
+  isRemoving,
+  item,
+  onAddToCartAction,
+  onRemove,
+}: WishlistGridItemProps) {
   return (
     <div className="group bg-white rounded-2xl border border-border/60 overflow-hidden hover:shadow-xl hover:shadow-black/8 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full">
       <Link
@@ -43,11 +51,22 @@ export default function WishlistGridItem({ isRemoving, item, onRemove }: Wishlis
 
         <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
           <button
-            onClick={event => event.preventDefault()}
-            className="w-full py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl text-[13px] flex items-center justify-center gap-2 transition-colors shadow-lg font-600"
+            onClick={event => {
+              event.preventDefault();
+              event.stopPropagation();
+
+              if (isAddingToCart) {
+                return;
+              }
+
+              void onAddToCartAction(item);
+            }}
+            type="button"
+            disabled={isAddingToCart}
+            className="w-full py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl text-[13px] flex items-center justify-center gap-2 transition-colors shadow-lg font-600 disabled:cursor-not-allowed disabled:opacity-70"
           >
             <ShoppingCart className="w-4 h-4" />
-            Thêm vào giỏ
+            {isAddingToCart ? 'Đang thêm...' : 'Thêm vào giỏ'}
           </button>
         </div>
       </Link>

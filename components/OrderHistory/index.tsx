@@ -255,12 +255,12 @@ export default function OrderHistory() {
                         <span
                           className={`rounded-full px-3 py-1 text-[1.2rem] font-600 ${orderStatusMeta.badgeClassName}`}
                         >
-                          Đơn: {orderStatusMeta.label}
+                          TT đơn hàng: {orderStatusMeta.label}
                         </span>
                         <span
                           className={`rounded-full px-3 py-1 text-[1.2rem] font-600 ${paymentStatusMeta.badgeClassName}`}
                         >
-                          Thanh toán: {paymentStatusMeta.label}
+                          TT thanh toán: {paymentStatusMeta.label}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">

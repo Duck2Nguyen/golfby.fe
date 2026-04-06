@@ -6,8 +6,40 @@ import { ImageWithFallback } from '../figma/ImageWithFallback';
 
 import type { Product } from '../mock-data';
 
-export function ProductListCard({ product }: { product: Product }) {
+interface ProductListCardProps {
+  isAddingToCart?: boolean;
+  isWishlisted?: boolean;
+  isWishlistLoading?: boolean;
+  onAddToCartAction?: (product: Product) => Promise<unknown> | void;
+  onToggleWishlistAction?: (product: Product) => Promise<unknown> | void;
+  product: Product;
+}
+
+export function ProductListCard({
+  isAddingToCart = false,
+  isWishlisted = false,
+  isWishlistLoading = false,
+  onAddToCartAction,
+  onToggleWishlistAction,
+  product,
+}: ProductListCardProps) {
   const formatPrice = (price: number) => new Intl.NumberFormat('vi-VN').format(price) + '₫';
+
+  const handleAddToCart = () => {
+    if (!onAddToCartAction || isAddingToCart) {
+      return;
+    }
+
+    void onAddToCartAction(product);
+  };
+
+  const handleToggleWishlist = () => {
+    if (!onToggleWishlistAction || isWishlistLoading) {
+      return;
+    }
+
+    void onToggleWishlistAction(product);
+  };
 
   return (
     <div className="group flex overflow-hidden rounded-2xl border border-border/60 bg-white transition-all duration-300 hover:shadow-lg hover:shadow-black/6">
@@ -99,15 +131,27 @@ export function ProductListCard({ product }: { product: Product }) {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-border transition-colors hover:border-primary text-foreground hover:text-primary">
-              <Heart className="h-4 w-4" />
+            <button
+              onClick={handleToggleWishlist}
+              type="button"
+              disabled={!onToggleWishlistAction || isWishlistLoading}
+              className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
+                isWishlisted
+                  ? 'border-primary bg-primary text-white hover:bg-primary-dark'
+                  : 'border-border text-foreground hover:border-primary hover:text-primary'
+              }`}
+            >
+              <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-white' : ''}`} />
             </button>
             <button
-              className="flex h-10 items-center gap-2 rounded-xl bg-primary px-5 text-[1.3rem] text-white transition-colors hover:bg-primary-dark"
+              onClick={handleAddToCart}
+              type="button"
+              disabled={!onAddToCartAction || isAddingToCart}
+              className="flex h-10 items-center gap-2 rounded-xl bg-primary px-5 text-[1.3rem] text-white transition-colors hover:bg-primary-dark disabled:opacity-70 disabled:cursor-not-allowed"
               style={{ fontWeight: 600 }}
             >
               <ShoppingCart className="h-4 w-4" />
-              Thêm vào giỏ
+              {isAddingToCart ? 'Đang thêm...' : 'Thêm vào giỏ'}
             </button>
           </div>
         </div>

@@ -1,6 +1,10 @@
+import { useSWRConfig } from 'swr';
+
 import { useMutation, useSWRWrapper } from '@/hooks/swr';
 
 import { METHOD } from '@/global/common';
+
+import { useSession } from './auth';
 
 export interface WishlistProductImage {
   createdAt?: string | null;
@@ -52,19 +56,27 @@ export interface RemoveWishlistPayload {
   productId: string;
 }
 
+const WISHLISTS_ENDPOINT = '/api/v1/wishlists';
+
 export const useWishlists = () => {
-  const getMyWishlist = useSWRWrapper<WishlistItem[]>('/api/v1/wishlists', {
+  const { data: session } = useSession();
+  const { cache } = useSWRConfig();
+
+  const cachedWishlist = cache.get(WISHLISTS_ENDPOINT) as { data?: unknown } | undefined;
+  const hasCachedWishlist = Boolean(cachedWishlist?.data);
+
+  const getMyWishlist = useSWRWrapper<WishlistItem[]>(session?.isAuthenticated ? WISHLISTS_ENDPOINT : null, {
+    dedupingInterval: 1000 * 60 * 5,
     method: METHOD.GET,
-    url: '/api/v1/wishlists',
+    revalidateIfStale: false,
+    revalidateOnMount: !hasCachedWishlist,
+    url: WISHLISTS_ENDPOINT,
   });
 
   const addWishlistMutation = useMutation<boolean>('/api/v1/wishlists/{productId}', {
     loading: true,
     method: METHOD.POST,
-    notification: {
-      content: 'Thêm vào danh sách yêu thích thành công',
-      title: 'Thành công',
-    },
+
     url: '/api/v1/wishlists/{productId}',
   });
 

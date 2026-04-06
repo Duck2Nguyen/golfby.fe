@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation';
 
 import { useBrands, type Brand } from '@/hooks/useBrands';
+import { useWishlistToggle } from '@/hooks/useWishlistToggle';
+import { useAddToCartFromList } from '@/hooks/useAddToCartFromList';
 import {
   useProducts,
   type ProductListSortBy,
@@ -373,6 +375,8 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
     enabled: canFetchProducts,
     getAllParams: queryParams,
   });
+  const { addToCartFromList, addingProductId } = useAddToCartFromList();
+  const { isWishlisted, togglingProductId, toggleWishlist } = useWishlistToggle();
 
   const products = useMemo(() => {
     const items = getAllProducts.data?.data?.items ?? [];
@@ -636,7 +640,25 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
                   displayedProducts.length > 0 ? (
                     <div className="space-y-4">
                       {displayedProducts.map(product => (
-                        <ProductListCard key={product.id} product={product} />
+                        <ProductListCard
+                          key={product.id}
+                          isAddingToCart={addingProductId === String(product.id)}
+                          isWishlisted={isWishlisted(String(product.id))}
+                          isWishlistLoading={togglingProductId === String(product.id)}
+                          onAddToCartAction={currentProduct =>
+                            addToCartFromList({
+                              productId: String(currentProduct.id),
+                              productName: currentProduct.name,
+                            })
+                          }
+                          onToggleWishlistAction={currentProduct =>
+                            toggleWishlist({
+                              productId: String(currentProduct.id),
+                              productName: currentProduct.name,
+                            })
+                          }
+                          product={product}
+                        />
                       ))}
                     </div>
                   ) : (
@@ -647,7 +669,25 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
                 ) : displayedProducts.length > 0 ? (
                   <div className={`grid ${gridCols} gap-5`}>
                     {displayedProducts.map(product => (
-                      <ProductCard key={product.id} product={product} />
+                      <ProductCard
+                        key={product.id}
+                        isAddingToCart={addingProductId === String(product.id)}
+                        isWishlisted={isWishlisted(String(product.id))}
+                        isWishlistLoading={togglingProductId === String(product.id)}
+                        onAddToCartAction={currentProduct =>
+                          addToCartFromList({
+                            productId: String(currentProduct.id),
+                            productName: currentProduct.name,
+                          })
+                        }
+                        onToggleWishlistAction={currentProduct =>
+                          toggleWishlist({
+                            productId: String(currentProduct.id),
+                            productName: currentProduct.name,
+                          })
+                        }
+                        product={product}
+                      />
                     ))}
                   </div>
                 ) : (

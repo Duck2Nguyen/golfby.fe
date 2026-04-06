@@ -203,9 +203,22 @@ const buildBrandNavItem = (brands: Brand[]): NavItem => {
   };
 };
 
+const sortRootCollectionsByOrder = (collections: CollectionTreeNode[]) => {
+  return [...collections].sort((a, b) => {
+    const aOrder = typeof a.sortOrder === 'number' ? a.sortOrder : Number.MAX_SAFE_INTEGER;
+    const bOrder = typeof b.sortOrder === 'number' ? b.sortOrder : Number.MAX_SAFE_INTEGER;
+
+    if (aOrder !== bOrder) {
+      return aOrder - bOrder;
+    }
+
+    return a.name.localeCompare(b.name, 'vi');
+  });
+};
+
 const buildNavItemsFromCollections = (collections: CollectionTreeNode[]): NavItem[] => {
   const roots = collections.filter(collection => !collection.parentId);
-  const rootCollections = roots.length > 0 ? roots : collections;
+  const rootCollections = roots.length > 0 ? sortRootCollectionsByOrder(roots) : collections;
 
   return rootCollections
     .filter(collection => Boolean(collection.name && collection.slug))

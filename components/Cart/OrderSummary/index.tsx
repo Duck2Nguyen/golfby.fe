@@ -5,12 +5,16 @@ import { Tag, Ticket, ArrowRight, ShieldCheck, ShoppingBag } from 'lucide-react'
 
 import Link from 'next/link';
 
+import { removeSessionKey, setSessionKey } from '@/utils/localStorage';
+import { CHECKOUT_SELECTED_CART_ITEM_IDS_KEY } from '@/utils/checkoutSelection';
+
 interface OrderSummaryProps {
+  selectedCartItemIds: string[];
   subtotal: number;
   itemCount: number;
 }
 
-export default function OrderSummary({ subtotal, itemCount }: OrderSummaryProps) {
+export default function OrderSummary({ selectedCartItemIds, subtotal, itemCount }: OrderSummaryProps) {
   const [couponCode, setCouponCode] = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -19,6 +23,7 @@ export default function OrderSummary({ subtotal, itemCount }: OrderSummaryProps)
 
   const discount = couponApplied ? Math.round(subtotal * 0.05) : 0;
   const total = subtotal - discount;
+  const canProceedToCheckout = agreedToTerms && itemCount > 0 && selectedCartItemIds.length > 0;
 
   const handleApplyCoupon = () => {
     if (couponCode.trim()) {
@@ -31,7 +36,7 @@ export default function OrderSummary({ subtotal, itemCount }: OrderSummaryProps)
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-primary-dark px-6 py-4">
         <h3 className="text-[16px] text-white font-700">Tóm Tắt Đơn Hàng</h3>
-        <p className="text-[13px] text-white/70 mt-0.5">{itemCount} sản phẩm trong giỏ</p>
+        <p className="text-[13px] text-white/70 mt-0.5">{itemCount} sản phẩm được chọn</p>
       </div>
 
       <div className="p-6 space-y-5">
@@ -147,12 +152,22 @@ export default function OrderSummary({ subtotal, itemCount }: OrderSummaryProps)
         {/* Action Buttons */}
         <div className="space-y-3 pt-1">
           <Link
-            href={agreedToTerms && itemCount > 0 ? '/checkout' : '#'}
+            href={canProceedToCheckout ? '/checkout' : '#'}
             onClick={e => {
-              if (!agreedToTerms || itemCount === 0) e.preventDefault();
+              if (!canProceedToCheckout) {
+                e.preventDefault();
+                return;
+              }
+
+              if (selectedCartItemIds.length > 0) {
+                setSessionKey(CHECKOUT_SELECTED_CART_ITEM_IDS_KEY, selectedCartItemIds);
+                return;
+              }
+
+              removeSessionKey(CHECKOUT_SELECTED_CART_ITEM_IDS_KEY);
             }}
             className={`w-full h-13 bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary-dark text-white rounded-xl text-[15px] flex items-center justify-center gap-2.5 transition-all duration-300 shadow-md hover:shadow-xl hover:shadow-primary/25 active:scale-[0.98] font-600 ${
-              !agreedToTerms || itemCount === 0 ? 'opacity-40 cursor-not-allowed hover:shadow-md' : ''
+              !canProceedToCheckout ? 'opacity-40 cursor-not-allowed hover:shadow-md' : ''
             }`}
           >
             Tiến Hành Thanh Toán

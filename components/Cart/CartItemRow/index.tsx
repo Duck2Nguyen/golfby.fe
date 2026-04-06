@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 
 import { Link } from '@heroui/link';
+import { Checkbox } from '@heroui/checkbox';
 
 import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 
@@ -20,12 +21,20 @@ export interface CartItem {
 }
 
 interface CartItemRowProps {
+  isSelected: boolean;
   item: CartItem;
+  onSelectChange: (id: number | string, isSelected: boolean) => void;
   onQuantityChange: (id: number | string, qty: number) => void;
   onRemove: (id: number | string) => void;
 }
 
-export default function CartItemRow({ item, onQuantityChange, onRemove }: CartItemRowProps) {
+export default function CartItemRow({
+  isSelected,
+  item,
+  onSelectChange,
+  onQuantityChange,
+  onRemove,
+}: CartItemRowProps) {
   const [isRemoving, setIsRemoving] = useState(false);
   const formatPrice = (v: number) => new Intl.NumberFormat('vi-VN').format(v) + '₫';
   const subtotal = item.price * item.quantity;
@@ -42,6 +51,20 @@ export default function CartItemRow({ item, onQuantityChange, onRemove }: CartIt
       }`}
     >
       <div className="flex gap-5">
+        <div className="pt-1 flex items-center">
+          <Checkbox
+            aria-label={`Chọn sản phẩm ${item.name}`}
+            isSelected={isSelected}
+            onValueChange={selected => onSelectChange(item.id, selected)}
+            classNames={{
+              base: 'm-0 p-0',
+              wrapper:
+                'border-2 border-border/70 before:border-transparent group-data-[hover=true]:before:bg-transparent',
+            }}
+            radius="sm"
+          />
+        </div>
+
         {/* Product Image */}
         <Link
           href={`/product/${item.productId}`}

@@ -13,6 +13,7 @@ export interface CollectionTableRow {
   name: string;
   parentId?: string | null;
   parentName?: string;
+  sortOrder?: number | null;
   slug: string;
   typeLabel: 'Cha' | 'Con';
 }
@@ -86,6 +87,24 @@ export const getColumnDefs = ({
       minWidth: 200,
       sortable: false,
       valueGetter: params => params.data?.slug || '',
+    },
+    {
+      cellClass: 'text-[1.3rem] text-gray-500',
+      colId: 'sortOrder',
+      headerClass: 'text-left text-[1.2rem] tracking-wider text-gray-500',
+      headerName: 'THỨ TỰ',
+      maxWidth: 120,
+      minWidth: 100,
+      sortable: false,
+      valueGetter: params => {
+        const collection = params.data;
+
+        if (!collection || collection.parentId) {
+          return '-';
+        }
+
+        return collection.sortOrder ?? '-';
+      },
     },
     {
       cellClass: 'text-[1.3rem] text-gray-500',

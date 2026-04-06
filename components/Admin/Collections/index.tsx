@@ -38,6 +38,7 @@ const flattenCollectionsToRows = (
       name: node.name,
       parentId: node.parentId || null,
       parentName,
+      sortOrder: node.sortOrder ?? null,
       slug: node.slug,
       typeLabel: depth === 0 ? 'Cha' : 'Con',
     };
@@ -119,6 +120,7 @@ const mapCollectionToFormData = (collection: CollectionTableRow): CollectionForm
   id: collection.id,
   name: collection.name,
   parentId: collection.parentId || '',
+  sortOrder: !collection.parentId && (collection.sortOrder ?? 0) > 0 ? String(collection.sortOrder) : '',
   slug: collection.slug,
 });
 
@@ -214,12 +216,15 @@ export default function Collections() {
 
   const handleSubmitAction = async (data: CollectionFormData) => {
     if (formMode === 'create') {
+      const isRootCollection = !data.parentId;
+
       await createCollectionMutation.trigger({
         categoryIds: data.categoryIds.length > 0 ? data.categoryIds : undefined,
         csrf: true,
         description: data.description || undefined,
         name: data.name,
         parentId: data.parentId || undefined,
+        ...(isRootCollection && data.sortOrder ? { sortOrder: Number(data.sortOrder) } : {}),
         slug: data.slug,
       });
     } else {
@@ -228,6 +233,7 @@ export default function Collections() {
       const isExistingChildCollection = Boolean(editingCollection.parentId);
       const canSelectParent = isExistingChildCollection;
       const canSelectCategories = isExistingChildCollection;
+      const resolvedParentId = canSelectParent ? data.parentId || null : editingCollection.parentId || null;
 
       const removedCategoryIds = canSelectCategories
         ? editingCollection.categoryIds.filter(categoryId => !data.categoryIds.includes(categoryId))
@@ -237,6 +243,7 @@ export default function Collections() {
         ...(canSelectCategories && data.categoryIds.length > 0 ? { categoryIds: data.categoryIds } : {}),
         ...(canSelectCategories && removedCategoryIds.length > 0 ? { removedCategoryIds } : {}),
         ...(canSelectParent ? { parentId: data.parentId || null } : {}),
+        ...(!resolvedParentId && data.sortOrder ? { sortOrder: Number(data.sortOrder) } : {}),
         csrf: true,
         description: data.description || undefined,
         id: data.id,

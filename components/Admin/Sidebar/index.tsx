@@ -81,9 +81,15 @@ const MENU_ITEMS: SidebarItem[] = [
     icon: MessageSquare,
   },
   {
+    key: 'banners',
+    label: 'Banner',
+    href: '/admin/banners',
+    icon: Image,
+  },
+  {
     key: 'media',
-    label: 'Banner & Media',
-    href: '/admin/media',
+    label: 'Static Content',
+    href: '/admin/static-contents',
     icon: Image,
   },
   {

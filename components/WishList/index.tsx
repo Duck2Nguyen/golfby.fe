@@ -5,6 +5,7 @@ import { Grid2x2, Grid3x3, LayoutGrid, LayoutList, ChevronRight } from 'lucide-r
 
 import { Link } from '@heroui/link';
 
+import { useAddToCartFromList } from '@/hooks/useAddToCartFromList';
 import { useWishlists, type WishlistItem } from '@/hooks/useWishlists';
 
 import { Footer } from '@/components/Footer';
@@ -66,6 +67,7 @@ const toNumber = (value?: string | null) => {
 export default function WishList() {
   const [viewMode, setViewMode] = useState<ViewMode>('4col');
 
+  const { addToCartFromList, addingProductId } = useAddToCartFromList();
   const { getMyWishlist, removeWishlistMutation } = useWishlists();
   const { data, error, isLoading, mutate } = getMyWishlist;
 
@@ -99,6 +101,13 @@ export default function WishList() {
   const handleRemove = async (productId: string) => {
     await removeWishlistMutation.trigger({ csrf: true, productId });
     await mutate();
+  };
+
+  const handleAddToCart = async (item: WishlistDisplayItem) => {
+    await addToCartFromList({
+      productId: item.productId,
+      productName: item.name,
+    });
   };
 
   const gridClass = {
@@ -163,7 +172,9 @@ export default function WishList() {
             {wishlistItems.map(item => (
               <WishlistListItem
                 key={item.id}
+                isAddingToCart={addingProductId === item.productId}
                 item={item}
+                onAddToCartAction={handleAddToCart}
                 isRemoving={removeWishlistMutation.isMutating}
                 onRemove={handleRemove}
               />
@@ -174,7 +185,9 @@ export default function WishList() {
             {wishlistItems.map(item => (
               <WishlistGridItem
                 key={item.id}
+                isAddingToCart={addingProductId === item.productId}
                 item={item}
+                onAddToCartAction={handleAddToCart}
                 isRemoving={removeWishlistMutation.isMutating}
                 onRemove={handleRemove}
               />

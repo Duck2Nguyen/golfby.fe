@@ -9,6 +9,8 @@ import type { Product } from '@/components/mock-data';
 import type { ProductListItem } from '@/hooks/useProducts';
 
 import { useProducts } from '@/hooks/useProducts';
+import { useWishlistToggle } from '@/hooks/useWishlistToggle';
+import { useAddToCartFromList } from '@/hooks/useAddToCartFromList';
 
 import { ProductCard } from '@/components/ProductCard';
 
@@ -66,6 +68,8 @@ export default function TopSellingSection({
       limit,
     },
   });
+  const { addToCartFromList, addingProductId } = useAddToCartFromList();
+  const { isWishlisted, togglingProductId, toggleWishlist } = useWishlistToggle();
 
   const products = useMemo(() => {
     const items = getTopProducts.data?.data ?? [];
@@ -112,7 +116,25 @@ export default function TopSellingSection({
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
           {products.map(product => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              isAddingToCart={addingProductId === String(product.id)}
+              isWishlisted={isWishlisted(String(product.id))}
+              isWishlistLoading={togglingProductId === String(product.id)}
+              onAddToCartAction={currentProduct =>
+                addToCartFromList({
+                  productId: String(currentProduct.id),
+                  productName: currentProduct.name,
+                })
+              }
+              onToggleWishlistAction={currentProduct =>
+                toggleWishlist({
+                  productId: String(currentProduct.id),
+                  productName: currentProduct.name,
+                })
+              }
+              product={product}
+            />
           ))}
         </div>
 

@@ -8,6 +8,8 @@ import Link from 'next/link';
 import type { Product } from '@/components/mock-data';
 
 import { useSWRWrapper } from '@/hooks/swr';
+import { useWishlistToggle } from '@/hooks/useWishlistToggle';
+import { useAddToCartFromList } from '@/hooks/useAddToCartFromList';
 
 import { METHOD } from '@/global/common';
 
@@ -244,6 +246,8 @@ interface ProductDetailClientProps {
 export default function ProductDetailPageClient({ productId }: ProductDetailClientProps) {
   const relatedScrollRef = useRef<HTMLDivElement>(null);
   const encodedProductId = useMemo(() => encodeURIComponent(productId), [productId]);
+  const { addToCartFromList, addingProductId } = useAddToCartFromList();
+  const { isWishlisted, togglingProductId, toggleWishlist } = useWishlistToggle();
 
   const {
     data: productDetailResponse,
@@ -431,7 +435,24 @@ export default function ProductDetailPageClient({ productId }: ProductDetailClie
           >
             {displayRelated.map(rp => (
               <div key={rp.id} className="shrink-0 w-[260px] snap-start">
-                <ProductCard product={rp} />
+                <ProductCard
+                  isAddingToCart={addingProductId === String(rp.id)}
+                  isWishlisted={isWishlisted(String(rp.id))}
+                  isWishlistLoading={togglingProductId === String(rp.id)}
+                  onAddToCartAction={currentProduct =>
+                    addToCartFromList({
+                      productId: String(currentProduct.id),
+                      productName: currentProduct.name,
+                    })
+                  }
+                  onToggleWishlistAction={currentProduct =>
+                    toggleWishlist({
+                      productId: String(currentProduct.id),
+                      productName: currentProduct.name,
+                    })
+                  }
+                  product={rp}
+                />
               </div>
             ))}
           </div>

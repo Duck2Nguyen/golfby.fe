@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+
 import { useMutation, useSWRWrapper } from '@/hooks/swr';
 
 import { METHOD } from '@/global/common';
@@ -38,6 +40,7 @@ export interface OrderShippingMethod {
 
 export interface CheckoutPayload {
   address: string;
+  cartItemIds?: string[];
   commune: string;
   csrf?: boolean;
   discountCode?: string;
@@ -89,12 +92,18 @@ export interface UseOrdersOptions {
 
 export const useOrders = (options?: UseOrdersOptions) => {
   const { data: session } = useSession();
+  const requestNonce = useMemo(() => Date.now().toString(36), []);
   const shouldFetchOrderDetail = Boolean(
     session?.isAuthenticated && options?.orderId && (options?.enabledOrderDetail ?? true),
   );
+  const getMyOrdersKey = session?.isAuthenticated ? `orders:list:${requestNonce}` : null;
 
-  const getMyOrders = useSWRWrapper<CheckoutOrder[]>(session?.isAuthenticated ? '/api/v1/orders' : null, {
+  const getMyOrders = useSWRWrapper<CheckoutOrder[]>(getMyOrdersKey, {
+    dedupingInterval: 0,
     method: METHOD.GET,
+    revalidateIfStale: true,
+    revalidateOnFocus: true,
+    revalidateOnMount: true,
     url: '/api/v1/orders',
   });
 
