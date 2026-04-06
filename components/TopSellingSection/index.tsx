@@ -20,7 +20,7 @@ interface TopSellingSectionProps {
   viewAllHref?: string;
 }
 
-const DEFAULT_LIMIT = 10;
+const DEFAULT_LIMIT = 8;
 const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
 
 const toNumber = (value?: string | null) => {
@@ -60,21 +60,21 @@ export default function TopSellingSection({
   title = 'Top SP Bán Chạy',
   viewAllHref = '/collection',
 }: TopSellingSectionProps) {
-  const { getAllProducts } = useProducts({
-    getAllParams: {
-      page: 1,
-      size: limit,
+  const { getTopProducts } = useProducts({
+    getTopParams: {
+      by: 'bestsellers',
+      limit,
     },
   });
 
   const products = useMemo(() => {
-    const items = getAllProducts.data?.data?.items ?? [];
+    const items = getTopProducts.data?.data ?? [];
     return items.map(mapApiProductToCardData);
-  }, [getAllProducts.data?.data?.items]);
+  }, [getTopProducts.data?.data]);
 
-  const isEmpty = !getAllProducts.isLoading && products.length === 0;
+  const isEmpty = !getTopProducts.isLoading && products.length === 0;
 
-  if (getAllProducts.isLoading && products.length === 0) {
+  if (getTopProducts.isLoading && products.length === 0) {
     return (
       <section className={`${bgColor} py-14`}>
         <div className="max-w-7xl mx-auto px-4">

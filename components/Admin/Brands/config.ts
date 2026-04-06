@@ -3,6 +3,8 @@ import { Pencil, Trash2 } from 'lucide-react';
 
 import type { ColDef, ICellRendererParams } from 'ag-grid-community';
 
+import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
+
 import type { BrandFormData } from './BrandFormModal';
 
 interface GetColumnDefsParams {
@@ -61,14 +63,28 @@ export const getColumnDefs = ({
       valueGetter: params => params.data?.description || '-',
     },
     {
-      cellClass: 'text-[1.3rem] text-primary',
-      colId: 'logoUrl',
-      flex: 1,
+      cellRenderer: (params: ICellRendererParams<BrandFormData>) => {
+        const imageUrl = params.data?.imageUrl || params.data?.logoUrl;
+
+        if (!imageUrl) {
+          return React.createElement('span', { className: 'text-[1.3rem] text-gray-500' }, '-');
+        }
+
+        return React.createElement(
+          'div',
+          { className: 'flex h-full items-center' },
+          React.createElement(ImageWithFallback, {
+            alt: params.data?.name || 'Brand logo',
+            className: 'h-9 w-9 rounded-md border border-gray-200 bg-white p-1 object-contain',
+            src: imageUrl,
+          }),
+        );
+      },
+      colId: 'logo',
       headerClass: 'text-left text-[1.2rem] tracking-wider text-gray-500',
-      headerName: 'LOGO URL',
-      minWidth: 220,
+      headerName: 'LOGO',
+      minWidth: 120,
       sortable: false,
-      valueGetter: params => params.data?.logoUrl || '-',
     },
     {
       cellRenderer: (params: ICellRendererParams<BrandFormData>) => {

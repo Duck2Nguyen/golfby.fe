@@ -2,10 +2,21 @@ import { useMutation, useSWRWrapper } from '@/hooks/swr';
 
 import { METHOD } from '@/global/common';
 
+export interface BrandImage {
+  brandId?: string;
+  id: string;
+  key?: string;
+  mimeType?: string | null;
+  name?: string | null;
+  size?: number | null;
+  url?: string | null;
+}
+
 export interface Brand {
   createdAt?: string | null;
   description?: string | null;
   id: string;
+  image?: BrandImage | null;
   logoUrl?: string | null;
   name: string;
   slug: string;
@@ -28,10 +39,65 @@ export type UpdateBrandPayload = Partial<CreateBrandPayload> & {
   id: string;
 };
 
+export interface CreateBrandFormDataPayload extends CreateBrandPayload {
+  file?: File | null;
+}
+
+export interface UpdateBrandFormDataPayload extends Omit<UpdateBrandPayload, 'csrf'> {
+  csrf?: boolean;
+  file?: File | null;
+}
+
 export interface DeleteBrandPayload {
   csrf?: boolean;
   id: string;
 }
+
+const buildBrandBodyPayload = (
+  payload: Partial<Omit<CreateBrandPayload, 'csrf'>>,
+): Record<string, unknown> => {
+  const brandBody: Record<string, unknown> = {};
+
+  if (payload.name !== undefined) brandBody.name = payload.name;
+  if (payload.slug !== undefined) brandBody.slug = payload.slug;
+  if (payload.description !== undefined) brandBody.description = payload.description;
+  if (payload.logoUrl !== undefined) brandBody.logoUrl = payload.logoUrl;
+
+  return brandBody;
+};
+
+export const buildCreateBrandFormDataPayload = (payload: CreateBrandFormDataPayload): FormData => {
+  const formData = new FormData();
+
+  formData.append('brand', JSON.stringify(buildBrandBodyPayload(payload)));
+
+  if (payload.file) {
+    formData.append('file', payload.file);
+  }
+
+  if (payload.csrf) {
+    formData.append('csrf', 'true');
+  }
+
+  return formData;
+};
+
+export const buildUpdateBrandFormDataPayload = (payload: UpdateBrandFormDataPayload): FormData => {
+  const formData = new FormData();
+
+  formData.append('id', payload.id);
+  formData.append('brand', JSON.stringify(buildBrandBodyPayload(payload)));
+
+  if (payload.file) {
+    formData.append('file', payload.file);
+  }
+
+  if (payload.csrf) {
+    formData.append('csrf', 'true');
+  }
+
+  return formData;
+};
 
 export const useBrands = (options?: UseBrandsOptions) => {
   const getAllBrands = useSWRWrapper<Brand[]>('/api/v1/brands', {

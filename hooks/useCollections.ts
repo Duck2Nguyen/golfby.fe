@@ -22,7 +22,18 @@ export interface CollectionBase {
   updatedAt?: string | null;
 }
 
+export interface CollectionBrand {
+  createdAt?: string | null;
+  description?: string | null;
+  id: string;
+  logoUrl?: string | null;
+  name: string;
+  slug: string;
+  updatedAt?: string | null;
+}
+
 export interface CollectionTreeNode extends CollectionBase {
+  brands?: CollectionBrand[];
   categories: CollectionCategory[];
   children: CollectionTreeNode[];
 }
@@ -74,6 +85,81 @@ export interface DeleteCollectionPayload {
   csrf?: boolean;
   id: string;
 }
+
+export interface CollectionTreeLookupMaps {
+  brandsByCollectionId: Map<string, CollectionBrand[]>;
+  collectionByCategoryId: Map<string, CollectionTreeNode>;
+  collectionById: Map<string, CollectionTreeNode>;
+  rootCollectionByCategoryId: Map<string, CollectionTreeNode>;
+  rootCollectionByCollectionId: Map<string, CollectionTreeNode>;
+}
+
+const EMPTY_COLLECTION_BRANDS: CollectionBrand[] = [];
+
+export const buildCollectionTreeLookupMaps = (
+  collections: CollectionTreeNode[],
+): CollectionTreeLookupMaps => {
+  const brandsByCollectionId = new Map<string, CollectionBrand[]>();
+  const collectionByCategoryId = new Map<string, CollectionTreeNode>();
+  const collectionById = new Map<string, CollectionTreeNode>();
+  const rootCollectionByCategoryId = new Map<string, CollectionTreeNode>();
+  const rootCollectionByCollectionId = new Map<string, CollectionTreeNode>();
+
+  const walkCollectionTree = (collection: CollectionTreeNode, rootCollection: CollectionTreeNode) => {
+    collectionById.set(collection.id, collection);
+    rootCollectionByCollectionId.set(collection.id, rootCollection);
+    brandsByCollectionId.set(collection.id, collection.brands ?? EMPTY_COLLECTION_BRANDS);
+
+    (collection.categories ?? []).forEach(category => {
+      collectionByCategoryId.set(category.id, collection);
+      rootCollectionByCategoryId.set(category.id, rootCollection);
+    });
+
+    (collection.children ?? []).forEach(childCollection => {
+      walkCollectionTree(childCollection, rootCollection);
+    });
+  };
+
+  collections.forEach(collection => {
+    walkCollectionTree(collection, collection);
+  });
+
+  return {
+    brandsByCollectionId,
+    collectionByCategoryId,
+    collectionById,
+    rootCollectionByCategoryId,
+    rootCollectionByCollectionId,
+  };
+};
+
+export const getCollectionBrandsByCollectionId = (
+  collectionLookupMaps: CollectionTreeLookupMaps,
+  collectionId?: string | null,
+): CollectionBrand[] => {
+  if (!collectionId) {
+    return EMPTY_COLLECTION_BRANDS;
+  }
+
+  return collectionLookupMaps.brandsByCollectionId.get(collectionId) ?? EMPTY_COLLECTION_BRANDS;
+};
+
+export const getCollectionBrandsByCategoryId = (
+  collectionLookupMaps: CollectionTreeLookupMaps,
+  categoryId?: string | null,
+): CollectionBrand[] => {
+  if (!categoryId) {
+    return EMPTY_COLLECTION_BRANDS;
+  }
+
+  const collection = collectionLookupMaps.collectionByCategoryId.get(categoryId);
+
+  if (!collection) {
+    return EMPTY_COLLECTION_BRANDS;
+  }
+
+  return collectionLookupMaps.brandsByCollectionId.get(collection.id) ?? EMPTY_COLLECTION_BRANDS;
+};
 
 export const useCollections = (options?: UseCollectionsOptions) => {
   const getAllCollections = useSWRWrapper<CollectionTreeNode[]>('/api/v1/collections', {

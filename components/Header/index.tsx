@@ -65,6 +65,12 @@ const buildBrandHref = (slug: string) => {
   return `/collection?${query.toString()}`;
 };
 
+const buildCollectionBrandHref = (pathSlugs: string[], brandSlug: string) => {
+  const query = new URLSearchParams({ brand: brandSlug });
+
+  return `${buildCollectionHref(...pathSlugs)}?${query.toString()}`;
+};
+
 interface CollectionPathNode {
   collection: CollectionTreeNode;
   pathSlugs: string[];
@@ -106,6 +112,43 @@ const buildDropdownItems = (collection: CollectionTreeNode, pathSlugs: string[])
 
   // Add "Tất Cả" at the end
   const collectionHref = buildCollectionHref(...pathSlugs);
+  if (!seenHrefs.has(collectionHref)) {
+    items.push({
+      href: collectionHref,
+      label: 'Tất Cả',
+    });
+  }
+
+  return items;
+};
+
+const buildBrandDropdownItems = (
+  brands: CollectionTreeNode['brands'],
+  pathSlugs: string[],
+): DropdownColumn['items'] => {
+  const items: DropdownColumn['items'] = [];
+  const seenHrefs = new Set<string>();
+
+  for (const brand of brands ?? []) {
+    if (!brand?.name || !brand.slug) {
+      continue;
+    }
+
+    const brandHref = buildCollectionBrandHref(pathSlugs, brand.slug);
+
+    if (seenHrefs.has(brandHref)) {
+      continue;
+    }
+
+    items.push({
+      href: brandHref,
+      label: brand.name,
+    });
+    seenHrefs.add(brandHref);
+  }
+
+  const collectionHref = buildCollectionHref(...pathSlugs);
+
   if (!seenHrefs.has(collectionHref)) {
     items.push({
       href: collectionHref,
@@ -168,7 +211,10 @@ const buildNavItemsFromCollections = (collections: CollectionTreeNode[]): NavIte
     .filter(collection => Boolean(collection.name && collection.slug))
     .map(root => {
       const rootHref = buildCollectionHref(root.slug);
-      const hasNestedData = (root.categories?.length ?? 0) > 0 || (root.children?.length ?? 0) > 0;
+      const hasNestedData =
+        (root.categories?.length ?? 0) > 0 ||
+        (root.children?.length ?? 0) > 0 ||
+        (root.brands?.length ?? 0) > 0;
 
       if (!hasNestedData) {
         return {
@@ -188,6 +234,15 @@ const buildNavItemsFromCollections = (collections: CollectionTreeNode[]): NavIte
           title: item.collection.name,
         }))
         .filter(column => column.items.length > 0);
+
+      const brandDropdownItems = buildBrandDropdownItems(root.brands, [root.slug]);
+
+      if (brandDropdownItems.length > 0) {
+        dropdown.push({
+          items: brandDropdownItems,
+          title: 'Theo Hãng',
+        });
+      }
 
       return {
         ...(dropdown.length > 0 && { dropdown }),
@@ -479,7 +534,7 @@ export function Header() {
                   <div className="absolute left-0 top-full pt-0 invisible opacity-0 group-hover/nav:visible group-hover/nav:opacity-100 transition-all duration-200 z-50">
                     <div
                       className={`bg-white rounded-b-xl border border-t-0 border-border shadow-xl ${
-                        item.dropdown.length > 1 ? 'min-w-[64rem]' : 'min-w-[20rem]'
+                        item.dropdown.length > 1 ? 'min-w-[54rem]' : 'min-w-[20rem]'
                       }`}
                     >
                       {/* Mega menu (multi-column) */}

@@ -6,7 +6,6 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 import type { Product } from '@/components/mock-data';
-import type { PaginatedResponse } from '@/interfaces/response';
 
 import { useSWRWrapper } from '@/hooks/swr';
 
@@ -259,77 +258,21 @@ export default function ProductDetailPageClient({ productId }: ProductDetailClie
 
   const productDetail = productDetailResponse?.data;
 
-  const relatedPrimaryQuery = useMemo(() => {
-    if (!productDetail) {
-      return null;
-    }
-
-    const query = new URLSearchParams({
-      page: '1',
-      size: String(RELATED_PRODUCTS_LIMIT + 1),
-    });
-
-    if (productDetail.categoryId) {
-      query.set('categoryId', productDetail.categoryId);
-    }
-
-    return query.toString();
-  }, [productDetail]);
-
-  const { data: primaryRelatedResponse, isLoading: isPrimaryRelatedLoading } = useSWRWrapper<
-    PaginatedResponse<ApiProductListItem>
-  >(
-    productDetail && relatedPrimaryQuery
-      ? `products:related:${encodedProductId}:${relatedPrimaryQuery}`
-      : null,
+  const { data: relatedProductsResponse } = useSWRWrapper<ApiProductListItem[]>(
+    productDetail ? `products:similar:${encodedProductId}:limit:${RELATED_PRODUCTS_LIMIT}` : null,
     {
       dedupingInterval: PRODUCT_DETAIL_CACHE_MS,
       method: METHOD.GET,
       refreshInterval: PRODUCT_DETAIL_CACHE_MS,
-      url: relatedPrimaryQuery ? `/api/v1/products?${relatedPrimaryQuery}` : undefined,
-    },
-  );
-
-  const primaryRelatedItems = useMemo(() => {
-    const items = primaryRelatedResponse?.data?.items ?? [];
-    return items.filter(item => item.id !== productDetail?.id);
-  }, [primaryRelatedResponse?.data?.items, productDetail?.id]);
-
-  const shouldFetchFallbackRelated = Boolean(
-    productDetail?.categoryId && !isPrimaryRelatedLoading && primaryRelatedItems.length === 0,
-  );
-
-  const fallbackRelatedQuery = useMemo(() => {
-    const query = new URLSearchParams({
-      page: '1',
-      size: String(RELATED_PRODUCTS_LIMIT + 1),
-    });
-
-    return query.toString();
-  }, []);
-
-  const { data: fallbackRelatedResponse } = useSWRWrapper<PaginatedResponse<ApiProductListItem>>(
-    shouldFetchFallbackRelated ? `products:related:fallback:${encodedProductId}` : null,
-    {
-      dedupingInterval: PRODUCT_DETAIL_CACHE_MS,
-      method: METHOD.GET,
-      refreshInterval: PRODUCT_DETAIL_CACHE_MS,
-      url: `/api/v1/products?${fallbackRelatedQuery}`,
+      url: `/api/v1/products/${encodedProductId}/similar?limit=${RELATED_PRODUCTS_LIMIT}`,
     },
   );
 
   const displayRelated = useMemo(() => {
-    const sourceItems = shouldFetchFallbackRelated
-      ? (fallbackRelatedResponse?.data?.items ?? []).filter(item => item.id !== productDetail?.id)
-      : primaryRelatedItems;
+    const sourceItems = (relatedProductsResponse?.data ?? []).filter(item => item.id !== productDetail?.id);
 
     return sourceItems.slice(0, RELATED_PRODUCTS_LIMIT).map(mapApiProductToCardData);
-  }, [
-    fallbackRelatedResponse?.data?.items,
-    primaryRelatedItems,
-    productDetail?.id,
-    shouldFetchFallbackRelated,
-  ]);
+  }, [productDetail?.id, relatedProductsResponse?.data]);
 
   const product = useMemo(() => {
     if (!productDetail) {

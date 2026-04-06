@@ -1,10 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
+
+import Image from 'next/image';
 
 import { Link } from '@heroui/link';
 
+import { useBrands } from '@/hooks/useBrands';
 import { useProducts, type ProductListItem } from '@/hooks/useProducts';
 import { useCollections, type CollectionTreeNode } from '@/hooks/useCollections';
 
@@ -16,8 +19,57 @@ interface ProductSectionProps {
   bgColor?: string;
 }
 
+interface CollectionSectionBrand {
+  id: string;
+  logoUrl?: string | null;
+  name: string;
+  slug?: string | null;
+}
+
 const PRODUCTS_PER_COLLECTION = 8;
+const BRANDS_PER_COLLECTION = 4;
 const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
+const API_BASE_URL = (process.env.BASE_API_URL ?? '').replace(/\/$/, '');
+
+const buildCollectionBrandHref = (collectionSlug: string, brandSlug?: string | null) => {
+  if (!brandSlug) {
+    return `/collection/${collectionSlug}`;
+  }
+
+  const query = new URLSearchParams({ brand: brandSlug });
+
+  return `/collection/${collectionSlug}?${query.toString()}`;
+};
+
+const normalizeBrandLogoUrl = (logoUrl?: string | null) => {
+  if (!logoUrl) {
+    return null;
+  }
+
+  const normalizedUrl = logoUrl.trim();
+
+  if (!normalizedUrl) {
+    return null;
+  }
+
+  if (normalizedUrl.startsWith('data:') || /^https?:\/\//i.test(normalizedUrl)) {
+    return normalizedUrl;
+  }
+
+  if (normalizedUrl.startsWith('//')) {
+    return `https:${normalizedUrl}`;
+  }
+
+  if (!API_BASE_URL) {
+    return normalizedUrl.startsWith('/') ? normalizedUrl : null;
+  }
+
+  if (normalizedUrl.startsWith('/')) {
+    return `${API_BASE_URL}${normalizedUrl}`;
+  }
+
+  return `${API_BASE_URL}/${normalizedUrl}`;
+};
 
 const toNumber = (value?: string | null) => {
   const parsed = Number(value ?? 0);
@@ -51,10 +103,33 @@ const mapApiProductToCardData = (item: ProductListItem): Product => {
 
 interface CollectionProductSectionProps {
   bgColor: string;
+  brandMetaById: Map<string, CollectionSectionBrand>;
   collection: CollectionTreeNode;
 }
 
-function CollectionProductSection({ bgColor, collection }: CollectionProductSectionProps) {
+function BrandLogo({ alt, src }: { alt: string; src?: string | null }) {
+  const [hasImageError, setHasImageError] = useState(false);
+  const normalizedSource = useMemo(() => normalizeBrandLogoUrl(src), [src]);
+
+  if (!normalizedSource || hasImageError) {
+    return null;
+  }
+
+  return (
+    <div className="relative h-[3.2rem] w-[9rem] shrink-0">
+      <Image
+        alt={alt}
+        className="object-contain object-right"
+        fill
+        onError={() => setHasImageError(true)}
+        sizes="90px"
+        src={normalizedSource}
+      />
+    </div>
+  );
+}
+
+function CollectionProductSection({ bgColor, collection, brandMetaById }: CollectionProductSectionProps) {
   const { getAllProducts } = useProducts({
     getAllParams: {
       collectionId: collection.id,
@@ -68,7 +143,52 @@ function CollectionProductSection({ bgColor, collection }: CollectionProductSect
     return items.map(mapApiProductToCardData);
   }, [getAllProducts.data?.data?.items]);
 
+  const sectionBrands = useMemo<CollectionSectionBrand[]>(() => {
+    const brandsFromCollection = (collection.brands ?? [])
+      .filter(brand => Boolean(brand?.id && brand?.name))
+      .slice(0, BRANDS_PER_COLLECTION)
+      .map(brand => {
+        const matchedGlobalBrand = brandMetaById.get(brand.id);
+
+        return {
+          id: brand.id,
+          logoUrl: matchedGlobalBrand?.logoUrl ?? brand.logoUrl,
+          name: brand.name,
+          slug: brand.slug ?? matchedGlobalBrand?.slug,
+        };
+      });
+
+    if (brandsFromCollection.length > 0) {
+      return brandsFromCollection;
+    }
+
+    const brandsFromProducts: CollectionSectionBrand[] = [];
+    const seenBrandIds = new Set<string>();
+
+    (getAllProducts.data?.data?.items ?? []).forEach(item => {
+      const brandId = item.brand?.id;
+      const brandName = item.brand?.name;
+
+      if (!brandId || !brandName || seenBrandIds.has(brandId) || brandsFromProducts.length >= BRANDS_PER_COLLECTION) {
+        return;
+      }
+
+      seenBrandIds.add(brandId);
+      const matchedGlobalBrand = brandMetaById.get(brandId);
+
+      brandsFromProducts.push({
+        id: brandId,
+        logoUrl: matchedGlobalBrand?.logoUrl,
+        name: matchedGlobalBrand?.name ?? brandName,
+        slug: matchedGlobalBrand?.slug,
+      });
+    });
+
+    return brandsFromProducts;
+  }, [brandMetaById, collection.brands, getAllProducts.data?.data?.items]);
+
   const isEmpty = !getAllProducts.isLoading && products.length === 0;
+  const showBrandSidebar = sectionBrands.length > 0;
 
   return (
     <section className={`${bgColor} py-14`}>
@@ -106,10 +226,46 @@ function CollectionProductSection({ bgColor, collection }: CollectionProductSect
 
         {!getAllProducts.isLoading && products.length > 0 && (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
-              {products.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+            <div className={`grid gap-4 md:gap-5 ${showBrandSidebar ? 'xl:grid-cols-[minmax(0,1fr)_30rem]' : ''}`}>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+                {products.map(product => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+
+              {showBrandSidebar && (
+                <div className="hidden xl:flex xl:flex-col xl:gap-4">
+                  {sectionBrands.map(brand => {
+                    return (
+                      <Link
+                        key={brand.id}
+                        className="group flex items-center justify-between rounded-[1.6rem] border border-border bg-white p-6 transition-all hover:border-primary/40 hover:bg-primary-light/20"
+                        href={buildCollectionBrandHref(collection.slug, brand.slug)}
+                        underline="none"
+                      >
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[1.6rem] leading-[2.2rem] text-foreground font-700">
+                            {brand.name}
+                          </span>
+                          <span className="text-[1.4rem] leading-[2rem] text-muted-foreground font-500 group-hover:text-primary">
+                            Xem ngay
+                          </span>
+                        </div>
+
+                        <BrandLogo alt={brand.name} src={brand.logoUrl} />
+                      </Link>
+                    );
+                  })}
+
+                  <Link
+                    className="flex h-[6rem] items-center justify-center rounded-[1.6rem] border border-border bg-white text-[1.6rem] leading-[2.2rem] text-foreground font-600 transition-all hover:border-primary hover:text-primary"
+                    href={`/collection/${collection.slug}`}
+                    underline="none"
+                  >
+                    Xem tất cả
+                  </Link>
+                </div>
+              )}
             </div>
 
             <div className="sm:hidden mt-6 text-center">
@@ -130,7 +286,24 @@ function CollectionProductSection({ bgColor, collection }: CollectionProductSect
 }
 
 export function ProductSection({ bgColor = 'bg-white' }: ProductSectionProps) {
+  const { getAllBrands } = useBrands();
   const { getAllCollections } = useCollections();
+
+  const brandMetaById = useMemo(() => {
+    const allBrands = getAllBrands.data?.data ?? [];
+
+    return new Map(
+      allBrands.map(brand => [
+        brand.id,
+        {
+          id: brand.id,
+          logoUrl: brand.image?.url ?? brand.logoUrl,
+          name: brand.name,
+          slug: brand.slug,
+        },
+      ]),
+    );
+  }, [getAllBrands.data?.data]);
 
   const parentCollections = useMemo(() => {
     const collections = getAllCollections.data?.data ?? [];
@@ -159,6 +332,7 @@ export function ProductSection({ bgColor = 'bg-white' }: ProductSectionProps) {
         <CollectionProductSection
           key={collection.id}
           bgColor={index % 2 === 0 ? bgColor : bgColor === 'bg-white' ? 'bg-muted' : bgColor}
+          brandMetaById={brandMetaById}
           collection={collection}
         />
       ))}

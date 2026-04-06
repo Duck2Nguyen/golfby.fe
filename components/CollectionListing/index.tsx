@@ -4,11 +4,21 @@ import { useMemo, useState, useEffect } from 'react';
 import { X, ChevronRight, SlidersHorizontal } from 'lucide-react';
 
 import Link from 'next/link';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation';
 
-import { useCollections } from '@/hooks/useCollections';
 import { useBrands, type Brand } from '@/hooks/useBrands';
-import { useProducts, type GetAllProductsParams } from '@/hooks/useProducts';
+import {
+  useProducts,
+  type GetAllProductsParams,
+  type ProductListSortBy,
+  type ProductListSortOrder,
+} from '@/hooks/useProducts';
+import {
+  useCollections,
+  buildCollectionTreeLookupMaps,
+  getCollectionBrandsByCategoryId,
+  getCollectionBrandsByCollectionId,
+} from '@/hooks/useCollections';
 
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
@@ -34,72 +44,150 @@ interface CollectionListingProps {
   slugSegments?: string[];
 }
 
+type CollectionSortValue =
+  | 'newest'
+  | 'oldest'
+  | 'price-asc'
+  | 'price-desc'
+  | 'name-asc'
+  | 'name-desc';
+
+const DEFAULT_SORT_VALUE: CollectionSortValue = 'newest';
+
+const SORT_VALUE_TO_API_SORT: Record<CollectionSortValue, { sortBy: ProductListSortBy; sortOrder: ProductListSortOrder }> = {
+  newest: {
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+  },
+  oldest: {
+    sortBy: 'createdAt',
+    sortOrder: 'asc',
+  },
+  'price-asc': {
+    sortBy: 'price',
+    sortOrder: 'asc',
+  },
+  'price-desc': {
+    sortBy: 'price',
+    sortOrder: 'desc',
+  },
+  'name-asc': {
+    sortBy: 'name',
+    sortOrder: 'asc',
+  },
+  'name-desc': {
+    sortBy: 'name',
+    sortOrder: 'desc',
+  },
+};
+
+const parsePriceQueryValue = (value: string | null, fallback: number) => {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return fallback;
+  }
+
+  return Math.trunc(parsed);
+};
+
+const buildPriceRangeFromSearchParams = (params: ReadonlyURLSearchParams): PriceRange => {
+  const minSource = params.get('minPrice') ?? params.get('fromPrice');
+  const maxSource = params.get('maxPrice') ?? params.get('toPrice');
+
+  const min = Math.min(
+    Math.max(parsePriceQueryValue(minSource, DEFAULT_MIN_PRICE), DEFAULT_MIN_PRICE),
+    DEFAULT_MAX_PRICE,
+  );
+  const max = Math.min(
+    Math.max(parsePriceQueryValue(maxSource, DEFAULT_MAX_PRICE), DEFAULT_MIN_PRICE),
+    DEFAULT_MAX_PRICE,
+  );
+
+  if (max < min) {
+    return {
+      max: min,
+      min,
+    };
+  }
+
+  return {
+    max,
+    min,
+  };
+};
+
+const buildSortValueFromSearchParams = (params: ReadonlyURLSearchParams): CollectionSortValue => {
+  const sortBy = params.get('sortBy');
+  const sortOrder = params.get('sortOrder');
+
+  if (!sortBy || !sortOrder) {
+    return DEFAULT_SORT_VALUE;
+  }
+
+  const matchedSort = (Object.entries(SORT_VALUE_TO_API_SORT) as Array<
+    [CollectionSortValue, { sortBy: ProductListSortBy; sortOrder: ProductListSortOrder }]
+  >).find(([, apiSort]) => apiSort.sortBy === sortBy && apiSort.sortOrder === sortOrder);
+
+  return matchedSort?.[0] ?? DEFAULT_SORT_VALUE;
+};
+
 export default function CollectionListing({ slugSegments = [] }: CollectionListingProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid-4');
-  const [sortBy, setSortBy] = useState('featured');
+  const [sortBy, setSortBy] = useState<CollectionSortValue>(() => buildSortValueFromSearchParams(searchParams));
   const [perPage, setPerPage] = useState(20);
   const [visibleCount, setVisibleCount] = useState(20);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [selectedBrandSlug, setSelectedBrandSlug] = useState<string | null>(() =>
-    toSlug(searchParams.get('brand')),
-  );
-  const [priceRange, setPriceRange] = useState<PriceRange>({
-    max: DEFAULT_MAX_PRICE,
-    min: DEFAULT_MIN_PRICE,
-  });
+  const [priceRange, setPriceRange] = useState<PriceRange>(() => buildPriceRangeFromSearchParams(searchParams));
 
   const { getAllBrands } = useBrands();
   const { getAllCollections } = useCollections();
   const normalizedSlugs = useMemo(() => normalizeSlugSegments(slugSegments), [slugSegments]);
   const brands = getAllBrands.data?.data ?? [];
+  const searchKeyword = useMemo(() => searchParams.get('search')?.trim() ?? '', [searchParams]);
+  const selectedBrandSlug = useMemo(() => toSlug(searchParams.get('brand')), [searchParams]);
+  const selectedSortConfig = useMemo(() => SORT_VALUE_TO_API_SORT[sortBy], [sortBy]);
 
   useEffect(() => {
-    const brandFromUrl = toSlug(searchParams.get('brand'));
+    const nextPriceRange = buildPriceRangeFromSearchParams(searchParams);
 
-    setSelectedBrandSlug(current => (current === brandFromUrl ? current : brandFromUrl));
+    setPriceRange(current => {
+      if (current.min === nextPriceRange.min && current.max === nextPriceRange.max) {
+        return current;
+      }
+
+      return nextPriceRange;
+    });
   }, [searchParams]);
 
-  const selectedBrand = useMemo<Brand | undefined>(() => {
-    if (!selectedBrandSlug) {
-      return undefined;
-    }
-
-    return brands.find(brand => brand.slug === selectedBrandSlug);
-  }, [brands, selectedBrandSlug]);
-
   useEffect(() => {
-    if (!getAllBrands.isLoading && selectedBrandSlug && !selectedBrand) {
-      setSelectedBrandSlug(null);
-    }
-  }, [getAllBrands.isLoading, selectedBrand, selectedBrandSlug]);
+    const nextSortValue = buildSortValueFromSearchParams(searchParams);
 
-  useEffect(() => {
+    setSortBy(current => (current === nextSortValue ? current : nextSortValue));
+  }, [searchParams]);
+
+  const collectionLookupMaps = useMemo(() => {
+    const collectionTree = getAllCollections.data?.data ?? [];
+
+    return buildCollectionTreeLookupMaps(collectionTree);
+  }, [getAllCollections.data?.data]);
+
+  const updateBrandQueryParam = (nextBrandSlug: string | null) => {
     const currentQuery = searchParams.toString();
     const nextSearchParams = new URLSearchParams(currentQuery);
 
-    nextSearchParams.delete('minPrice');
-    nextSearchParams.delete('maxPrice');
-
-    if (selectedBrandSlug) {
-      nextSearchParams.set('brand', selectedBrandSlug);
+    if (nextBrandSlug) {
+      nextSearchParams.set('brand', nextBrandSlug);
     } else {
       nextSearchParams.delete('brand');
-    }
-
-    if (priceRange.min > DEFAULT_MIN_PRICE) {
-      nextSearchParams.set('fromPrice', String(priceRange.min));
-    } else {
-      nextSearchParams.delete('fromPrice');
-    }
-
-    if (priceRange.max < DEFAULT_MAX_PRICE) {
-      nextSearchParams.set('toPrice', String(priceRange.max));
-    } else {
-      nextSearchParams.delete('toPrice');
     }
 
     const nextQuery = nextSearchParams.toString();
@@ -109,7 +197,62 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
     }
 
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
-  }, [pathname, priceRange.max, priceRange.min, router, searchParams, selectedBrandSlug]);
+  };
+
+  useEffect(() => {
+    const currentQuery = searchParams.toString();
+    const nextSearchParams = new URLSearchParams(currentQuery);
+
+    nextSearchParams.delete('fromPrice');
+    nextSearchParams.delete('toPrice');
+
+    if (selectedBrandSlug) {
+      nextSearchParams.set('brand', selectedBrandSlug);
+    } else {
+      nextSearchParams.delete('brand');
+    }
+
+    if (priceRange.min > DEFAULT_MIN_PRICE) {
+      nextSearchParams.set('minPrice', String(priceRange.min));
+    } else {
+      nextSearchParams.delete('minPrice');
+    }
+
+    if (priceRange.max < DEFAULT_MAX_PRICE) {
+      nextSearchParams.set('maxPrice', String(priceRange.max));
+    } else {
+      nextSearchParams.delete('maxPrice');
+    }
+
+    const isDefaultSort =
+      selectedSortConfig.sortBy === SORT_VALUE_TO_API_SORT[DEFAULT_SORT_VALUE].sortBy &&
+      selectedSortConfig.sortOrder === SORT_VALUE_TO_API_SORT[DEFAULT_SORT_VALUE].sortOrder;
+
+    if (isDefaultSort) {
+      nextSearchParams.delete('sortBy');
+      nextSearchParams.delete('sortOrder');
+    } else {
+      nextSearchParams.set('sortBy', selectedSortConfig.sortBy);
+      nextSearchParams.set('sortOrder', selectedSortConfig.sortOrder);
+    }
+
+    const nextQuery = nextSearchParams.toString();
+
+    if (nextQuery === currentQuery) {
+      return;
+    }
+
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+  }, [
+    pathname,
+    priceRange.max,
+    priceRange.min,
+    router,
+    searchParams,
+    selectedBrandSlug,
+    selectedSortConfig.sortBy,
+    selectedSortConfig.sortOrder,
+  ]);
 
   const collectionRouteMap = useMemo(() => {
     const collections = getAllCollections.data?.data ?? [];
@@ -119,6 +262,69 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
   const resolvedRoute = useMemo(() => {
     return resolveCollectionRoute(collectionRouteMap, normalizedSlugs);
   }, [collectionRouteMap, normalizedSlugs]);
+
+  const scopedBrands = useMemo<Brand[]>(() => {
+    if (normalizedSlugs.length === 0) {
+      return brands;
+    }
+
+    if (!resolvedRoute) {
+      return [];
+    }
+
+    const scopedCollectionBrands = resolvedRoute.params.categoryId
+      ? getCollectionBrandsByCategoryId(collectionLookupMaps, resolvedRoute.params.categoryId)
+      : getCollectionBrandsByCollectionId(collectionLookupMaps, resolvedRoute.params.collectionId);
+
+    if (scopedCollectionBrands.length === 0) {
+      return [];
+    }
+
+    const brandById = new Map(brands.map(brand => [brand.id, brand]));
+    const mappedScopedBrands: Brand[] = [];
+    const seenBrandIds = new Set<string>();
+
+    scopedCollectionBrands.forEach(scopedBrand => {
+      if (seenBrandIds.has(scopedBrand.id)) {
+        return;
+      }
+
+      seenBrandIds.add(scopedBrand.id);
+
+      const fullBrand = brandById.get(scopedBrand.id);
+
+      mappedScopedBrands.push(
+        fullBrand ?? {
+          id: scopedBrand.id,
+          logoUrl: scopedBrand.logoUrl ?? null,
+          name: scopedBrand.name,
+          slug: scopedBrand.slug,
+        },
+      );
+    });
+
+    return mappedScopedBrands;
+  }, [brands, collectionLookupMaps, normalizedSlugs.length, resolvedRoute]);
+
+  const selectedBrand = useMemo<Brand | undefined>(() => {
+    if (!selectedBrandSlug) {
+      return undefined;
+    }
+
+    return scopedBrands.find(brand => brand.slug === selectedBrandSlug);
+  }, [scopedBrands, selectedBrandSlug]);
+
+  useEffect(() => {
+    if (!getAllBrands.isLoading && !getAllCollections.isLoading && selectedBrandSlug && !selectedBrand) {
+      updateBrandQueryParam(null);
+    }
+  }, [
+    getAllBrands.isLoading,
+    getAllCollections.isLoading,
+    selectedBrand,
+    selectedBrandSlug,
+    updateBrandQueryParam,
+  ]);
 
   const canFetchProducts = useMemo(() => {
     if (normalizedSlugs.length === 0) {
@@ -141,12 +347,24 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
 
     return {
       ...(selectedBrand?.id ? { brandId: selectedBrand.id } : {}),
-      ...(hasPriceFilter ? { fromPrice: priceRange.min, toPrice: priceRange.max } : {}),
+      ...(searchKeyword ? { search: searchKeyword } : {}),
+      ...(hasPriceFilter ? { maxPrice: priceRange.max, minPrice: priceRange.min } : {}),
       page: 1,
       size: DEFAULT_PAGE_SIZE,
+      sortBy: selectedSortConfig.sortBy,
+      sortOrder: selectedSortConfig.sortOrder,
       ...(resolvedRoute?.params ?? {}),
     };
-  }, [canFetchProducts, priceRange.max, priceRange.min, resolvedRoute?.params, selectedBrand?.id]);
+  }, [
+    canFetchProducts,
+    priceRange.max,
+    priceRange.min,
+    resolvedRoute?.params,
+    searchKeyword,
+    selectedBrand?.id,
+    selectedSortConfig.sortBy,
+    selectedSortConfig.sortOrder,
+  ]);
 
   const { getAllProducts } = useProducts({
     enabled: canFetchProducts,
@@ -158,31 +376,8 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
     return items.map(mapApiProductToCardData);
   }, [getAllProducts.data?.data?.items]);
 
-  const sortedProducts = useMemo(() => {
-    const sorted = [...products];
-
-    switch (sortBy) {
-      case 'newest':
-        sorted.sort((a, b) => Number(b.id) - Number(a.id));
-        break;
-      case 'name-asc':
-        sorted.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case 'price-asc':
-        sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
-        break;
-      case 'price-desc':
-        sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
-        break;
-      default:
-        break;
-    }
-
-    return sorted;
-  }, [products, sortBy]);
-
-  const displayedProducts = sortedProducts.slice(0, visibleCount);
-  const totalProducts = sortedProducts.length;
+  const displayedProducts = products.slice(0, visibleCount);
+  const totalProducts = products.length;
   const hasMore = visibleCount < totalProducts;
   const hasPriceFilter = priceRange.min !== DEFAULT_MIN_PRICE || priceRange.max !== DEFAULT_MAX_PRICE;
   const activeFilterCount = (selectedBrand ? 1 : 0) + (hasPriceFilter ? 1 : 0);
@@ -196,17 +391,20 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
     }[viewMode as string] || 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
   const filterSections = useMemo(
-    () => [
-      {
-        options: brands.map(brand => ({
-          checked: brand.slug === selectedBrandSlug,
-          count: 0,
-          label: brand.name,
-        })),
-        title: 'Hãng',
-      },
-    ],
-    [brands, selectedBrandSlug],
+    () =>
+      scopedBrands.length > 0
+        ? [
+            {
+              options: scopedBrands.map(brand => ({
+                checked: brand.slug === selectedBrandSlug,
+                count: 0,
+                label: brand.name,
+              })),
+              title: 'Hãng',
+            },
+          ]
+        : [],
+    [scopedBrands, selectedBrandSlug],
   );
 
   const handleFilterChange = (sectionTitle: string, label: string, checked: boolean) => {
@@ -214,19 +412,20 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
       return;
     }
 
-    const matchedBrand = brands.find(brand => brand.name === label);
+    const matchedBrand = scopedBrands.find(brand => brand.name === label);
 
     if (!matchedBrand) {
       return;
     }
 
-    setSelectedBrandSlug(current => {
-      if (!checked && current === matchedBrand.slug) {
-        return null;
-      }
+    if (!checked && selectedBrandSlug === matchedBrand.slug) {
+      updateBrandQueryParam(null);
+      return;
+    }
 
-      return checked ? matchedBrand.slug : current;
-    });
+    if (checked && selectedBrandSlug !== matchedBrand.slug) {
+      updateBrandQueryParam(matchedBrand.slug);
+    }
   };
 
   const sidebarContent = (
@@ -242,12 +441,13 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
 
   useEffect(() => {
     setVisibleCount(perPage);
-  }, [perPage, priceRange.max, priceRange.min, selectedBrandSlug, sortBy, resolvedRoute?.title]);
+  }, [perPage, priceRange.max, priceRange.min, searchKeyword, selectedBrandSlug, sortBy, resolvedRoute?.title]);
 
   const shownCount = Math.min(visibleCount, totalProducts);
   const shownRangeText = totalProducts === 0 ? '0' : `1-${shownCount}`;
   const progressPercent = totalProducts > 0 ? (shownCount / totalProducts) * 100 : 0;
   const showRouteNotFound = !getAllCollections.isLoading && !resolvedRoute && normalizedSlugs.length > 0;
+  const pageTitle = resolvedRoute?.title ?? (searchKeyword ? 'Kết quả tìm kiếm sản phẩm' : 'Sản phẩm');
 
   return (
     <div className="min-h-screen bg-background">
@@ -333,8 +533,16 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
               <div className="min-w-0 flex-1">
                 <div className="mb-6">
                   <h1 className="mb-1 text-[2.8rem] text-foreground" style={{ fontWeight: 700 }}>
-                    {resolvedRoute?.title ?? 'Sản phẩm'}
+                    {pageTitle}
                   </h1>
+                  {searchKeyword && (
+                    <p className="text-[1.4rem] text-muted-foreground">
+                      Từ khóa:{' '}
+                      <span className="text-foreground" style={{ fontWeight: 600 }}>
+                        {searchKeyword}
+                      </span>
+                    </p>
+                  )}
                   {selectedBrand && (
                     <p className="text-[1.4rem] text-muted-foreground">
                       Đang lọc theo thương hiệu:{' '}
@@ -352,7 +560,7 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
                     </span>
                     {selectedBrand && (
                       <button
-                        onClick={() => setSelectedBrandSlug(null)}
+                        onClick={() => updateBrandQueryParam(null)}
                         className="flex items-center gap-1.5 rounded-full bg-primary-light px-3 py-1.5 text-[1.2rem] text-primary transition-colors hover:bg-primary hover:text-white"
                         style={{ fontWeight: 500 }}
                       >
@@ -378,7 +586,7 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
                     )}
                     <button
                       onClick={() => {
-                        setSelectedBrandSlug(null);
+                        updateBrandQueryParam(null);
                         setPriceRange({
                           max: DEFAULT_MAX_PRICE,
                           min: DEFAULT_MIN_PRICE,
@@ -401,7 +609,7 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
                     setPerPage(n);
                     setVisibleCount(n);
                   }}
-                  onSortChange={setSortBy}
+                  onSortChange={value => setSortBy(value as CollectionSortValue)}
                   onViewModeChange={setViewMode}
                   perPage={perPage}
                   sortBy={sortBy}

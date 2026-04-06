@@ -1,11 +1,20 @@
 'use client';
 
+import { useState } from 'react';
+
+import Image from 'next/image';
+
 import { useBrands } from '@/hooks/useBrands';
+
+const INITIAL_VISIBLE_BRANDS = 6;
 
 export function BrandSlider() {
   const { getAllBrands } = useBrands();
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  const brands = (getAllBrands.data?.data ?? []).slice(0, 8);
+  const allBrands = getAllBrands.data?.data ?? [];
+  const hasMoreBrands = allBrands.length > INITIAL_VISIBLE_BRANDS;
+  const brands = isExpanded ? allBrands : allBrands.slice(0, INITIAL_VISIBLE_BRANDS);
 
   return (
     <section className="bg-muted border-y border-border">
@@ -13,15 +22,54 @@ export function BrandSlider() {
         <p className="text-center text-foreground/50 text-[1.3rem] font-500 mb-6 uppercase tracking-widest">
           Thương hiệu ưa chuộng
         </p>
-        <div className="flex items-center justify-center flex-wrap gap-8 md:gap-14">
-          {brands.map(brand => (
-            <div key={brand.id} className="group cursor-pointer transition-all">
-              <span className="text-[1.8rem] md:text-[2.2rem] text-foreground font-700 group-hover:text-primary transition-colors tracking-tight select-none">
-                {brand.name}
-              </span>
-            </div>
-          ))}
+        <div
+          className={[
+            'flex items-center gap-8 md:gap-14',
+            isExpanded
+              ? 'justify-center flex-wrap'
+              : 'justify-start md:justify-center flex-nowrap overflow-x-auto',
+          ].join(' ')}
+        >
+          {brands.map(brand => {
+            const logoSrc = brand.image?.url || brand.logoUrl;
+
+            return (
+              <div
+                key={brand.id}
+                className="group cursor-pointer flex h-[6.5rem] w-[14rem] items-center justify-center rounded-lg p-3 transition-all hover:-translate-y-0.5"
+                title={brand.name}
+              >
+                {logoSrc ? (
+                  <div className="relative h-full w-full">
+                    <Image
+                      alt={brand.name}
+                      className="object-contain"
+                      fill
+                      sizes="(max-width: 768px) 120px, 140px"
+                      src={logoSrc}
+                    />
+                  </div>
+                ) : (
+                  <span className="line-clamp-1 text-center text-[1.4rem] font-600 text-foreground/80">
+                    {brand.name}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
+
+        {hasMoreBrands ? (
+          <div className="mt-6 flex justify-center">
+            <button
+              className="rounded-full border border-border px-4 py-2 text-[1.3rem] font-600 text-foreground transition-colors hover:bg-white"
+              onClick={() => setIsExpanded(prev => !prev)}
+              type="button"
+            >
+              {isExpanded ? 'Thu gọn' : 'Xem thêm'}
+            </button>
+          </div>
+        ) : null}
       </div>
     </section>
   );

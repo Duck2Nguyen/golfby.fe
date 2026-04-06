@@ -66,7 +66,7 @@ export function CategoryToolbar({
           <select
             value={perPage}
             onChange={e => onPerPageChange(Number(e.target.value))}
-            className="h-9 cursor-pointer appearance-none rounded-lg border border-border bg-white px-3 pr-8 text-[1.3rem] text-foreground text-foreground outline-none transition-colors focus:border-primary"
+            className="h-9 cursor-pointer appearance-none rounded-lg border border-border bg-white px-3 pr-8 text-[1.3rem] text-foreground outline-none transition-colors focus:border-primary"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
               backgroundRepeat: 'no-repeat',
@@ -91,19 +91,19 @@ export function CategoryToolbar({
           <select
             value={sortBy}
             onChange={e => onSortChange(e.target.value)}
-            className="h-9 cursor-pointer appearance-none rounded-lg border border-border bg-white px-3 pr-8 text-[1.3rem] text-foreground text-foreground outline-none transition-colors focus:border-primary"
+            className="h-9 cursor-pointer appearance-none rounded-lg border border-border bg-white px-3 pr-8 text-[1.3rem] text-foreground outline-none transition-colors focus:border-primary"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
               backgroundRepeat: 'no-repeat',
               backgroundPosition: 'right 10px center',
             }}
           >
-            <option value="featured">Nổi bật</option>
             <option value="newest">Mới nhất</option>
+            <option value="oldest">Cũ nhất</option>
             <option value="price-asc">Giá: Thấp → Cao</option>
             <option value="price-desc">Giá: Cao → Thấp</option>
             <option value="name-asc">Tên: A → Z</option>
-            <option value="bestseller">Bán chạy</option>
+            <option value="name-desc">Tên: Z → A</option>
           </select>
         </div>
       </div>

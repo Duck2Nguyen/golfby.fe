@@ -5,7 +5,11 @@ import { useMemo, useState, useEffect } from 'react';
 
 import type { Brand } from '@/hooks/useBrands';
 
-import { useBrands } from '@/hooks/useBrands';
+import {
+  useBrands,
+  buildCreateBrandFormDataPayload,
+  buildUpdateBrandFormDataPayload,
+} from '@/hooks/useBrands';
 
 import DataGrid from '@/components/DataGrid';
 
@@ -18,6 +22,7 @@ const ITEMS_PER_PAGE = 10;
 const mapBrandToFormData = (brand: Brand): BrandFormData => ({
   description: brand.description || '',
   id: brand.id,
+  imageUrl: brand.image?.url || brand.logoUrl || '',
   logoUrl: brand.logoUrl || '',
   name: brand.name,
   slug: brand.slug,
@@ -92,24 +97,30 @@ export default function Brands() {
 
   const handleSubmitAction = async (data: BrandFormData) => {
     if (formMode === 'create') {
-      await createBrandMutation.trigger({
-        csrf: true,
-        description: data.description || undefined,
-        logoUrl: data.logoUrl || undefined,
-        name: data.name,
-        slug: data.slug,
-      });
+      await createBrandMutation.trigger(
+        buildCreateBrandFormDataPayload({
+          csrf: true,
+          description: data.description || undefined,
+          file: data.imageFile,
+          logoUrl: data.logoUrl || undefined,
+          name: data.name,
+          slug: data.slug,
+        }),
+      );
     } else {
       if (!data.id) return;
 
-      await updateBrandMutation.trigger({
-        csrf: true,
-        description: data.description || undefined,
-        id: data.id,
-        logoUrl: data.logoUrl || undefined,
-        name: data.name,
-        slug: data.slug,
-      });
+      await updateBrandMutation.trigger(
+        buildUpdateBrandFormDataPayload({
+          csrf: true,
+          description: data.description || undefined,
+          file: data.imageFile,
+          id: data.id,
+          logoUrl: data.logoUrl || undefined,
+          name: data.name,
+          slug: data.slug,
+        }),
+      );
     }
 
     await getAllBrands.mutate();

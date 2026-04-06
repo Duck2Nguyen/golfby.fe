@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 
 import { FormCheckbox } from '@/elements/FormCheckbox';
@@ -24,6 +24,43 @@ interface CategorySidebarProps {
   showCount?: boolean;
 }
 
+const PRICE_STEP = 10000;
+
+const clampPrice = (value: number, maxPrice: number) => {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.min(Math.max(Math.trunc(value), 0), maxPrice);
+};
+
+const sanitizeCurrencyInput = (value: string) => {
+  const onlyDigits = value.replace(/\D/g, '');
+
+  if (!onlyDigits) {
+    return 0;
+  }
+
+  return Number(onlyDigits);
+};
+
+const normalizeRange = (range: PriceRange, maxPrice: number): PriceRange => {
+  const min = clampPrice(range.min, maxPrice);
+  const max = clampPrice(range.max, maxPrice);
+
+  if (max < min) {
+    return {
+      max: min,
+      min,
+    };
+  }
+
+  return {
+    max,
+    min,
+  };
+};
+
 function PriceSlider({
   min,
   max,
@@ -35,10 +72,92 @@ function PriceSlider({
   maxPrice: number;
   onChange: (range: PriceRange) => void;
 }) {
-  const formatVND = (v: number) => new Intl.NumberFormat('vi-VN').format(v);
+  const formatVND = (value: number) => new Intl.NumberFormat('vi-VN').format(value);
 
-  const minPercent = (min / maxPrice) * 100;
-  const maxPercent = (max / maxPrice) * 100;
+  const [draftRange, setDraftRange] = useState<PriceRange>(() => normalizeRange({ max, min }, maxPrice));
+
+  useEffect(() => {
+    setDraftRange(normalizeRange({ max, min }, maxPrice));
+  }, [max, maxPrice, min]);
+
+  const minPercent = useMemo(() => {
+    if (maxPrice <= 0) {
+      return 0;
+    }
+
+    return (draftRange.min / maxPrice) * 100;
+  }, [draftRange.min, maxPrice]);
+
+  const maxPercent = useMemo(() => {
+    if (maxPrice <= 0) {
+      return 100;
+    }
+
+    return (draftRange.max / maxPrice) * 100;
+  }, [draftRange.max, maxPrice]);
+
+  const isDirty = draftRange.min !== min || draftRange.max !== max;
+
+  const commitDraftRange = () => {
+    const normalizedRange = normalizeRange(draftRange, maxPrice);
+    setDraftRange(normalizedRange);
+    onChange(normalizedRange);
+  };
+
+  const handleMinSliderChange = (nextMinValue: number) => {
+    setDraftRange(current => {
+      const nextMin = Math.min(clampPrice(nextMinValue, maxPrice), current.max);
+
+      return {
+        ...current,
+        min: nextMin,
+      };
+    });
+  };
+
+  const handleMaxSliderChange = (nextMaxValue: number) => {
+    setDraftRange(current => {
+      const nextMax = Math.max(clampPrice(nextMaxValue, maxPrice), current.min);
+
+      return {
+        ...current,
+        max: nextMax,
+      };
+    });
+  };
+
+  const handleMinInputChange = (rawValue: string) => {
+    const parsedValue = sanitizeCurrencyInput(rawValue);
+
+    setDraftRange(current => {
+      const nextMin = Math.min(clampPrice(parsedValue, maxPrice), current.max);
+
+      return {
+        ...current,
+        min: nextMin,
+      };
+    });
+  };
+
+  const handleMaxInputChange = (rawValue: string) => {
+    const parsedValue = sanitizeCurrencyInput(rawValue);
+
+    setDraftRange(current => {
+      const nextMax = Math.max(clampPrice(parsedValue, maxPrice), current.min);
+
+      return {
+        ...current,
+        max: nextMax,
+      };
+    });
+  };
+
+  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      commitDraftRange();
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -52,9 +171,9 @@ function PriceSlider({
           type="range"
           min={0}
           max={maxPrice}
-          step={100000}
-          value={min}
-          onChange={e => onChange({ min: Math.min(Number(e.target.value), max - 100000), max })}
+          step={PRICE_STEP}
+          value={draftRange.min}
+          onChange={event => handleMinSliderChange(Number(event.target.value))}
           className="pointer-events-none absolute h-2 w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:flex-shrink-0 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-primary [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md"
           style={{ top: 0 }}
         />
@@ -62,9 +181,9 @@ function PriceSlider({
           type="range"
           min={0}
           max={maxPrice}
-          step={100000}
-          value={max}
-          onChange={e => onChange({ min, max: Math.max(Number(e.target.value), min + 100000) })}
+          step={PRICE_STEP}
+          value={draftRange.max}
+          onChange={event => handleMaxSliderChange(Number(event.target.value))}
           className="pointer-events-none absolute h-2 w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:flex-shrink-0 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-primary [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md"
           style={{ top: 0 }}
         />
@@ -77,8 +196,11 @@ function PriceSlider({
             <span className="mr-1 text-[1.2rem] text-muted-foreground">₫</span>
             <input
               type="text"
-              value={formatVND(min)}
-              readOnly
+              inputMode="numeric"
+              value={formatVND(draftRange.min)}
+              onChange={event => handleMinInputChange(event.target.value)}
+              onKeyDown={handleInputKeyDown}
+              onBlur={() => setDraftRange(current => normalizeRange(current, maxPrice))}
               className="w-full bg-transparent text-[1.3rem] text-foreground outline-none"
             />
           </div>
@@ -89,8 +211,11 @@ function PriceSlider({
             <span className="mr-1 text-[1.2rem] text-muted-foreground">₫</span>
             <input
               type="text"
-              value={formatVND(max)}
-              readOnly
+              inputMode="numeric"
+              value={formatVND(draftRange.max)}
+              onChange={event => handleMaxInputChange(event.target.value)}
+              onKeyDown={handleInputKeyDown}
+              onBlur={() => setDraftRange(current => normalizeRange(current, maxPrice))}
               className="w-full bg-transparent text-[1.3rem] text-foreground outline-none"
             />
           </div>
@@ -98,8 +223,11 @@ function PriceSlider({
       </div>
 
       <button
+        type="button"
+        onClick={commitDraftRange}
+        disabled={!isDirty}
         className="h-10 w-full rounded-xl bg-primary text-[1.3rem] text-white transition-colors hover:bg-primary-dark"
-        style={{ fontWeight: 600 }}
+        style={{ fontWeight: 600, opacity: isDirty ? 1 : 0.65 }}
       >
         Áp Dụng
       </button>

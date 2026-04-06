@@ -21,7 +21,7 @@ export default function HomePage() {
         <BrandSlider />
 
         <ProductSection />
-        <TopSellingSection limit={10} />
+        <TopSellingSection limit={8} />
 
         <PromoBanner
           layout="two-col"
