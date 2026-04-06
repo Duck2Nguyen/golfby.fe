@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 
 import Image from 'next/image';
-
 import { Link } from '@heroui/link';
 
 import { useBrands } from '@/hooks/useBrands';
@@ -169,7 +168,12 @@ function CollectionProductSection({ bgColor, collection, brandMetaById }: Collec
       const brandId = item.brand?.id;
       const brandName = item.brand?.name;
 
-      if (!brandId || !brandName || seenBrandIds.has(brandId) || brandsFromProducts.length >= BRANDS_PER_COLLECTION) {
+      if (
+        !brandId ||
+        !brandName ||
+        seenBrandIds.has(brandId) ||
+        brandsFromProducts.length >= BRANDS_PER_COLLECTION
+      ) {
         return;
       }
 
@@ -226,7 +230,9 @@ function CollectionProductSection({ bgColor, collection, brandMetaById }: Collec
 
         {!getAllProducts.isLoading && products.length > 0 && (
           <>
-            <div className={`grid gap-4 md:gap-5 ${showBrandSidebar ? 'xl:grid-cols-[minmax(0,1fr)_30rem]' : ''}`}>
+            <div
+              className={`grid gap-4 md:gap-5 ${showBrandSidebar ? 'xl:grid-cols-[minmax(0,1fr)_30rem]' : ''}`}
+            >
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
                 {products.map(product => (
                   <ProductCard key={product.id} product={product} />

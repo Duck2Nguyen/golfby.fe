@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 
 import { FormCheckbox } from '@/elements/FormCheckbox';

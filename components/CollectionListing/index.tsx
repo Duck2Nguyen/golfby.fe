@@ -9,8 +9,8 @@ import { useRouter, usePathname, useSearchParams, type ReadonlyURLSearchParams }
 import { useBrands, type Brand } from '@/hooks/useBrands';
 import {
   useProducts,
-  type GetAllProductsParams,
   type ProductListSortBy,
+  type GetAllProductsParams,
   type ProductListSortOrder,
 } from '@/hooks/useProducts';
 import {
@@ -44,17 +44,14 @@ interface CollectionListingProps {
   slugSegments?: string[];
 }
 
-type CollectionSortValue =
-  | 'newest'
-  | 'oldest'
-  | 'price-asc'
-  | 'price-desc'
-  | 'name-asc'
-  | 'name-desc';
+type CollectionSortValue = 'newest' | 'oldest' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
 
 const DEFAULT_SORT_VALUE: CollectionSortValue = 'newest';
 
-const SORT_VALUE_TO_API_SORT: Record<CollectionSortValue, { sortBy: ProductListSortBy; sortOrder: ProductListSortOrder }> = {
+const SORT_VALUE_TO_API_SORT: Record<
+  CollectionSortValue,
+  { sortBy: ProductListSortBy; sortOrder: ProductListSortOrder }
+> = {
   newest: {
     sortBy: 'createdAt',
     sortOrder: 'desc',
@@ -129,9 +126,11 @@ const buildSortValueFromSearchParams = (params: ReadonlyURLSearchParams): Collec
     return DEFAULT_SORT_VALUE;
   }
 
-  const matchedSort = (Object.entries(SORT_VALUE_TO_API_SORT) as Array<
-    [CollectionSortValue, { sortBy: ProductListSortBy; sortOrder: ProductListSortOrder }]
-  >).find(([, apiSort]) => apiSort.sortBy === sortBy && apiSort.sortOrder === sortOrder);
+  const matchedSort = (
+    Object.entries(SORT_VALUE_TO_API_SORT) as Array<
+      [CollectionSortValue, { sortBy: ProductListSortBy; sortOrder: ProductListSortOrder }]
+    >
+  ).find(([, apiSort]) => apiSort.sortBy === sortBy && apiSort.sortOrder === sortOrder);
 
   return matchedSort?.[0] ?? DEFAULT_SORT_VALUE;
 };
@@ -142,11 +141,15 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
   const searchParams = useSearchParams();
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid-4');
-  const [sortBy, setSortBy] = useState<CollectionSortValue>(() => buildSortValueFromSearchParams(searchParams));
+  const [sortBy, setSortBy] = useState<CollectionSortValue>(() =>
+    buildSortValueFromSearchParams(searchParams),
+  );
   const [perPage, setPerPage] = useState(20);
   const [visibleCount, setVisibleCount] = useState(20);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [priceRange, setPriceRange] = useState<PriceRange>(() => buildPriceRangeFromSearchParams(searchParams));
+  const [priceRange, setPriceRange] = useState<PriceRange>(() =>
+    buildPriceRangeFromSearchParams(searchParams),
+  );
 
   const { getAllBrands } = useBrands();
   const { getAllCollections } = useCollections();
@@ -441,7 +444,15 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
 
   useEffect(() => {
     setVisibleCount(perPage);
-  }, [perPage, priceRange.max, priceRange.min, searchKeyword, selectedBrandSlug, sortBy, resolvedRoute?.title]);
+  }, [
+    perPage,
+    priceRange.max,
+    priceRange.min,
+    searchKeyword,
+    selectedBrandSlug,
+    sortBy,
+    resolvedRoute?.title,
+  ]);
 
   const shownCount = Math.min(visibleCount, totalProducts);
   const shownRangeText = totalProducts === 0 ? '0' : `1-${shownCount}`;
