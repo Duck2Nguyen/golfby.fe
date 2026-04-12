@@ -27,8 +27,9 @@ export default function AddressForm({ address, onSubmit, onCancel }: AddressForm
   const [lastName, setLastName] = useState(address?.lastName || '');
   const [company, setCompany] = useState(address?.company || '');
   const [address1, setAddress1] = useState(address?.address1 || '');
-  const [address2, setAddress2] = useState(address?.address2 || '');
+  const [commune, setCommune] = useState(address?.commune || '');
   const [city, setCity] = useState(address?.city || '');
+  const [district, setDistrict] = useState(address?.district || '');
   const [country, setCountry] = useState(address?.country || '');
   const [zipCode, setZipCode] = useState(address?.zipCode || '');
   const [phone, setPhone] = useState(address?.phone || '');
@@ -41,8 +42,9 @@ export default function AddressForm({ address, onSubmit, onCancel }: AddressForm
       lastName,
       company,
       address1,
-      address2,
+      commune,
       city,
+      district,
       country,
       zipCode,
       phone,
@@ -91,40 +93,7 @@ export default function AddressForm({ address, onSubmit, onCancel }: AddressForm
         </div>
 
         <div>
-          <label className="block text-[14px] text-foreground mb-2 font-600">Địa Chỉ 1</label>
-          <input
-            type="text"
-            placeholder="Địa chỉ 1"
-            value={address1}
-            onChange={e => setAddress1(e.target.value)}
-            className="w-full h-11 px-4 rounded-xl border border-border bg-[#fafafa] text-[14px] outline-none focus:border-primary focus:bg-white"
-          />
-        </div>
-
-        <div>
-          <label className="block text-[14px] text-foreground mb-2 font-600">Địa Chỉ 2</label>
-          <input
-            type="text"
-            placeholder="Địa chỉ 2"
-            value={address2}
-            onChange={e => setAddress2(e.target.value)}
-            className="w-full h-11 px-4 rounded-xl border border-border bg-[#fafafa] text-[14px] outline-none focus:border-primary focus:bg-white"
-          />
-        </div>
-
-        <div>
-          <label className="block text-[14px] text-foreground mb-2 font-600">Thành Phố</label>
-          <input
-            type="text"
-            placeholder="Thành phố"
-            value={city}
-            onChange={e => setCity(e.target.value)}
-            className="w-full h-11 px-4 rounded-xl border border-border bg-[#fafafa] text-[14px] outline-none focus:border-primary focus:bg-white"
-          />
-        </div>
-
-        <div>
-          <label className="block text-[14px] text-foreground mb-2 font-600">Quốc Gia/Khu Vực</label>
+          <label className="block text-[14px] text-foreground mb-2 font-600">Quốc gia/Khu vực</label>
           <select
             value={country}
             onChange={e => setCountry(e.target.value)}
@@ -136,6 +105,50 @@ export default function AddressForm({ address, onSubmit, onCancel }: AddressForm
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label className="block text-[14px] text-foreground mb-2 font-600">Thành phố/Tỉnh</label>
+          <input
+            type="text"
+            placeholder="Thành phố/Tỉnh"
+            value={city}
+            onChange={e => setCity(e.target.value)}
+            className="w-full h-11 px-4 rounded-xl border border-border bg-[#fafafa] text-[14px] outline-none focus:border-primary focus:bg-white"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[14px] text-foreground mb-2 font-600">Quận/Huyện</label>
+          <input
+            type="text"
+            placeholder="Quận/Huyện"
+            value={district}
+            onChange={e => setDistrict(e.target.value)}
+            className="w-full h-11 px-4 rounded-xl border border-border bg-[#fafafa] text-[14px] outline-none focus:border-primary focus:bg-white"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[14px] text-foreground mb-2 font-600">Phường/Xã</label>
+          <input
+            type="text"
+            placeholder="Phường/Xã"
+            value={commune}
+            onChange={e => setCommune(e.target.value)}
+            className="w-full h-11 px-4 rounded-xl border border-border bg-[#fafafa] text-[14px] outline-none focus:border-primary focus:bg-white"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[14px] text-foreground mb-2 font-600">Địa chỉ chi tiết</label>
+          <input
+            type="text"
+            placeholder="Địa chỉ chi tiết"
+            value={address1}
+            onChange={e => setAddress1(e.target.value)}
+            className="w-full h-11 px-4 rounded-xl border border-border bg-[#fafafa] text-[14px] outline-none focus:border-primary focus:bg-white"
+          />
         </div>
 
         <div>

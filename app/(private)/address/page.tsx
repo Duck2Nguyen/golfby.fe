@@ -1,78 +1,32 @@
 'use client';
 
+import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { useMemo, useState, useEffect } from 'react';
 
 import { addToast } from '@heroui/toast';
 
-import type { UserAddress } from '@/interfaces/model';
-
-import { useMutation, useSWRWrapper } from '@/hooks/swr';
-
-import { METHOD } from '@/global/common';
+import { type Address, useUserAddress } from '@/hooks/useUserAddress';
 
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import AddressForm from '@/components/Address/AddressForm/index';
-import AddressCard, { type Address } from '@/components/Address/AddressCard/index';
+import AddressCard from '@/components/Address/AddressCard/index';
 
 export default function AddressPage() {
   const {
-    data: userAddressesResponse,
+    addresses,
     isLoading,
-    mutate: mutateUserAddresses,
-  } = useSWRWrapper<UserAddress[]>('/api/v1/user-addresses', {
-    url: '/api/v1/user-addresses',
-    method: METHOD.GET,
-  });
+    mutateUserAddresses,
+    createAddressMutation,
+    updateAddressMutation,
+    deleteAddressMutation,
+    mapAddressPayload,
+  } = useUserAddress();
 
-  const createAddressMutation = useMutation('/api/v1/user-addresses', {
-    url: '/api/v1/user-addresses',
-    method: METHOD.POST,
-  });
-
-  const updateAddressMutation = useMutation('/api/v1/user-addresses/{id}', {
-    url: '/api/v1/user-addresses/{id}',
-    method: METHOD.PATCH,
-  });
-
-  const deleteAddressMutation = useMutation('/api/v1/user-addresses/{id}', {
-    url: '/api/v1/user-addresses/{id}',
-    method: METHOD.DELETE,
-  });
-
-  const apiAddresses = useMemo(
-    () => (Array.isArray(userAddressesResponse?.data) ? userAddressesResponse.data : []),
-    [userAddressesResponse?.data],
-  );
-
-  const mappedApiAddresses = useMemo<Address[]>(
-    () =>
-      apiAddresses.map(item => ({
-        id: item.id || '',
-        firstName: item.firstName || '',
-        lastName: item.lastName || '',
-        company: item.company || '',
-        address1: item.address || '',
-        address2: item.commune || '',
-        city: item.province || '',
-        country: item.country || '',
-        zipCode: item.zipCode || '',
-        phone: item.phoneNumber || '',
-        isDefault: Boolean(item.isDefault),
-      })),
-    [apiAddresses],
-  );
-
-  const [addresses, setAddresses] = useState<Address[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setAddresses(mappedApiAddresses);
-  }, [mappedApiAddresses]);
 
   const handleAddNew = () => {
     setEditingAddress(null);
@@ -83,19 +37,6 @@ export default function AddressPage() {
     setEditingAddress(address);
     setShowForm(true);
   };
-
-  const mapAddressPayload = (data: Omit<Address, 'id'>) => ({
-    firstName: data.firstName,
-    lastName: data.lastName,
-    phoneNumber: data.phone,
-    address: data.address1,
-    zipCode: data.zipCode,
-    country: data.country,
-    company: data.company || '',
-    province: data.city,
-    commune: data.address2 || '',
-    isDefault: data.isDefault,
-  });
 
   const handleDelete = async (id: string) => {
     try {

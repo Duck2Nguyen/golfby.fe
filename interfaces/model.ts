@@ -49,6 +49,7 @@ export type UserAddress = Partial<{
   country: string;
   company: string;
   province: string;
+  district: string;
   commune: string;
   isDefault: boolean;
   createdAt: string;

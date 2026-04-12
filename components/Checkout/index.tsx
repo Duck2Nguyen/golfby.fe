@@ -1,7 +1,7 @@
 'use client';
 
 import { CreditCard } from 'lucide-react';
-import { useMemo, useState, useEffect } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 
 import Link from 'next/link';
 import { addToast } from '@heroui/toast';
@@ -17,6 +17,8 @@ import {
   CHECKOUT_SELECTED_CART_ITEM_IDS_KEY,
 } from '@/utils/checkoutSelection';
 
+import { useSession } from '@/hooks/auth';
+import { useUserAddress } from '@/hooks/useUserAddress';
 import { useCarts, type CartItem as ApiCartItem } from '@/hooks/useCarts';
 import { useOrders, type CheckoutPaymentMethod } from '@/hooks/useOrders';
 
@@ -64,12 +66,14 @@ const getErrorMessage = (error: unknown) => {
 
 export default function Checkout() {
   const router = useRouter();
+  const hasPrefilledDefaultAddressRef = useRef(false);
 
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [address, setAddress] = useState('');
+  const [country, setCountry] = useState('');
   const [province, setProvince] = useState('');
   const [district, setDistrict] = useState('');
   const [commune, setCommune] = useState('');
@@ -81,9 +85,13 @@ export default function Checkout() {
   const [selectedCartItemIds, setSelectedCartItemIds] = useState<string[] | null>(null);
   const [directCheckoutItems, setDirectCheckoutItems] = useState<DirectCheckoutItem[]>([]);
 
+  const { data: sessionData } = useSession();
+  const { defaultAddress } = useUserAddress();
   const { getMyCart } = useCarts();
   const { data, error, isLoading } = getMyCart;
   const { checkoutMutation } = useOrders();
+
+  const userEmail = sessionData?.userInfo?.email || '';
 
   useEffect(() => {
     const savedDirectItems = normalizeDirectCheckoutItems(
@@ -109,6 +117,31 @@ export default function Checkout() {
 
     setSelectedCartItemIds(null);
   }, []);
+
+  useEffect(() => {
+    if (!userEmail) {
+      return;
+    }
+
+    setEmail(prev => prev || userEmail);
+  }, [userEmail]);
+
+  useEffect(() => {
+    if (!defaultAddress || hasPrefilledDefaultAddressRef.current) {
+      return;
+    }
+
+    setFirstName(prev => prev || defaultAddress.firstName || '');
+    setLastName(prev => prev || defaultAddress.lastName || '');
+    setPhone(prev => prev || defaultAddress.phone || '');
+    setAddress(prev => prev || defaultAddress.address1 || '');
+    setCountry(prev => prev || defaultAddress.country || '');
+    setProvince(prev => prev || defaultAddress.city || '');
+    setDistrict(prev => prev || defaultAddress.district || '');
+    setCommune(prev => prev || defaultAddress.commune || '');
+
+    hasPrefilledDefaultAddressRef.current = true;
+  }, [defaultAddress]);
 
   const isDirectCheckout = directCheckoutItems.length > 0;
 
@@ -353,12 +386,14 @@ export default function Checkout() {
                 firstName={firstName}
                 lastName={lastName}
                 address={address}
+                country={country}
                 province={province}
                 district={district}
                 commune={commune}
                 onFirstNameChange={setFirstName}
                 onLastNameChange={setLastName}
                 onAddressChange={setAddress}
+                onCountryChange={setCountry}
                 onProvinceChange={setProvince}
                 onDistrictChange={setDistrict}
                 onCommuneChange={setCommune}

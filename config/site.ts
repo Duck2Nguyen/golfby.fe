@@ -1,8 +1,9 @@
 export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
-  name: 'NovaPlanets',
-  description: 'Gamified online learning universe for future-ready kids',
+  name: 'GolfBy',
+  description:
+    'Nền tảng thương mại điện tử chuyên về dụng cụ golf, cung cấp trải nghiệm mua sắm trực tuyến tiện lợi và đáng tin cậy cho các golfer.',
   navItems: [],
   navMenuItems: [],
   links: {

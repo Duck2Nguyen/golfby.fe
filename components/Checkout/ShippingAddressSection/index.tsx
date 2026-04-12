@@ -4,12 +4,14 @@ interface ShippingAddressSectionProps {
   firstName: string;
   lastName: string;
   address: string;
+  country: string;
   province: string;
   district: string;
   commune: string;
   onFirstNameChange: (value: string) => void;
   onLastNameChange: (value: string) => void;
   onAddressChange: (value: string) => void;
+  onCountryChange: (value: string) => void;
   onProvinceChange: (value: string) => void;
   onDistrictChange: (value: string) => void;
   onCommuneChange: (value: string) => void;
@@ -19,12 +21,14 @@ export default function ShippingAddressSection({
   firstName,
   lastName,
   address,
+  country,
   province,
   district,
   commune,
   onFirstNameChange,
   onLastNameChange,
   onAddressChange,
+  onCountryChange,
   onProvinceChange,
   onDistrictChange,
   onCommuneChange,
@@ -55,6 +59,13 @@ export default function ShippingAddressSection({
           placeholder="Địa chỉ"
           value={address}
           onChange={e => onAddressChange(e.target.value)}
+          className="w-full h-11 px-4 rounded-xl border border-border bg-[#fafafa] text-[14px] outline-none focus:border-primary focus:bg-white"
+        />
+        <input
+          type="text"
+          placeholder="Quốc gia"
+          value={country}
+          onChange={e => onCountryChange(e.target.value)}
           className="w-full h-11 px-4 rounded-xl border border-border bg-[#fafafa] text-[14px] outline-none focus:border-primary focus:bg-white"
         />
         <input

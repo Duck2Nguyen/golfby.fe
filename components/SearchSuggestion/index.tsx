@@ -6,12 +6,9 @@ import Link from 'next/link';
 import { useProducts, type ProductListItem } from '@/hooks/useProducts';
 
 import { ImageWithFallback } from '../figma/ImageWithFallback';
-import { ballProducts, clubProducts, type Product, accessoryProducts } from '../mock-data';
 
 const popularKeywords = ['g10', 'g430', 'taylormade', 'ping', 'prov1', 'bóng golf', 'titleist', 'callaway'];
 const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
-
-const fakeBestSellingProducts = [...clubProducts, ...ballProducts, ...accessoryProducts].slice(0, 10);
 
 interface SearchProductItem {
   badge: string | null;
@@ -30,28 +27,6 @@ const toNumber = (value?: string | null) => {
   const parsed = Number(value ?? 0);
 
   return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const mapProductToSearchItem = (product: Product): SearchProductItem => {
-  const badge =
-    product.badge === 'sale'
-      ? 'Sale'
-      : product.badge === 'new'
-        ? 'New'
-        : product.badge === 'hot'
-          ? 'Hot'
-          : null;
-
-  return {
-    badge,
-    brand: product.brand,
-    ...(product.discount ? { discount: product.discount } : {}),
-    id: product.id,
-    image: product.image,
-    name: product.name,
-    ...(product.originalPrice ? { originalPrice: product.originalPrice } : {}),
-    price: product.price,
-  };
 };
 
 const mapApiProductToSearchItem = (product: ProductListItem): SearchProductItem => {
@@ -96,20 +71,26 @@ export function SearchSuggestion({
 }: SearchSuggestionProps) {
   const normalizedSearchText = normalizeText(searchText);
   const hasSearchText = Boolean(normalizedSearchText);
-  const { getAllProducts } = useProducts({
+  const { getAllProducts, getTopProducts } = useProducts({
     enabled: hasSearchText,
     getAllParams: {
       page: 1,
       search: searchText.trim(),
       size: 4,
     },
+    getTopParams: {
+      by: 'bestsellers',
+      limit: 4,
+    },
   });
 
   const filteredKeywords = popularKeywords;
 
   const bestSellingProducts = useMemo(() => {
-    return fakeBestSellingProducts.map(mapProductToSearchItem);
-  }, []);
+    const apiItems = getTopProducts.data?.data ?? [];
+
+    return apiItems.map(mapApiProductToSearchItem);
+  }, [getTopProducts.data?.data]);
 
   const searchProducts = useMemo(() => {
     const apiItems = getAllProducts.data?.data?.items ?? [];
@@ -231,61 +212,69 @@ export function SearchSuggestion({
               >
                 Sản phẩm bán chạy
               </h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {visibleBestSellingProducts.map(product => (
-                  <Link
-                    key={product.id}
-                    href={`/product/${product.id}`}
-                    onClick={onClose}
-                    className="group rounded-xl border border-border bg-white hover:shadow-md transition-all duration-200 overflow-hidden"
-                  >
-                    <div className="relative aspect-square bg-[#f8f8f8] overflow-hidden">
-                      <ImageWithFallback
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      {product.badge && (
-                        <span
-                          className="absolute top-2 left-2 bg-destructive text-white text-[1.0rem] px-2 py-0.5 rounded"
-                          style={{ fontWeight: 700 }}
-                        >
-                          {product.badge}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="p-2.5">
-                      <p
-                        className="text-[1.2rem] text-foreground line-clamp-2 mb-1.5 group-hover:text-primary transition-colors"
-                        style={{ fontWeight: 500, lineHeight: 1.4 }}
-                      >
-                        {product.name}
-                      </p>
-                      <div>
-                        {product.originalPrice && (
-                          <p className="text-[1.1rem] text-muted-foreground line-through">
-                            {formatPrice(product.originalPrice)}
-                          </p>
+              {getTopProducts.isLoading && visibleBestSellingProducts.length === 0 ? (
+                <p className="text-[1.2rem] text-muted-foreground">Đang tải sản phẩm bán chạy...</p>
+              ) : getTopProducts.error ? (
+                <p className="text-[1.2rem] text-danger">Không thể tải sản phẩm bán chạy.</p>
+              ) : visibleBestSellingProducts.length === 0 ? (
+                <p className="text-[1.2rem] text-muted-foreground">Chưa có sản phẩm bán chạy.</p>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {visibleBestSellingProducts.map(product => (
+                    <Link
+                      key={product.id}
+                      href={`/product/${product.id}`}
+                      onClick={onClose}
+                      className="group rounded-xl border border-border bg-white hover:shadow-md transition-all duration-200 overflow-hidden"
+                    >
+                      <div className="relative aspect-square bg-[#f8f8f8] overflow-hidden">
+                        <ImageWithFallback
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        {product.badge && (
+                          <span
+                            className="absolute top-2 left-2 bg-destructive text-white text-[1.0rem] px-2 py-0.5 rounded"
+                            style={{ fontWeight: 700 }}
+                          >
+                            {product.badge}
+                          </span>
                         )}
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-[1.2rem] text-destructive" style={{ fontWeight: 700 }}>
-                            {formatPrice(product.price)}
-                          </p>
-                          {product.discount && (
-                            <span
-                              className="text-[1.0rem] text-primary bg-primary-light px-1 py-0.5 rounded"
-                              style={{ fontWeight: 700 }}
-                            >
-                              (-{product.discount}%)
-                            </span>
+                      </div>
+
+                      <div className="p-2.5">
+                        <p
+                          className="text-[1.2rem] text-foreground line-clamp-2 mb-1.5 group-hover:text-primary transition-colors"
+                          style={{ fontWeight: 500, lineHeight: 1.4 }}
+                        >
+                          {product.name}
+                        </p>
+                        <div>
+                          {product.originalPrice && (
+                            <p className="text-[1.1rem] text-muted-foreground line-through">
+                              {formatPrice(product.originalPrice)}
+                            </p>
                           )}
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-[1.2rem] text-destructive" style={{ fontWeight: 700 }}>
+                              {formatPrice(product.price)}
+                            </p>
+                            {product.discount && (
+                              <span
+                                className="text-[1.0rem] text-primary bg-primary-light px-1 py-0.5 rounded"
+                                style={{ fontWeight: 700 }}
+                              >
+                                (-{product.discount}%)
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}
