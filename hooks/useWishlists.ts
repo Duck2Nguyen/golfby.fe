@@ -1,6 +1,7 @@
 import { useSWRConfig } from 'swr';
 
 import { useMutation, useSWRWrapper } from '@/hooks/swr';
+import { useSession } from '@/hooks/auth';
 
 import { METHOD } from '@/global/common';
 
@@ -58,11 +59,18 @@ const WISHLISTS_ENDPOINT = '/api/v1/wishlists';
 
 export const useWishlists = () => {
   const { cache } = useSWRConfig();
+  const { data: session } = useSession();
 
-  const cachedWishlist = cache.get(WISHLISTS_ENDPOINT) as { data?: unknown } | undefined;
+  // Build key with userId to separate cache per user
+  // If user is authenticated, add userId to key; otherwise use base key for guest
+  const wishlistKey = session?.userInfo?.id
+    ? `${WISHLISTS_ENDPOINT}:${session.userInfo.id}`
+    : WISHLISTS_ENDPOINT;
+
+  const cachedWishlist = cache.get(wishlistKey) as { data?: unknown } | undefined;
   const hasCachedWishlist = Boolean(cachedWishlist?.data);
 
-  const getMyWishlist = useSWRWrapper<WishlistItem[]>(WISHLISTS_ENDPOINT, {
+  const getMyWishlist = useSWRWrapper<WishlistItem[]>(wishlistKey, {
     dedupingInterval: 1000 * 60 * 5,
     method: METHOD.GET,
     revalidateIfStale: false,

@@ -14,7 +14,6 @@ export interface Address {
   address1: string;
   commune?: string;
   city: string;
-  district?: string;
   country: string;
   zipCode: string;
   phone: string;
@@ -30,7 +29,6 @@ export const mapAddressPayload = (data: Omit<Address, 'id'>) => ({
   country: data.country,
   company: data.company || '',
   province: data.city,
-  district: data.district || '',
   commune: data.commune || '',
   isDefault: data.isDefault,
 });
@@ -44,7 +42,6 @@ export const mapApiAddressToAddress = (apiAddresses: UserAddress[]): Address[] =
     address1: item.address || '',
     commune: item.commune || '',
     city: item.province || '',
-    district: item.district || '',
     country: item.country || '',
     zipCode: item.zipCode || '',
     phone: item.phoneNumber || '',

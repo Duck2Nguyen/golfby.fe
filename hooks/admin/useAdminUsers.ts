@@ -19,7 +19,6 @@ export interface AdminUserOrder {
   commune?: string | null;
   createdAt?: string | null;
   discountTotal?: number | null;
-  district?: string | null;
   id: string;
   orderNumber?: string | null;
   paymentMethod?: string | null;
@@ -32,7 +31,6 @@ export interface AdminUserOrder {
 }
 
 export interface AdminUserDetail extends UserInfo {
-  district?: string | null;
   orders?: AdminUserOrder[];
 }
 

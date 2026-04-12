@@ -49,7 +49,6 @@ export interface CheckoutPayload {
   csrf?: boolean;
   directItems?: DirectCheckoutPayloadItem[];
   discountCode?: string;
-  district: string;
   fullName: string;
   note?: string;
   paymentMethod: CheckoutPaymentMethod;
@@ -64,7 +63,6 @@ export interface CheckoutOrder {
   createdAt?: string;
   discountId?: string | null;
   discountTotal?: number;
-  district?: string;
   fullName?: string;
   id: string;
   note?: string | null;

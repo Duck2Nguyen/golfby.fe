@@ -140,8 +140,8 @@ export default function CheckoutPayment() {
   const order = getOrderDetail.data?.data;
 
   const shippingAddress = useMemo(() => {
-    return [order?.address, order?.commune, order?.district, order?.province].filter(Boolean).join(', ');
-  }, [order?.address, order?.commune, order?.district, order?.province]);
+    return [order?.address, order?.commune, order?.province].filter(Boolean).join(', ');
+  }, [order?.address, order?.commune, order?.province]);
 
   const orderStatusMeta = getOrderStatusMeta(order?.status);
   const paymentStatusMeta = getPaymentStatusMeta(order?.paymentStatus);

@@ -220,7 +220,7 @@ function CollectionSectionBannerCard({
   return (
     <Link
       className={`group relative block overflow-hidden ${
-        isHorizontal ? horizontalHeightClassName : 'min-h-[32rem] lg:min-h-0'
+        isHorizontal ? horizontalHeightClassName : 'min-h-[38rem]'
       }`}
       href={banner.href}
       underline="none"

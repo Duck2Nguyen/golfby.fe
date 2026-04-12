@@ -42,7 +42,6 @@ export interface AdminOrderListItem {
   createdAt?: string | null;
   discountId?: string | null;
   discountTotal?: number | null;
-  district?: string | null;
   fullName?: string | null;
   id: string;
   lines?: AdminOrderLine[];

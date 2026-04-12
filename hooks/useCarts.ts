@@ -1,4 +1,5 @@
 import { useMutation, useSWRWrapper } from '@/hooks/swr';
+import { useSession } from '@/hooks/auth';
 
 import { METHOD } from '@/global/common';
 
@@ -99,7 +100,13 @@ export interface RemoveCartItemPayload {
 }
 
 export const useCarts = () => {
-  const getMyCart = useSWRWrapper<CartItem[]>('/api/v1/cart', {
+  const { data: session } = useSession();
+
+  // Build key with userId to separate cache per user
+  // If user is authenticated, add userId to key; otherwise use base key for guest
+  const cartKey = session?.userInfo?.id ? `/api/v1/cart:${session.userInfo.id}` : '/api/v1/cart';
+
+  const getMyCart = useSWRWrapper<CartItem[]>(cartKey, {
     method: METHOD.GET,
     url: '/api/v1/cart',
   });

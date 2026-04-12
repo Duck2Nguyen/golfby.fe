@@ -45,7 +45,10 @@ export default function WhyChooseGolfBy() {
                 key={reason.title}
                 className="flex min-h-[16rem] flex-col items-center justify-center rounded-[0.8rem] bg-[#f3f3f3] px-4 py-5 text-center md:min-h-[22rem] md:px-5 md:py-7"
               >
-                <Icon className="mb-3 h-[3.2rem] w-[3.2rem] text-[#3f8f2f] md:mb-5 md:h-[4rem] md:w-[4rem]" strokeWidth={2.3} />
+                <Icon
+                  className="mb-3 h-[3.2rem] w-[3.2rem] text-[#3f8f2f] md:mb-5 md:h-[4rem] md:w-[4rem]"
+                  strokeWidth={2.3}
+                />
                 <h3 className="mb-2 text-[1.5rem] font-700 leading-[2rem] text-[#2f2f2f] md:text-[1.8rem] md:leading-[2.4rem]">
                   {reason.title}
                 </h3>

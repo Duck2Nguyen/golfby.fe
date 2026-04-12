@@ -28,8 +28,8 @@ export default function OrderDetailModal({ isOpen, onCloseAction, orderId }: Ord
   const order = data?.data;
 
   const shippingAddress = useMemo(() => {
-    return [order?.address, order?.commune, order?.district, order?.province].filter(Boolean).join(', ');
-  }, [order?.address, order?.commune, order?.district, order?.province]);
+    return [order?.address, order?.commune, order?.province].filter(Boolean).join(', ');
+  }, [order?.address, order?.commune, order?.province]);
 
   if (!isOpen) {
     return null;

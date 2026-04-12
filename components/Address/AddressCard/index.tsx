@@ -8,7 +8,6 @@ export interface Address {
   address1: string;
   commune?: string;
   city: string;
-  district?: string;
   country: string;
   zipCode: string;
   phone: string;
@@ -59,7 +58,6 @@ export default function AddressCard({ address, onEdit, onDelete }: AddressCardPr
         {address.company && <p>{address.company}</p>}
         <p>{address.address1}</p>
         {address.commune && <p>{address.commune}</p>}
-        {address.district && <p>{address.district}</p>}
         <p>{address.city}</p>
         <p>{address.zipCode}</p>
         <p>{address.country}</p>

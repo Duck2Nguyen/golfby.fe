@@ -122,18 +122,14 @@ export default function UserDetailModal({ isOpen, onCloseAction, userId }: UserD
   }, [user?.email, user?.firstName, user?.lastName]);
 
   const addressLine = useMemo(() => {
-    const directAddressParts = [user?.address, user?.commune, user?.district, user?.province].filter(
-      Boolean,
-    ) as string[];
+    const directAddressParts = [user?.address, user?.commune, user?.province].filter(Boolean) as string[];
 
     if (directAddressParts.length > 0) {
       return directAddressParts.join(', ');
     }
 
     const latestOrderAddress = orders
-      .map(
-        order => [order.address, order.commune, order.district, order.province].filter(Boolean) as string[],
-      )
+      .map(order => [order.address, order.commune, order.province].filter(Boolean) as string[])
       .find(parts => parts.length > 0);
 
     if (latestOrderAddress && latestOrderAddress.length > 0) {
@@ -141,7 +137,7 @@ export default function UserDetailModal({ isOpen, onCloseAction, userId }: UserD
     }
 
     return 'Chưa có địa chỉ';
-  }, [orders, user?.address, user?.commune, user?.district, user?.province]);
+  }, [orders, user?.address, user?.commune, user?.province]);
 
   if (!isOpen) {
     return null;

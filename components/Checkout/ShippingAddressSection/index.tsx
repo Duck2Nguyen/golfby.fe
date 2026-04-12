@@ -6,14 +6,12 @@ interface ShippingAddressSectionProps {
   address: string;
   country: string;
   province: string;
-  district: string;
   commune: string;
   onFirstNameChange: (value: string) => void;
   onLastNameChange: (value: string) => void;
   onAddressChange: (value: string) => void;
   onCountryChange: (value: string) => void;
   onProvinceChange: (value: string) => void;
-  onDistrictChange: (value: string) => void;
   onCommuneChange: (value: string) => void;
 }
 
@@ -23,14 +21,12 @@ export default function ShippingAddressSection({
   address,
   country,
   province,
-  district,
   commune,
   onFirstNameChange,
   onLastNameChange,
   onAddressChange,
   onCountryChange,
   onProvinceChange,
-  onDistrictChange,
   onCommuneChange,
 }: ShippingAddressSectionProps) {
   return (
@@ -73,13 +69,6 @@ export default function ShippingAddressSection({
           placeholder="Tỉnh/Thành phố"
           value={province}
           onChange={e => onProvinceChange(e.target.value)}
-          className="w-full h-11 px-4 rounded-xl border border-border bg-[#fafafa] text-[14px] outline-none focus:border-primary focus:bg-white"
-        />
-        <input
-          type="text"
-          placeholder="Quận/Huyện"
-          value={district}
-          onChange={e => onDistrictChange(e.target.value)}
           className="w-full h-11 px-4 rounded-xl border border-border bg-[#fafafa] text-[14px] outline-none focus:border-primary focus:bg-white"
         />
         <input

@@ -29,7 +29,6 @@ export default function AddressForm({ address, onSubmit, onCancel }: AddressForm
   const [address1, setAddress1] = useState(address?.address1 || '');
   const [commune, setCommune] = useState(address?.commune || '');
   const [city, setCity] = useState(address?.city || '');
-  const [district, setDistrict] = useState(address?.district || '');
   const [country, setCountry] = useState(address?.country || '');
   const [zipCode, setZipCode] = useState(address?.zipCode || '');
   const [phone, setPhone] = useState(address?.phone || '');
@@ -44,7 +43,6 @@ export default function AddressForm({ address, onSubmit, onCancel }: AddressForm
       address1,
       commune,
       city,
-      district,
       country,
       zipCode,
       phone,
@@ -114,17 +112,6 @@ export default function AddressForm({ address, onSubmit, onCancel }: AddressForm
             placeholder="Thành phố/Tỉnh"
             value={city}
             onChange={e => setCity(e.target.value)}
-            className="w-full h-11 px-4 rounded-xl border border-border bg-[#fafafa] text-[14px] outline-none focus:border-primary focus:bg-white"
-          />
-        </div>
-
-        <div>
-          <label className="block text-[14px] text-foreground mb-2 font-600">Quận/Huyện</label>
-          <input
-            type="text"
-            placeholder="Quận/Huyện"
-            value={district}
-            onChange={e => setDistrict(e.target.value)}
             className="w-full h-11 px-4 rounded-xl border border-border bg-[#fafafa] text-[14px] outline-none focus:border-primary focus:bg-white"
           />
         </div>

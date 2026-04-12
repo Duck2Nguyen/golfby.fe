@@ -75,7 +75,6 @@ export default function Checkout() {
   const [address, setAddress] = useState('');
   const [country, setCountry] = useState('');
   const [province, setProvince] = useState('');
-  const [district, setDistrict] = useState('');
   const [commune, setCommune] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
@@ -137,7 +136,6 @@ export default function Checkout() {
     setAddress(prev => prev || defaultAddress.address1 || '');
     setCountry(prev => prev || defaultAddress.country || '');
     setProvince(prev => prev || defaultAddress.city || '');
-    setDistrict(prev => prev || defaultAddress.district || '');
     setCommune(prev => prev || defaultAddress.commune || '');
 
     hasPrefilledDefaultAddressRef.current = true;
@@ -274,7 +272,6 @@ export default function Checkout() {
       !phone.trim() ||
       !address.trim() ||
       !province.trim() ||
-      !district.trim() ||
       !commune.trim()
     ) {
       addToast({
@@ -299,7 +296,6 @@ export default function Checkout() {
         commune: commune.trim(),
         csrf: true,
         ...(couponApplied && couponCode.trim() ? { discountCode: couponCode.trim() } : {}),
-        district: district.trim(),
         fullName,
         ...(note.trim() ? { note: note.trim() } : {}),
         paymentMethod,
@@ -388,14 +384,12 @@ export default function Checkout() {
                 address={address}
                 country={country}
                 province={province}
-                district={district}
                 commune={commune}
                 onFirstNameChange={setFirstName}
                 onLastNameChange={setLastName}
                 onAddressChange={setAddress}
                 onCountryChange={setCountry}
                 onProvinceChange={setProvince}
-                onDistrictChange={setDistrict}
                 onCommuneChange={setCommune}
               />
 
