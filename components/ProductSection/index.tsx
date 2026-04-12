@@ -1,16 +1,24 @@
 'use client';
 
-import { useMemo, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
+import { useMemo, useState, type CSSProperties } from 'react';
 
 import Image from 'next/image';
 import { Link } from '@heroui/link';
 
+import { useSWRWrapper } from '@/hooks/swr';
 import { useBrands } from '@/hooks/useBrands';
 import { useWishlistToggle } from '@/hooks/useWishlistToggle';
 import { useAddToCartFromList } from '@/hooks/useAddToCartFromList';
 import { useProducts, type ProductListItem } from '@/hooks/useProducts';
 import { useCollections, type CollectionTreeNode } from '@/hooks/useCollections';
+import {
+  type StaticHomeItem,
+  STATIC_HOME_CATEGORIES,
+  STATIC_HOME_COLLECTION_DIRECTIONS,
+} from '@/hooks/useStaticData';
+
+import { METHOD } from '@/global/common';
 
 import { ProductCard } from '../ProductCard';
 
@@ -27,10 +35,68 @@ interface CollectionSectionBrand {
   slug?: string | null;
 }
 
-const PRODUCTS_PER_COLLECTION = 8;
+type CollectionStaticHomeDirection =
+  (typeof STATIC_HOME_COLLECTION_DIRECTIONS)[keyof typeof STATIC_HOME_COLLECTION_DIRECTIONS];
+
+interface CollectionStaticBanner {
+  collectionId: string;
+  direction: CollectionStaticHomeDirection;
+  href: string;
+  id: string;
+  imageUrl: string;
+}
+
+const PRODUCTS_PER_COLLECTION_DEFAULT = 8;
+const PRODUCTS_PER_COLLECTION_WITH_VERTICAL_BANNER = 3;
 const BRANDS_PER_COLLECTION = 4;
 const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
 const API_BASE_URL = (process.env.BASE_API_URL ?? '').replace(/\/$/, '');
+const SECTION_CONTAINER_CLASSNAME = 'mx-auto w-full max-w-[160rem] px-4 md:px-6 xl:px-0';
+
+const readString = (value: unknown) => {
+  return typeof value === 'string' ? value.trim() : '';
+};
+
+const readCollectionBannerDirection = (value: unknown): CollectionStaticHomeDirection | null => {
+  const direction = readString(value).toLowerCase();
+
+  if (direction === STATIC_HOME_COLLECTION_DIRECTIONS.HORIZONTAL) {
+    return STATIC_HOME_COLLECTION_DIRECTIONS.HORIZONTAL;
+  }
+
+  if (direction === STATIC_HOME_COLLECTION_DIRECTIONS.VERTICAL) {
+    return STATIC_HOME_COLLECTION_DIRECTIONS.VERTICAL;
+  }
+
+  return null;
+};
+
+const mapStaticHomeCollectionBanner = (item: StaticHomeItem): CollectionStaticBanner | null => {
+  if (item.category !== STATIC_HOME_CATEGORIES.COLLECTION) {
+    return null;
+  }
+
+  const value = item.value as unknown as Record<string, unknown>;
+  const collectionId = readString(value.collectionId);
+  const direction = readCollectionBannerDirection(value.direction);
+  const imageUrl = readString(value.imageUrl);
+  const imageId = readString(value.imageId);
+  const href = readString(value.href);
+
+  const resolvedImageUrl = imageUrl || (imageId.startsWith('http') ? imageId : '');
+
+  if (!collectionId || !direction || !resolvedImageUrl) {
+    return null;
+  }
+
+  return {
+    collectionId,
+    direction,
+    href: href || '/',
+    id: item.id,
+    imageUrl: resolvedImageUrl,
+  };
+};
 
 const buildCollectionBrandHref = (collectionSlug: string, brandSlug?: string | null) => {
   if (!brandSlug) {
@@ -105,7 +171,54 @@ const mapApiProductToCardData = (item: ProductListItem): Product => {
 interface CollectionProductSectionProps {
   bgColor: string;
   brandMetaById: Map<string, CollectionSectionBrand>;
+  collectionBanners: CollectionStaticBanner[];
   collection: CollectionTreeNode;
+}
+
+interface CollectionSectionBannerCardProps {
+  banner: CollectionStaticBanner;
+  collectionName: string;
+  horizontalCount?: number;
+  orientation: CollectionStaticHomeDirection;
+}
+
+function CollectionSectionBannerCard({
+  banner,
+  collectionName,
+  horizontalCount = 1,
+  orientation,
+}: CollectionSectionBannerCardProps) {
+  const isHorizontal = orientation === STATIC_HOME_COLLECTION_DIRECTIONS.HORIZONTAL;
+  const isCompactHorizontal = isHorizontal && horizontalCount > 2;
+
+  const horizontalHeightClassName = isCompactHorizontal
+    ? 'h-[11rem] sm:h-[13rem] lg:h-[20rem]'
+    : 'h-[14rem] sm:h-[18rem] lg:h-[20rem]';
+
+  const imageSizes = isHorizontal
+    ? `(min-width: 1280px) ${Math.max(Math.round(100 / horizontalCount), 20)}vw, (min-width: 768px) ${Math.max(
+        Math.round(100 / horizontalCount),
+        33,
+      )}vw, 100vw`
+    : '(min-width: 1024px) 24rem, 100vw';
+
+  return (
+    <Link
+      className={`group relative block overflow-hidden ${
+        isHorizontal ? horizontalHeightClassName : 'min-h-[32rem] lg:min-h-0'
+      }`}
+      href={banner.href}
+      underline="none"
+    >
+      <Image
+        alt={`${collectionName} banner`}
+        className="object-contain transition-transform duration-500 group-hover:scale-[1.02] rounded-[1.2rem] overflow-hidden"
+        fill
+        sizes={imageSizes}
+        src={banner.imageUrl}
+      />
+    </Link>
+  );
 }
 
 function BrandLogo({ alt, src }: { alt: string; src?: string | null }) {
@@ -130,14 +243,25 @@ function BrandLogo({ alt, src }: { alt: string; src?: string | null }) {
   );
 }
 
-function CollectionProductSection({ bgColor, collection, brandMetaById }: CollectionProductSectionProps) {
+function CollectionProductSection({
+  bgColor,
+  brandMetaById,
+  collection,
+  collectionBanners,
+}: CollectionProductSectionProps) {
+  const hasVerticalBanner = collectionBanners.some(
+    banner => banner.direction === STATIC_HOME_COLLECTION_DIRECTIONS.VERTICAL,
+  );
+
   const { addToCartFromList, addingProductId } = useAddToCartFromList();
   const { isWishlisted, togglingProductId, toggleWishlist } = useWishlistToggle();
   const { getAllProducts } = useProducts({
     getAllParams: {
       collectionId: collection.id,
       page: 1,
-      size: PRODUCTS_PER_COLLECTION,
+      size: hasVerticalBanner
+        ? PRODUCTS_PER_COLLECTION_WITH_VERTICAL_BANNER
+        : PRODUCTS_PER_COLLECTION_DEFAULT,
     },
   });
 
@@ -180,7 +304,6 @@ function CollectionProductSection({ bgColor, collection, brandMetaById }: Collec
       ) {
         return;
       }
-
       seenBrandIds.add(brandId);
       const matchedGlobalBrand = brandMetaById.get(brandId);
 
@@ -198,9 +321,33 @@ function CollectionProductSection({ bgColor, collection, brandMetaById }: Collec
   const isEmpty = !getAllProducts.isLoading && products.length === 0;
   const showBrandSidebar = sectionBrands.length > 0;
 
+  const verticalBanner = useMemo(() => {
+    return collectionBanners.find(banner => banner.direction === STATIC_HOME_COLLECTION_DIRECTIONS.VERTICAL);
+  }, [collectionBanners]);
+
+  const horizontalBanners = useMemo(() => {
+    return collectionBanners.filter(
+      banner => banner.direction === STATIC_HOME_COLLECTION_DIRECTIONS.HORIZONTAL,
+    );
+  }, [collectionBanners]);
+
+  const productGridClassName = verticalBanner
+    ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 md:gap-5'
+    : 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5';
+
+  const horizontalBannerGridStyle = useMemo<CSSProperties | undefined>(() => {
+    if (horizontalBanners.length <= 1) {
+      return undefined;
+    }
+
+    return {
+      ['--horizontal-banner-columns' as string]: `repeat(${horizontalBanners.length}, minmax(0, 1fr))`,
+    };
+  }, [horizontalBanners.length]);
+
   return (
     <section className={`${bgColor} py-14`}>
-      <div className="max-w-7xl mx-auto px-4">
+      <div className={SECTION_CONTAINER_CLASSNAME}>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-1">
@@ -237,28 +384,42 @@ function CollectionProductSection({ bgColor, collection, brandMetaById }: Collec
             <div
               className={`grid gap-4 md:gap-5 ${showBrandSidebar ? 'xl:grid-cols-[minmax(0,1fr)_30rem]' : ''}`}
             >
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
-                {products.map(product => (
-                  <ProductCard
-                    key={product.id}
-                    isAddingToCart={addingProductId === String(product.id)}
-                    isWishlisted={isWishlisted(String(product.id))}
-                    isWishlistLoading={togglingProductId === String(product.id)}
-                    onAddToCartAction={currentProduct =>
-                      addToCartFromList({
-                        productId: String(currentProduct.id),
-                        productName: currentProduct.name,
-                      })
-                    }
-                    onToggleWishlistAction={currentProduct =>
-                      toggleWishlist({
-                        productId: String(currentProduct.id),
-                        productName: currentProduct.name,
-                      })
-                    }
-                    product={product}
-                  />
-                ))}
+              <div className="flex flex-col gap-4 md:gap-5">
+                <div
+                  className={`grid gap-4 md:gap-5 ${verticalBanner ? 'lg:grid-cols-[30rem_minmax(0,1fr)]' : ''}`}
+                >
+                  {verticalBanner ? (
+                    <CollectionSectionBannerCard
+                      banner={verticalBanner}
+                      collectionName={collection.name}
+                      orientation={STATIC_HOME_COLLECTION_DIRECTIONS.VERTICAL}
+                    />
+                  ) : null}
+
+                  <div className={productGridClassName}>
+                    {products.map(product => (
+                      <ProductCard
+                        key={product.id}
+                        isAddingToCart={addingProductId === String(product.id)}
+                        isWishlisted={isWishlisted(String(product.id))}
+                        isWishlistLoading={togglingProductId === String(product.id)}
+                        onAddToCartAction={currentProduct =>
+                          addToCartFromList({
+                            productId: String(currentProduct.id),
+                            productName: currentProduct.name,
+                          })
+                        }
+                        onToggleWishlistAction={currentProduct =>
+                          toggleWishlist({
+                            productId: String(currentProduct.id),
+                            productName: currentProduct.name,
+                          })
+                        }
+                        product={product}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {showBrandSidebar && (
@@ -286,7 +447,7 @@ function CollectionProductSection({ bgColor, collection, brandMetaById }: Collec
                   })}
 
                   <Link
-                    className="flex h-[6rem] items-center justify-center rounded-[1.6rem] border border-border bg-white text-[1.6rem] leading-[2.2rem] text-foreground font-600 transition-all hover:border-primary hover:text-primary"
+                    className="flex h-[4rem] items-center justify-center rounded-[1.6rem] border border-border bg-white text-[1.6rem] leading-[2.2rem] text-foreground font-600 transition-all hover:border-primary hover:text-primary"
                     href={`/collection/${collection.slug}`}
                     underline="none"
                   >
@@ -295,6 +456,25 @@ function CollectionProductSection({ bgColor, collection, brandMetaById }: Collec
                 </div>
               )}
             </div>
+
+            {horizontalBanners.length > 0 ? (
+              <div className="mt-4 md:mt-5">
+                <div
+                  className="grid grid-cols-1 gap-4 md:gap-5 md:[grid-template-columns:var(--horizontal-banner-columns)]"
+                  style={horizontalBannerGridStyle}
+                >
+                  {horizontalBanners.map(banner => (
+                    <CollectionSectionBannerCard
+                      key={banner.id}
+                      banner={banner}
+                      collectionName={collection.name}
+                      horizontalCount={horizontalBanners.length}
+                      orientation={STATIC_HOME_COLLECTION_DIRECTIONS.HORIZONTAL}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             <div className="sm:hidden mt-6 text-center">
               <Link
@@ -316,6 +496,10 @@ function CollectionProductSection({ bgColor, collection, brandMetaById }: Collec
 export function ProductSection({ bgColor = 'bg-white' }: ProductSectionProps) {
   const { getAllBrands } = useBrands();
   const { getAllCollections } = useCollections();
+  const staticHome = useSWRWrapper<StaticHomeItem[]>('/api/v1/static-home', {
+    method: METHOD.GET,
+    url: '/api/v1/static-home',
+  });
 
   const brandMetaById = useMemo(() => {
     const allBrands = getAllBrands.data?.data ?? [];
@@ -340,10 +524,26 @@ export function ProductSection({ bgColor = 'bg-white' }: ProductSectionProps) {
     return roots.length > 0 ? roots : collections;
   }, [getAllCollections.data?.data]);
 
+  const collectionBannersByCollectionId = useMemo(() => {
+    const entries = staticHome.data?.data ?? [];
+    const nextMap = new Map<string, CollectionStaticBanner[]>();
+
+    entries
+      .map(mapStaticHomeCollectionBanner)
+      .filter((item): item is CollectionStaticBanner => Boolean(item))
+      .forEach(item => {
+        const currentItems = nextMap.get(item.collectionId) ?? [];
+        currentItems.push(item);
+        nextMap.set(item.collectionId, currentItems);
+      });
+
+    return nextMap;
+  }, [staticHome.data?.data]);
+
   if (getAllCollections.isLoading && parentCollections.length === 0) {
     return (
       <section className={`${bgColor} py-14`}>
-        <div className="max-w-7xl mx-auto px-4">
+        <div className={SECTION_CONTAINER_CLASSNAME}>
           <div className="py-8 text-center text-[1.4rem] text-muted-foreground">Đang tải collections...</div>
         </div>
       </section>
@@ -361,6 +561,7 @@ export function ProductSection({ bgColor = 'bg-white' }: ProductSectionProps) {
           key={collection.id}
           bgColor={index % 2 === 0 ? bgColor : bgColor === 'bg-white' ? 'bg-muted' : bgColor}
           brandMetaById={brandMetaById}
+          collectionBanners={collectionBannersByCollectionId.get(collection.id) ?? []}
           collection={collection}
         />
       ))}

@@ -4,8 +4,6 @@ import { useMutation, useSWRWrapper } from '@/hooks/swr';
 
 import { METHOD } from '@/global/common';
 
-import { useSession } from './auth';
-
 export interface WishlistProductImage {
   createdAt?: string | null;
   id: string;
@@ -59,13 +57,12 @@ export interface RemoveWishlistPayload {
 const WISHLISTS_ENDPOINT = '/api/v1/wishlists';
 
 export const useWishlists = () => {
-  const { data: session } = useSession();
   const { cache } = useSWRConfig();
 
   const cachedWishlist = cache.get(WISHLISTS_ENDPOINT) as { data?: unknown } | undefined;
   const hasCachedWishlist = Boolean(cachedWishlist?.data);
 
-  const getMyWishlist = useSWRWrapper<WishlistItem[]>(session?.isAuthenticated ? WISHLISTS_ENDPOINT : null, {
+  const getMyWishlist = useSWRWrapper<WishlistItem[]>(WISHLISTS_ENDPOINT, {
     dedupingInterval: 1000 * 60 * 5,
     method: METHOD.GET,
     revalidateIfStale: false,

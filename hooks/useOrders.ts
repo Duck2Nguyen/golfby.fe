@@ -4,8 +4,6 @@ import { useMutation, useSWRWrapper } from '@/hooks/swr';
 
 import { METHOD } from '@/global/common';
 
-import { useSession } from './auth';
-
 export type CheckoutPaymentMethod = 'CASH_ON_DELIVERY' | 'BANK_TRANSFER' | 'ONLINE_GATEWAY';
 export type OrderStatus = 'PENDING' | 'PAID' | 'SHIPPED' | 'COMPLETED' | 'CANCELED' | 'REFUNDED';
 export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED' | 'FAILED';
@@ -91,12 +89,9 @@ export interface UseOrdersOptions {
 }
 
 export const useOrders = (options?: UseOrdersOptions) => {
-  const { data: session } = useSession();
   const requestNonce = useMemo(() => Date.now().toString(36), []);
-  const shouldFetchOrderDetail = Boolean(
-    session?.isAuthenticated && options?.orderId && (options?.enabledOrderDetail ?? true),
-  );
-  const getMyOrdersKey = session?.isAuthenticated ? `orders:list:${requestNonce}` : null;
+  const shouldFetchOrderDetail = Boolean(options?.orderId && (options?.enabledOrderDetail ?? true));
+  const getMyOrdersKey = `orders:list:${requestNonce}`;
 
   const getMyOrders = useSWRWrapper<CheckoutOrder[]>(getMyOrdersKey, {
     dedupingInterval: 0,

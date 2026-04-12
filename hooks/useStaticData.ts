@@ -182,10 +182,6 @@ export const useUploadAdminStaticContentImage = () => {
     {
       loading: true,
       method: METHOD.POST,
-      notification: {
-        content: 'Static content image uploaded successfully',
-        title: 'Success',
-      },
       url: '/api/v1/admin/static-contents/upload-image',
     },
   );
@@ -224,7 +220,7 @@ export const useCreateAdminStaticHome = () => {
     loading: true,
     method: METHOD.POST,
     notification: {
-      content: 'Static home item created successfully',
+      content: 'Tạo banner thành công',
       title: 'Success',
     },
     url: '/api/v1/admin/static-home',
@@ -236,7 +232,7 @@ export const useUpdateAdminStaticHome = () => {
     loading: true,
     method: METHOD.PATCH,
     notification: {
-      content: 'Static home item updated successfully',
+      content: 'Cập nhật banner thành công',
       title: 'Success',
     },
     url: '/api/v1/admin/static-home/{id}',
@@ -248,7 +244,7 @@ export const useDeleteAdminStaticHome = () => {
     loading: true,
     method: METHOD.DELETE,
     notification: {
-      content: 'Static home item deleted successfully',
+      content: 'Xóa banner thành công',
       title: 'Success',
     },
     url: '/api/v1/admin/static-home/{id}',

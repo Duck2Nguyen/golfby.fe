@@ -3,9 +3,7 @@
 import { useMemo, useState, useCallback } from 'react';
 
 import { addToast } from '@heroui/toast';
-import { useRouter } from 'next/navigation';
 
-import { useSession } from './auth';
 import { useWishlists } from './useWishlists';
 
 interface ToggleWishlistPayload {
@@ -16,8 +14,6 @@ interface ToggleWishlistPayload {
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const useWishlistToggle = () => {
-  const router = useRouter();
-  const { data: session } = useSession();
   const { addWishlistMutation, getMyWishlist, removeWishlistMutation } = useWishlists();
 
   const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
@@ -37,15 +33,6 @@ export const useWishlistToggle = () => {
 
   const toggleWishlist = useCallback(
     async ({ productId, productName }: ToggleWishlistPayload) => {
-      if (!session?.isAuthenticated) {
-        addToast({
-          color: 'warning',
-          description: 'Vui lòng đăng nhập để thêm sản phẩm vào danh sách yêu thích.',
-        });
-        router.push('/login');
-        return false;
-      }
-
       if (!UUID_PATTERN.test(productId)) {
         addToast({
           color: 'warning',
@@ -80,7 +67,7 @@ export const useWishlistToggle = () => {
         setTogglingProductId(current => (current === productId ? null : current));
       }
     },
-    [addWishlistMutation, getMyWishlist, removeWishlistMutation, router, session?.isAuthenticated, wishlistedProductIds],
+    [addWishlistMutation, getMyWishlist, removeWishlistMutation, wishlistedProductIds],
   );
 
   return {

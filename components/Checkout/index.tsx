@@ -57,14 +57,14 @@ const getErrorMessage = (error: unknown) => {
 export default function Checkout() {
   const router = useRouter();
 
-  const [email, setEmail] = useState('test@gmail.com');
-  const [phone, setPhone] = useState('0899686063');
-  const [firstName, setFirstName] = useState('Hải');
-  const [lastName, setLastName] = useState('Nguyễn');
-  const [address, setAddress] = useState('Nhà ở Hải');
-  const [province, setProvince] = useState('Hà Nội');
-  const [district, setDistrict] = useState('Ba Đình');
-  const [commune, setCommune] = useState('Điện Biên');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [address, setAddress] = useState('');
+  const [province, setProvince] = useState('');
+  const [district, setDistrict] = useState('');
+  const [commune, setCommune] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
   const [shippingMethod, setShippingMethod] = useState('STANDARD');

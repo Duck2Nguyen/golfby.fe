@@ -3,9 +3,7 @@
 import { useState, useCallback } from 'react';
 
 import { addToast } from '@heroui/toast';
-import { useRouter } from 'next/navigation';
 
-import { useSession } from './auth';
 import { useCarts } from './useCarts';
 
 interface AddToCartFromListPayload {
@@ -30,23 +28,12 @@ const getErrorMessage = (error: unknown) => {
 };
 
 export const useAddToCartFromList = () => {
-  const router = useRouter();
-  const { data: session } = useSession();
   const { addToCartMutation, getMyCart } = useCarts();
 
   const [addingProductId, setAddingProductId] = useState<string | null>(null);
 
   const addToCartFromList = useCallback(
     async ({ productId, productName, quantity = 1, variantId }: AddToCartFromListPayload) => {
-      if (!session?.isAuthenticated) {
-        addToast({
-          color: 'warning',
-          description: 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.',
-        });
-        router.push('/login');
-        return false;
-      }
-
       setAddingProductId(productId);
 
       try {
@@ -78,7 +65,7 @@ export const useAddToCartFromList = () => {
         setAddingProductId(current => (current === productId ? null : current));
       }
     },
-    [addToCartMutation, getMyCart, router, session?.isAuthenticated],
+    [addToCartMutation, getMyCart],
   );
 
   return {

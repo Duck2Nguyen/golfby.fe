@@ -18,7 +18,6 @@ import {
 import { addToast } from '@heroui/toast';
 import { useRouter } from 'next/navigation';
 
-import { useSession } from '@/hooks/auth';
 import { useCarts } from '@/hooks/useCarts';
 import { useWishlistToggle } from '@/hooks/useWishlistToggle';
 
@@ -79,7 +78,6 @@ export default function ProductInfo({
   inStock,
 }: ProductInfoProps) {
   const router = useRouter();
-  const { data: session } = useSession();
   const { addToCartMutation, getMyCart } = useCarts();
   const { isWishlisted, togglingProductId, toggleWishlist } = useWishlistToggle();
 
@@ -242,15 +240,6 @@ export default function ProductInfo({
   const isWishlistLoading = togglingProductId === productId;
 
   const validatePurchaseState = () => {
-    if (!session?.isAuthenticated) {
-      addToast({
-        color: 'warning',
-        description: 'Vui lòng đăng nhập để tiếp tục mua hàng.',
-      });
-      router.push('/login');
-      return false;
-    }
-
     if (!displayInStock) {
       addToast({
         color: 'warning',

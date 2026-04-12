@@ -3,9 +3,8 @@ import React from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { HeroBanner } from '@/components/HeroBanner';
-import { Newsletter } from '@/components/Newsletter';
 import { BrandSlider } from '@/components/BrandSlider';
-import { PromoBanner } from '@/components/PromoBanner';
+import WhyChooseGolfBy from '@/components/WhyChooseGolfBy';
 import { ProductSection } from '@/components/ProductSection';
 import HomeBannerMosaic from '@/components/HomeBannerMosaic';
 import TopSellingSection from '@/components/TopSellingSection';
@@ -27,7 +26,7 @@ export default function HomePage() {
         <ProductSection />
         <TopSellingSection limit={8} />
 
-        <PromoBanner
+        {/* <PromoBanner
           layout="two-col"
           banners={[
             {
@@ -46,8 +45,8 @@ export default function HomePage() {
               align: 'right',
             },
           ]}
-        />
-
+        /> */}
+        {/* 
         <PromoBanner
           layout="full"
           banners={[
@@ -59,9 +58,10 @@ export default function HomePage() {
               cta: 'Đăng ký miễn phí',
             },
           ]}
-        />
+        /> */}
 
-        <Newsletter />
+        {/* <Newsletter /> */}
+        <WhyChooseGolfBy />
       </main>
 
       <Footer />
