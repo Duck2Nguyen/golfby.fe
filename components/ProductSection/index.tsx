@@ -51,7 +51,7 @@ const PRODUCTS_PER_COLLECTION_WITH_VERTICAL_BANNER = 3;
 const BRANDS_PER_COLLECTION = 4;
 const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
 const API_BASE_URL = (process.env.BASE_API_URL ?? '').replace(/\/$/, '');
-const SECTION_CONTAINER_CLASSNAME = 'mx-auto w-full max-w-[160rem] px-4 md:px-6 xl:px-0';
+const SECTION_CONTAINER_CLASSNAME = 'mx-auto w-full max-w-[140rem] px-4 md:px-6 xl:px-0';
 
 const readString = (value: unknown) => {
   return typeof value === 'string' ? value.trim() : '';
@@ -192,8 +192,8 @@ function CollectionSectionBannerCard({
   const isCompactHorizontal = isHorizontal && horizontalCount > 2;
 
   const horizontalHeightClassName = isCompactHorizontal
-    ? 'h-[11rem] sm:h-[13rem] lg:h-[20rem]'
-    : 'h-[14rem] sm:h-[18rem] lg:h-[20rem]';
+    ? 'h-[11rem] sm:h-[13rem] lg:h-[18rem]'
+    : 'h-[14rem] sm:h-[18rem] lg:h-[18rem]';
 
   const imageSizes = isHorizontal
     ? `(min-width: 1280px) ${Math.max(Math.round(100 / horizontalCount), 20)}vw, (min-width: 768px) ${Math.max(
@@ -428,11 +428,11 @@ function CollectionProductSection({
                     return (
                       <Link
                         key={brand.id}
-                        className="group flex items-center justify-between rounded-[1.6rem] border border-border bg-white p-6 transition-all hover:border-primary/40 hover:bg-primary-light/20"
+                        className="group flex items-center justify-between rounded-[1.6rem] border border-border bg-white px-6 py-3 transition-all hover:border-primary/40 hover:bg-primary-light/20"
                         href={buildCollectionBrandHref(collection.slug, brand.slug)}
                         underline="none"
                       >
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-1">
                           <span className="text-[1.6rem] leading-[2.2rem] text-foreground font-700">
                             {brand.name}
                           </span>
@@ -447,7 +447,7 @@ function CollectionProductSection({
                   })}
 
                   <Link
-                    className="flex h-[4rem] items-center justify-center rounded-[1.6rem] border border-border bg-white text-[1.6rem] leading-[2.2rem] text-foreground font-600 transition-all hover:border-primary hover:text-primary"
+                    className="flex h-[4rem] items-center justify-center rounded-[1.6rem] border border-border bg-white text-[1.4rem] leading-[2.2rem] text-foreground font-600 transition-all hover:border-primary hover:text-primary"
                     href={`/collection/${collection.slug}`}
                     underline="none"
                   >

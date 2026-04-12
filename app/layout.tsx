@@ -47,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             forcedTheme: 'light',
           }}
         >
-          <div className="relative flex flex-col h-screen">
+          <div className="relative flex flex-col h-screen overflow-x-hidden">
             {/* <Navbar /> */}
             <main className="text-foreground bg-background flex-1">{children}</main>
           </div>

@@ -105,10 +105,10 @@ export function Footer() {
 
   return (
     <footer className="bg-[linear-gradient(90deg,#062d11_0%,#0d3618_55%,#123d17_100%)] text-white">
-      <div className="mx-auto w-full max-w-[160rem] px-4 pb-8 pt-14 md:px-6 xl:px-8">
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-[1.25fr_1fr_1fr_1fr_1fr]">
+      <div className="mx-auto w-full max-w-[140rem] px-4 pb-8 pt-10 md:px-6 xl:px-8">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_1.5fr]">
           <div>
-            <h3 className="mb-4 border-b border-white/10 pb-2 text-[2rem] font-700 leading-[2.4rem] text-white">
+            <h3 className="mb-4 border-b border-white/10 pb-2 text-[1.8rem] font-700 leading-[2.4rem] text-white">
               Sản Phẩm
             </h3>
             <ul className="space-y-2.5">
@@ -116,7 +116,7 @@ export function Footer() {
                 <li key={item.label}>
                   <Link
                     href={item.href}
-                    className="text-[1.6rem] font-400 leading-[2.2rem] text-white/65 transition-colors hover:text-[#86cf5b]"
+                    className="text-[1.4rem] font-400 leading-[2.2rem] text-white/65 transition-colors hover:text-[#86cf5b]"
                   >
                     {item.label}
                   </Link>
@@ -126,7 +126,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-4 border-b border-white/10 pb-2 text-[2rem] font-700 leading-[2.4rem] text-white">
+            <h3 className="mb-4 border-b border-white/10 pb-2 text-[1.8rem] font-700 leading-[2.4rem] text-white">
               Thương Hiệu
             </h3>
             <ul className="space-y-2.5">
@@ -134,7 +134,7 @@ export function Footer() {
                 <li key={item.label}>
                   <Link
                     href={item.href}
-                    className="text-[1.6rem] font-400 leading-[2.2rem] text-white/65 transition-colors hover:text-[#86cf5b]"
+                    className="text-[1.4rem] font-400 leading-[2.2rem] text-white/65 transition-colors hover:text-[#86cf5b]"
                   >
                     {item.label}
                   </Link>
@@ -144,7 +144,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-4 border-b border-white/10 pb-2 text-[2rem] font-700 leading-[2.4rem] text-white">
+            <h3 className="mb-4 border-b border-white/10 pb-2 text-[1.8rem] font-700 leading-[2.4rem] text-white">
               Chính Sách
             </h3>
             <ul className="space-y-2.5">
@@ -152,7 +152,7 @@ export function Footer() {
                 <li key={item.label}>
                   <Link
                     href={item.href}
-                    className="text-[1.6rem] font-400 leading-[2.2rem] text-white/65 transition-colors hover:text-[#86cf5b]"
+                    className="text-[1.4rem] font-400 leading-[2.2rem] text-white/65 transition-colors hover:text-[#86cf5b]"
                   >
                     {item.label}
                   </Link>
@@ -162,7 +162,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-4 border-b border-white/10 pb-2 text-[2rem] font-700 leading-[2.4rem] text-white">
+            <h3 className="mb-4 border-b border-white/10 pb-2 text-[1.8rem] font-700 leading-[2.4rem] text-white">
               Thông Tin Thêm
             </h3>
             <ul className="space-y-2.5">
@@ -170,7 +170,7 @@ export function Footer() {
                 <li key={item.label}>
                   <Link
                     href={item.href}
-                    className="text-[1.6rem] font-400 leading-[2.2rem] text-white/65 transition-colors hover:text-[#86cf5b]"
+                    className="text-[1.4rem] font-400 leading-[2.2rem] text-white/65 transition-colors hover:text-[#86cf5b]"
                   >
                     {item.label}
                   </Link>
@@ -180,7 +180,7 @@ export function Footer() {
           </div>
 
           <div>
-            <p className="mb-3 text-[1.4rem] font-700 leading-[2.2rem] text-white/90">
+            <p className="mb-3 text-[1.6rem] font-700 leading-[2.2rem] text-white/90">
               CÔNG TY TNHH THƯƠNG MẠI GB HOÀNG SƠN
             </p>
             <p className="mb-4 text-[1.3rem] font-400 leading-[2.2rem] text-white/70">
