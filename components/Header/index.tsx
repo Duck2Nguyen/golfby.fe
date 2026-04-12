@@ -21,6 +21,7 @@ import { Form, Field, Formik } from 'formik';
 
 import { useSession } from '@/hooks/auth';
 import { useCarts } from '@/hooks/useCarts';
+import { useWishlists } from '@/hooks/useWishlists';
 import { useBrands, type Brand } from '@/hooks/useBrands';
 import { useCollections, type CollectionTreeNode } from '@/hooks/useCollections';
 
@@ -290,8 +291,11 @@ export function Header() {
     return [brandNavItem, ...mappedNavItems, PROMOTION_NAV_ITEM];
   }, [brands, collectionTree]);
 
+  const { getMyWishlist } = useWishlists();
   const cartItems = getMyCart.data?.data ?? [];
   const cartCount = cartItems.length ?? 0;
+  const wishlistItems = getMyWishlist.data?.data ?? [];
+  const wishlistCount = wishlistItems.length ?? 0;
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -429,9 +433,19 @@ export function Header() {
           <div className="flex items-center gap-2">
             <Link
               href="/wishlist"
-              className="hidden sm:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl hover:bg-muted transition-colors group"
+              className="relative hidden sm:flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl hover:bg-muted transition-colors group"
             >
-              <Heart className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+              <div className="relative">
+                <Heart className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                {wishlistCount > 0 && (
+                  <span
+                    className="absolute -top-1.5 -right-2 bg-destructive text-white text-[1.0rem] w-4 h-4 rounded-full flex items-center justify-center"
+                    style={{ fontWeight: 600 }}
+                  >
+                    {wishlistCount}
+                  </span>
+                )}
+              </div>
               <span className="text-[1.1rem] text-muted-foreground group-hover:text-primary transition-colors">
                 Yêu thích
               </span>

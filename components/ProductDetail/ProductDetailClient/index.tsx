@@ -387,6 +387,7 @@ export default function ProductDetailPageClient({ productId }: ProductDetailClie
             <ProductInfo
               productId={String(product.id)}
               name={product.name}
+              image={product.image}
               brand={product.brand}
               sku={detail.sku}
               price={product.price}

@@ -1,4 +1,4 @@
-import { Eye, Heart, ShoppingCart } from 'lucide-react';
+import { Heart, ShoppingCart } from 'lucide-react';
 
 import Link from 'next/link';
 
@@ -97,12 +97,6 @@ export function ProductCard({
             }`}
           >
             <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-white' : ''}`} />
-          </button>
-          <button
-            onClick={e => e.preventDefault()}
-            className="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-primary hover:text-white transition-colors"
-          >
-            <Eye className="w-4 h-4" />
           </button>
         </div>
 

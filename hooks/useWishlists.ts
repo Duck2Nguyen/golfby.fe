@@ -73,7 +73,10 @@ export const useWishlists = () => {
   const addWishlistMutation = useMutation<boolean>('/api/v1/wishlists/{productId}', {
     loading: true,
     method: METHOD.POST,
-
+    notification: {
+      content: 'Thêm vào danh sách yêu thích thành công',
+      title: 'Thành công',
+    },
     url: '/api/v1/wishlists/{productId}',
   });
 

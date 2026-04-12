@@ -18,6 +18,13 @@ import {
 import { addToast } from '@heroui/toast';
 import { useRouter } from 'next/navigation';
 
+import { setSessionKey, removeSessionKey } from '@/utils/localStorage';
+import {
+  type DirectCheckoutItem,
+  CHECKOUT_DIRECT_ITEMS_KEY,
+  CHECKOUT_SELECTED_CART_ITEM_IDS_KEY,
+} from '@/utils/checkoutSelection';
+
 import { useCarts } from '@/hooks/useCarts';
 import { useWishlistToggle } from '@/hooks/useWishlistToggle';
 
@@ -51,6 +58,7 @@ interface ProductVariant {
 interface ProductInfoProps {
   productId: string;
   name: string;
+  image?: string;
   brand: string;
   sku: string;
   price: number;
@@ -63,9 +71,12 @@ interface ProductInfoProps {
   inStock: boolean;
 }
 
+const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
+
 export default function ProductInfo({
   productId,
   name,
+  image,
   brand,
   sku,
   price,
@@ -304,12 +315,43 @@ export default function ProductInfo({
     await addCurrentSelectionToCart();
   };
 
-  const handleBuyNow = async () => {
-    const added = await addCurrentSelectionToCart();
-
-    if (!added) {
+  const handleBuyNow = () => {
+    if (!validatePurchaseState()) {
       return;
     }
+
+    const selectedSpecs = [
+      displaySku ? { label: 'SKU', value: displaySku } : null,
+      ...options.map(option => {
+        const optionKey = getOptionKey(option);
+        const selectedOptionValue = selectedOptions[optionKey];
+
+        if (!selectedOptionValue?.value) {
+          return null;
+        }
+
+        return {
+          label: option.label,
+          value: selectedOptionValue.value,
+        };
+      }),
+    ].filter((spec): spec is { label: string; value: string } => Boolean(spec));
+
+    const directCheckoutItem: DirectCheckoutItem = {
+      ...(image ? { image } : { image: PRODUCT_IMAGE_FALLBACK }),
+      name,
+      ...(displayOriginalPrice && displayOriginalPrice > displayPrice
+        ? { originalPrice: displayOriginalPrice }
+        : {}),
+      ...(displayPrice > 0 ? { price: displayPrice } : {}),
+      productId,
+      quantity,
+      ...(selectedSpecs.length > 0 ? { specs: selectedSpecs } : {}),
+      ...(selectedVariantId ? { variantId: selectedVariantId } : {}),
+    };
+
+    setSessionKey(CHECKOUT_DIRECT_ITEMS_KEY, [directCheckoutItem]);
+    removeSessionKey(CHECKOUT_SELECTED_CART_ITEM_IDS_KEY);
 
     router.push('/checkout');
   };

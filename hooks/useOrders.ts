@@ -36,11 +36,18 @@ export interface OrderShippingMethod {
   name?: string;
 }
 
+export interface DirectCheckoutPayloadItem {
+  productId: string;
+  quantity?: number;
+  variantId?: string;
+}
+
 export interface CheckoutPayload {
   address: string;
   cartItemIds?: string[];
   commune: string;
   csrf?: boolean;
+  directItems?: DirectCheckoutPayloadItem[];
   discountCode?: string;
   district: string;
   fullName: string;

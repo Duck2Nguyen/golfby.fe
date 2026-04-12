@@ -5,8 +5,8 @@ import { Tag, Ticket, ArrowRight, ShieldCheck, ShoppingBag } from 'lucide-react'
 
 import Link from 'next/link';
 
-import { removeSessionKey, setSessionKey } from '@/utils/localStorage';
-import { CHECKOUT_SELECTED_CART_ITEM_IDS_KEY } from '@/utils/checkoutSelection';
+import { setSessionKey, removeSessionKey } from '@/utils/localStorage';
+import { CHECKOUT_DIRECT_ITEMS_KEY, CHECKOUT_SELECTED_CART_ITEM_IDS_KEY } from '@/utils/checkoutSelection';
 
 interface OrderSummaryProps {
   selectedCartItemIds: string[];
@@ -161,9 +161,11 @@ export default function OrderSummary({ selectedCartItemIds, subtotal, itemCount 
 
               if (selectedCartItemIds.length > 0) {
                 setSessionKey(CHECKOUT_SELECTED_CART_ITEM_IDS_KEY, selectedCartItemIds);
+                removeSessionKey(CHECKOUT_DIRECT_ITEMS_KEY);
                 return;
               }
 
+              removeSessionKey(CHECKOUT_DIRECT_ITEMS_KEY);
               removeSessionKey(CHECKOUT_SELECTED_CART_ITEM_IDS_KEY);
             }}
             className={`w-full h-13 bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary-dark text-white rounded-xl text-[15px] flex items-center justify-center gap-2.5 transition-all duration-300 shadow-md hover:shadow-xl hover:shadow-primary/25 active:scale-[0.98] font-600 ${

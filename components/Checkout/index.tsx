@@ -9,7 +9,13 @@ import { Spinner } from '@heroui/spinner';
 import { useRouter } from 'next/navigation';
 
 import { getSessionKey, removeSessionKey } from '@/utils/localStorage';
-import { normalizeSelectedCartItemIds, CHECKOUT_SELECTED_CART_ITEM_IDS_KEY } from '@/utils/checkoutSelection';
+import {
+  type DirectCheckoutItem,
+  CHECKOUT_DIRECT_ITEMS_KEY,
+  normalizeDirectCheckoutItems,
+  normalizeSelectedCartItemIds,
+  CHECKOUT_SELECTED_CART_ITEM_IDS_KEY,
+} from '@/utils/checkoutSelection';
 
 import { useCarts, type CartItem as ApiCartItem } from '@/hooks/useCarts';
 import { useOrders, type CheckoutPaymentMethod } from '@/hooks/useOrders';
@@ -35,7 +41,9 @@ interface CheckoutItem {
   specs?: Array<{ label: string; value: string }>;
 }
 
-const toNumber = (value?: string | null) => {
+const CHECKOUT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
+
+const toNumber = (value?: string | number | null) => {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
 };
@@ -71,12 +79,25 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('BANK_TRANSFER');
   const [note, setNote] = useState('');
   const [selectedCartItemIds, setSelectedCartItemIds] = useState<string[] | null>(null);
+  const [directCheckoutItems, setDirectCheckoutItems] = useState<DirectCheckoutItem[]>([]);
 
   const { getMyCart } = useCarts();
   const { data, error, isLoading } = getMyCart;
   const { checkoutMutation } = useOrders();
 
   useEffect(() => {
+    const savedDirectItems = normalizeDirectCheckoutItems(
+      getSessionKey<unknown>(CHECKOUT_DIRECT_ITEMS_KEY),
+    );
+
+    if (savedDirectItems.length > 0) {
+      setDirectCheckoutItems(savedDirectItems);
+      setSelectedCartItemIds(null);
+      return;
+    }
+
+    setDirectCheckoutItems([]);
+
     const savedCartItemIds = normalizeSelectedCartItemIds(
       getSessionKey<unknown>(CHECKOUT_SELECTED_CART_ITEM_IDS_KEY),
     );
@@ -89,11 +110,17 @@ export default function Checkout() {
     setSelectedCartItemIds(null);
   }, []);
 
+  const isDirectCheckout = directCheckoutItems.length > 0;
+
   const cartApiItems = useMemo<ApiCartItem[]>(() => {
     return Array.isArray(data?.data) ? data.data : [];
   }, [data?.data]);
 
   const checkoutCartApiItems = useMemo<ApiCartItem[]>(() => {
+    if (isDirectCheckout) {
+      return [];
+    }
+
     if (!selectedCartItemIds || selectedCartItemIds.length === 0) {
       return cartApiItems;
     }
@@ -102,9 +129,33 @@ export default function Checkout() {
     const filteredItems = cartApiItems.filter(item => selectedCartItemIdSet.has(String(item.id)));
 
     return filteredItems.length > 0 ? filteredItems : cartApiItems;
-  }, [cartApiItems, selectedCartItemIds]);
+  }, [cartApiItems, isDirectCheckout, selectedCartItemIds]);
 
   const cartItems = useMemo<CheckoutItem[]>(() => {
+    if (isDirectCheckout) {
+      return directCheckoutItems.map((item, index) => {
+        const normalizedPrice = toNumber(item.price);
+        const normalizedOriginalPrice = toNumber(item.originalPrice);
+        const displayPrice = normalizedPrice > 0 ? normalizedPrice : normalizedOriginalPrice;
+        const specs = (item.specs ?? []).filter(
+          spec => spec.label.trim().length > 0 && spec.value.trim().length > 0,
+        );
+
+        return {
+          id: item.variantId ? `${item.productId}:${item.variantId}:${index}` : `${item.productId}:${index}`,
+          productId: item.productId,
+          name: item.name ?? 'Sản phẩm mua ngay',
+          price: displayPrice,
+          ...(normalizedOriginalPrice > displayPrice && displayPrice > 0
+            ? { originalPrice: normalizedOriginalPrice }
+            : {}),
+          quantity: item.quantity,
+          image: item.image ?? CHECKOUT_IMAGE_FALLBACK,
+          ...(specs.length > 0 ? { specs } : {}),
+        };
+      });
+    }
+
     return checkoutCartApiItems
       .filter(item => Boolean(item.product))
       .map(item => {
@@ -154,7 +205,7 @@ export default function Checkout() {
           ...(specs.length > 0 ? { specs } : {}),
         };
       });
-  }, [checkoutCartApiItems]);
+  }, [checkoutCartApiItems, directCheckoutItems, isDirectCheckout]);
 
   const subtotal = cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
   const couponDiscount = couponApplied ? Math.round(subtotal * 0.05) : 0;
@@ -172,7 +223,7 @@ export default function Checkout() {
     }
   };
 
-  const canSubmitCheckout = cartItems.length > 0 && !isLoading;
+  const canSubmitCheckout = cartItems.length > 0 && (isDirectCheckout || !isLoading);
 
   const handleCheckout = async () => {
     if (!canSubmitCheckout) {
@@ -200,10 +251,18 @@ export default function Checkout() {
       return;
     }
 
+    const directItemsPayload = directCheckoutItems.map(item => ({
+      ...(item.variantId ? { variantId: item.variantId } : {}),
+      productId: item.productId,
+      quantity: item.quantity,
+    }));
+
     try {
       const response = await checkoutMutation.trigger({
         address: address.trim(),
-        cartItemIds: cartItems.map(item => String(item.id)),
+        ...(isDirectCheckout
+          ? { directItems: directItemsPayload }
+          : { cartItemIds: cartItems.map(item => String(item.id)) }),
         commune: commune.trim(),
         csrf: true,
         ...(couponApplied && couponCode.trim() ? { discountCode: couponCode.trim() } : {}),
@@ -216,8 +275,14 @@ export default function Checkout() {
         shippingCode: shippingMethod,
       });
 
-      await getMyCart.mutate();
+      if (!isDirectCheckout) {
+        await getMyCart.mutate();
+      }
+
+      removeSessionKey(CHECKOUT_DIRECT_ITEMS_KEY);
       removeSessionKey(CHECKOUT_SELECTED_CART_ITEM_IDS_KEY);
+      setDirectCheckoutItems([]);
+      setSelectedCartItemIds(null);
 
       if (response?.data?.vietqrUrl) {
         const paymentSearchParams = new URLSearchParams({
@@ -270,11 +335,11 @@ export default function Checkout() {
         <StepProgress steps={steps} />
 
         {/* Main Content */}
-        {isLoading ? (
+        {!isDirectCheckout && isLoading ? (
           <div className="flex items-center justify-center py-20">
             <Spinner label="Đang tải dữ liệu giỏ hàng" size="lg" />
           </div>
-        ) : error ? (
+        ) : !isDirectCheckout && error ? (
           <div className="py-16 text-center text-[1.4rem] text-danger">
             Không thể tải dữ liệu giỏ hàng. Vui lòng thử lại.
           </div>
