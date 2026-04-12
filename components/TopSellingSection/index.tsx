@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
 import { ArrowRight } from 'lucide-react';
+import { useKeenSlider } from 'keen-slider/react';
+import { useMemo, useState, useEffect } from 'react';
 
 import { Link } from '@heroui/link';
 
@@ -23,6 +24,7 @@ interface TopSellingSectionProps {
 }
 
 const DEFAULT_LIMIT = 8;
+const MOBILE_PRODUCTS_PER_VIEW = 2;
 const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
 
 const toNumber = (value?: string | null) => {
@@ -62,6 +64,8 @@ export default function TopSellingSection({
   title = 'Top SP Bán Chạy',
   viewAllHref = '/collection',
 }: TopSellingSectionProps) {
+  const [currentMobilePage, setCurrentMobilePage] = useState(0);
+
   const { getTopProducts } = useProducts({
     getTopParams: {
       by: 'bestsellers',
@@ -75,6 +79,35 @@ export default function TopSellingSection({
     const items = getTopProducts.data?.data ?? [];
     return items.map(mapApiProductToCardData);
   }, [getTopProducts.data?.data]);
+
+  const mobileProductPages = useMemo(() => {
+    const pages: Product[][] = [];
+
+    for (let index = 0; index < products.length; index += MOBILE_PRODUCTS_PER_VIEW) {
+      pages.push(products.slice(index, index + MOBILE_PRODUCTS_PER_VIEW));
+    }
+
+    return pages;
+  }, [products]);
+
+  const [mobileSliderRef, mobileSliderInstanceRef] = useKeenSlider<HTMLDivElement>({
+    mode: 'snap',
+    renderMode: 'performance',
+    rubberband: false,
+    slideChanged(slider) {
+      setCurrentMobilePage(slider.track.details.rel);
+    },
+    slides: {
+      perView: 1,
+      spacing: 0,
+    },
+  });
+
+  useEffect(() => {
+    mobileSliderInstanceRef.current?.update();
+  }, [mobileProductPages.length]);
+
+  const mobilePageCount = Math.max(1, mobileProductPages.length);
 
   const isEmpty = !getTopProducts.isLoading && products.length === 0;
 
@@ -114,7 +147,60 @@ export default function TopSellingSection({
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+        <div className="md:hidden">
+          <div ref={mobileSliderRef} className="keen-slider touch-pan-y">
+            {mobileProductPages.map((productPage, pageIndex) => (
+              <div key={`top-selling-mobile-page-${pageIndex}`} className="keen-slider__slide min-w-0">
+                <div className="grid grid-cols-2 gap-3">
+                  {productPage.map(product => (
+                    <ProductCard
+                      key={product.id}
+                      isAddingToCart={addingProductId === String(product.id)}
+                      isWishlisted={isWishlisted(String(product.id))}
+                      isWishlistLoading={togglingProductId === String(product.id)}
+                      onAddToCartAction={currentProduct =>
+                        addToCartFromList({
+                          productId: String(currentProduct.id),
+                          productName: currentProduct.name,
+                        })
+                      }
+                      onToggleWishlistAction={currentProduct =>
+                        toggleWishlist({
+                          productId: String(currentProduct.id),
+                          productName: currentProduct.name,
+                        })
+                      }
+                      product={product}
+                    />
+                  ))}
+
+                  {productPage.length < MOBILE_PRODUCTS_PER_VIEW ? (
+                    <div aria-hidden className="invisible" />
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {mobileProductPages.length > 0 ? (
+            <div className="mt-4 flex items-center justify-center gap-2">
+              {Array.from({ length: mobilePageCount }).map((_, index) => (
+                <button
+                  key={`top-selling-dot-${index}`}
+                  aria-label={`Chuyển đến nhóm top sản phẩm ${index + 1}`}
+                  className={[
+                    'h-2 w-2 rounded-full transition-colors',
+                    currentMobilePage === index ? 'bg-primary' : 'bg-foreground/25',
+                  ].join(' ')}
+                  onClick={() => mobileSliderInstanceRef.current?.moveToIdx(index)}
+                  type="button"
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
           {products.map(product => (
             <ProductCard
               key={product.id}

@@ -126,7 +126,7 @@ export default function HomeBannerMosaic() {
 
   return (
     <section className="w-full max-w-7xl mx-auto py-2">
-      <div className="grid h-[36rem] grid-cols-2 gap-2 md:h-[56rem] md:grid-cols-12 md:grid-rows-2">
+      <div className="grid h-auto grid-cols-2 gap-2 md:h-[56rem] md:grid-cols-12 md:grid-rows-2">
         {visibleItems.map((item, index) => (
           <Link
             className={`${TILE_LAYOUT_CLASSNAMES[index]} group relative block overflow-hidden rounded-sm`}

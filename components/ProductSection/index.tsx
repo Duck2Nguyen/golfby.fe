@@ -1,7 +1,8 @@
 'use client';
 
 import { ArrowRight } from 'lucide-react';
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useKeenSlider } from 'keen-slider/react';
+import { useMemo, useState, useEffect, type CSSProperties } from 'react';
 
 import Image from 'next/image';
 import { Link } from '@heroui/link';
@@ -35,6 +36,18 @@ interface CollectionSectionBrand {
   slug?: string | null;
 }
 
+interface ProductCardActions {
+  isAddingToCart: boolean;
+  isWishlisted: boolean;
+  isWishlistLoading: boolean;
+  onAddToCartAction: (currentProduct: Product) => void;
+  onToggleWishlistAction: (currentProduct: Product) => void;
+}
+
+interface ProductCardWithActionsProps extends ProductCardActions {
+  product: Product;
+}
+
 type CollectionStaticHomeDirection =
   (typeof STATIC_HOME_COLLECTION_DIRECTIONS)[keyof typeof STATIC_HOME_COLLECTION_DIRECTIONS];
 
@@ -47,7 +60,9 @@ interface CollectionStaticBanner {
 }
 
 const PRODUCTS_PER_COLLECTION_DEFAULT = 8;
+const MOBILE_PRODUCTS_PER_COLLECTION = 6;
 const PRODUCTS_PER_COLLECTION_WITH_VERTICAL_BANNER = 3;
+const MOBILE_PRODUCTS_PER_VIEW = 2;
 const BRANDS_PER_COLLECTION = 4;
 const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
 const API_BASE_URL = (process.env.BASE_API_URL ?? '').replace(/\/$/, '');
@@ -192,7 +207,7 @@ function CollectionSectionBannerCard({
   const isCompactHorizontal = isHorizontal && horizontalCount > 2;
 
   const horizontalHeightClassName = isCompactHorizontal
-    ? 'h-[11rem] sm:h-[13rem] lg:h-[18rem]'
+    ? 'h-[14rem] sm:h-[13rem] lg:h-[18rem]'
     : 'h-[14rem] sm:h-[18rem] lg:h-[18rem]';
 
   const imageSizes = isHorizontal
@@ -243,6 +258,26 @@ function BrandLogo({ alt, src }: { alt: string; src?: string | null }) {
   );
 }
 
+function ProductCardWithActions({
+  isAddingToCart,
+  isWishlisted,
+  isWishlistLoading,
+  onAddToCartAction,
+  onToggleWishlistAction,
+  product,
+}: ProductCardWithActionsProps) {
+  return (
+    <ProductCard
+      isAddingToCart={isAddingToCart}
+      isWishlisted={isWishlisted}
+      isWishlistLoading={isWishlistLoading}
+      onAddToCartAction={onAddToCartAction}
+      onToggleWishlistAction={onToggleWishlistAction}
+      product={product}
+    />
+  );
+}
+
 function CollectionProductSection({
   bgColor,
   brandMetaById,
@@ -252,6 +287,10 @@ function CollectionProductSection({
   const hasVerticalBanner = collectionBanners.some(
     banner => banner.direction === STATIC_HOME_COLLECTION_DIRECTIONS.VERTICAL,
   );
+  const productFetchSize = hasVerticalBanner
+    ? Math.max(PRODUCTS_PER_COLLECTION_WITH_VERTICAL_BANNER, MOBILE_PRODUCTS_PER_COLLECTION)
+    : PRODUCTS_PER_COLLECTION_DEFAULT;
+  const [currentMobileProductPage, setCurrentMobileProductPage] = useState(0);
 
   const { addToCartFromList, addingProductId } = useAddToCartFromList();
   const { isWishlisted, togglingProductId, toggleWishlist } = useWishlistToggle();
@@ -259,9 +298,7 @@ function CollectionProductSection({
     getAllParams: {
       collectionId: collection.id,
       page: 1,
-      size: hasVerticalBanner
-        ? PRODUCTS_PER_COLLECTION_WITH_VERTICAL_BANNER
-        : PRODUCTS_PER_COLLECTION_DEFAULT,
+      size: productFetchSize,
     },
   });
 
@@ -331,9 +368,86 @@ function CollectionProductSection({
     );
   }, [collectionBanners]);
 
+  const desktopProducts = useMemo(() => {
+    const desktopLimit = hasVerticalBanner
+      ? PRODUCTS_PER_COLLECTION_WITH_VERTICAL_BANNER
+      : PRODUCTS_PER_COLLECTION_DEFAULT;
+
+    return products.slice(0, desktopLimit);
+  }, [hasVerticalBanner, products]);
+
+  const mobileProducts = useMemo(() => {
+    return products.slice(0, MOBILE_PRODUCTS_PER_COLLECTION);
+  }, [products]);
+
+  const mobileProductPages = useMemo(() => {
+    const pages: Product[][] = [];
+
+    for (let index = 0; index < mobileProducts.length; index += MOBILE_PRODUCTS_PER_VIEW) {
+      pages.push(mobileProducts.slice(index, index + MOBILE_PRODUCTS_PER_VIEW));
+    }
+
+    return pages;
+  }, [mobileProducts]);
+
+  const [mobileProductSliderRef, mobileProductSliderInstanceRef] = useKeenSlider<HTMLDivElement>({
+    mode: 'snap',
+    rubberband: false,
+    slideChanged(slider) {
+      setCurrentMobileProductPage(slider.track.details.rel);
+    },
+    slides: {
+      perView: 1,
+      spacing: 15,
+    },
+  });
+
+  const [mobileBrandSliderRef, mobileBrandSliderInstanceRef] = useKeenSlider<HTMLDivElement>({
+    breakpoints: {
+      '(min-width: 520px)': {
+        slides: {
+          perView: 2,
+          spacing: 12,
+        },
+      },
+    },
+    mode: 'snap',
+    rubberband: false,
+    slides: {
+      perView: 1.5,
+      spacing: 12,
+    },
+  });
+
+  const [mobileHorizontalBannerSliderRef, mobileHorizontalBannerSliderInstanceRef] =
+    useKeenSlider<HTMLDivElement>({
+      drag: horizontalBanners.length > 1,
+      mode: 'snap',
+      renderMode: 'performance',
+      rubberband: false,
+      slides: {
+        perView: 1,
+        spacing: 8,
+      },
+    });
+
+  useEffect(() => {
+    mobileProductSliderInstanceRef.current?.update();
+  }, [mobileProductPages.length]);
+
+  useEffect(() => {
+    mobileBrandSliderInstanceRef.current?.update();
+  }, [sectionBrands.length]);
+
+  useEffect(() => {
+    mobileHorizontalBannerSliderInstanceRef.current?.update();
+  }, [horizontalBanners.length]);
+
   const productGridClassName = verticalBanner
-    ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 md:gap-5'
-    : 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5';
+    ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 md:gap-5'
+    : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5';
+
+  const mobileProductPageCount = Math.max(1, mobileProductPages.length);
 
   const horizontalBannerGridStyle = useMemo<CSSProperties | undefined>(() => {
     if (horizontalBanners.length <= 1) {
@@ -346,7 +460,7 @@ function CollectionProductSection({
   }, [horizontalBanners.length]);
 
   return (
-    <section className={`${bgColor} py-14`}>
+    <section className={`${bgColor} py-8 md:py-14`}>
       <div className={SECTION_CONTAINER_CLASSNAME}>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>
@@ -389,16 +503,57 @@ function CollectionProductSection({
                   className={`grid gap-4 md:gap-5 ${verticalBanner ? 'lg:grid-cols-[30rem_minmax(0,1fr)]' : ''}`}
                 >
                   {verticalBanner ? (
-                    <CollectionSectionBannerCard
-                      banner={verticalBanner}
-                      collectionName={collection.name}
-                      orientation={STATIC_HOME_COLLECTION_DIRECTIONS.VERTICAL}
-                    />
+                    <div className="hidden lg:block">
+                      <CollectionSectionBannerCard
+                        banner={verticalBanner}
+                        collectionName={collection.name}
+                        orientation={STATIC_HOME_COLLECTION_DIRECTIONS.VERTICAL}
+                      />
+                    </div>
                   ) : null}
 
-                  <div className={productGridClassName}>
-                    {products.map(product => (
-                      <ProductCard
+                  <div className="lg:hidden">
+                    <div ref={mobileProductSliderRef} className="keen-slider">
+                      {mobileProductPages.map((productPage, pageIndex) => (
+                        <div
+                          key={`collection-mobile-page-${collection.id}-${pageIndex}`}
+                          className="keen-slider__slide min-w-0"
+                        >
+                          <div className="grid grid-cols-2 gap-3">
+                            {productPage.map(product => (
+                              <ProductCardWithActions
+                                key={product.id}
+                                isAddingToCart={addingProductId === String(product.id)}
+                                isWishlisted={isWishlisted(String(product.id))}
+                                isWishlistLoading={togglingProductId === String(product.id)}
+                                onAddToCartAction={currentProduct =>
+                                  addToCartFromList({
+                                    productId: String(currentProduct.id),
+                                    productName: currentProduct.name,
+                                  })
+                                }
+                                onToggleWishlistAction={currentProduct =>
+                                  toggleWishlist({
+                                    productId: String(currentProduct.id),
+                                    productName: currentProduct.name,
+                                  })
+                                }
+                                product={product}
+                              />
+                            ))}
+
+                            {productPage.length < MOBILE_PRODUCTS_PER_VIEW ? (
+                              <div aria-hidden className="invisible" />
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className={`hidden lg:grid ${productGridClassName}`}>
+                    {desktopProducts.map(product => (
+                      <ProductCardWithActions
                         key={product.id}
                         isAddingToCart={addingProductId === String(product.id)}
                         isWishlisted={isWishlisted(String(product.id))}
@@ -457,10 +612,69 @@ function CollectionProductSection({
               )}
             </div>
 
+            {mobileProductPages.length > 0 ? (
+              <div className="mt-4 flex items-center justify-center gap-2 md:hidden">
+                {Array.from({ length: mobileProductPageCount }).map((_, index) => (
+                  <button
+                    key={`collection-product-dot-${collection.id}-${index}`}
+                    aria-label={`Chuyển đến nhóm sản phẩm ${index + 1}`}
+                    className={[
+                      'h-2 w-2 rounded-full transition-colors',
+                      currentMobileProductPage === index ? 'bg-primary' : 'bg-foreground/25',
+                    ].join(' ')}
+                    onClick={() => mobileProductSliderInstanceRef.current?.moveToIdx(index)}
+                    type="button"
+                  />
+                ))}
+              </div>
+            ) : null}
+
+            {showBrandSidebar ? (
+              <div className="mt-4 md:mt-5 xl:hidden">
+                <div ref={mobileBrandSliderRef} className="keen-slider">
+                  {sectionBrands.map(brand => (
+                    <div key={brand.id} className="keen-slider__slide">
+                      <Link
+                        className="group flex h-full items-center justify-between rounded-[1.6rem] border border-border bg-white px-4 py-3 transition-all hover:border-primary/40 hover:bg-primary-light/20"
+                        href={buildCollectionBrandHref(collection.slug, brand.slug)}
+                        underline="none"
+                      >
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[1.6rem] leading-[2.2rem] text-foreground font-700">
+                            {brand.name}
+                          </span>
+                          <span className="text-[1.4rem] leading-[2rem] text-muted-foreground font-500 group-hover:text-primary">
+                            Xem ngay
+                          </span>
+                        </div>
+
+                        <BrandLogo alt={brand.name} src={brand.logoUrl} />
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             {horizontalBanners.length > 0 ? (
               <div className="mt-4 md:mt-5">
+                <div className="md:hidden">
+                  <div ref={mobileHorizontalBannerSliderRef} className="keen-slider touch-pan-y">
+                    {horizontalBanners.map(banner => (
+                      <div key={banner.id} className="keen-slider__slide min-w-0">
+                        <CollectionSectionBannerCard
+                          banner={banner}
+                          collectionName={collection.name}
+                          horizontalCount={horizontalBanners.length}
+                          orientation={STATIC_HOME_COLLECTION_DIRECTIONS.HORIZONTAL}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div
-                  className="grid grid-cols-1 gap-4 md:gap-5 md:[grid-template-columns:var(--horizontal-banner-columns)]"
+                  className="hidden md:grid md:gap-5 md:[grid-template-columns:var(--horizontal-banner-columns)]"
                   style={horizontalBannerGridStyle}
                 >
                   {horizontalBanners.map(banner => (
@@ -542,7 +756,7 @@ export function ProductSection({ bgColor = 'bg-white' }: ProductSectionProps) {
 
   if (getAllCollections.isLoading && parentCollections.length === 0) {
     return (
-      <section className={`${bgColor} py-14`}>
+      <section className={`${bgColor} py-8 md:py-14`}>
         <div className={SECTION_CONTAINER_CLASSNAME}>
           <div className="py-8 text-center text-[1.4rem] text-muted-foreground">Đang tải collections...</div>
         </div>
