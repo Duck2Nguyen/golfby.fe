@@ -88,8 +88,8 @@ export function useSWRWrapper<T = Record<string, unknown>>(
   } & Partial<PublicConfiguration<RestResponse<T>, RestError, (arg: string) => any>>,
 ) {
   const { data: session } = useSession();
-  const authHeader =
-    !noAuth && session?.accessToken ? { Authorization: 'Bearer ' + session.accessToken } : {};
+  const authHeader: Record<string, string> =
+    !noAuth && session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {};
 
   return useSWR<RestResponse<T>>(
     key,
@@ -124,8 +124,8 @@ export const useMutation = <T = Record<string, unknown>,>(
 ) => {
   const { mutate } = useSWRConfig();
   const { data: session } = useSession();
-  const authHeader =
-    !options.noAuth && session?.accessToken ? { Authorization: 'Bearer ' + session.accessToken } : {};
+  const authHeader: Record<string, string> =
+    !options.noAuth && session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {};
 
   return useSWRMutation(
     key,
