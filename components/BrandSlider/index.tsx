@@ -30,22 +30,28 @@ export function BrandSlider() {
       },
     },
     created(slider) {
-      setMaxSlide(slider.track.details.maxIdx);
+      if (slider.track?.details?.maxIdx !== undefined) {
+        setMaxSlide(slider.track.details.maxIdx);
+      }
     },
     mode: 'snap',
     rubberband: false,
     slideChanged(slider) {
-      setCurrentSlide(slider.track.details.rel);
+      if (slider.track?.details?.rel !== undefined) {
+        setCurrentSlide(slider.track.details.rel);
+      }
     },
     slides: {
       perView: 2,
       spacing: 12,
     },
     updated(slider) {
-      const sliderMaxIdx = slider.track.details.maxIdx;
+      if (slider.track?.details?.maxIdx !== undefined) {
+        const sliderMaxIdx = slider.track.details.maxIdx;
 
-      setMaxSlide(sliderMaxIdx);
-      setCurrentSlide(prev => Math.min(prev, sliderMaxIdx));
+        setMaxSlide(sliderMaxIdx);
+        setCurrentSlide(prev => Math.min(prev, sliderMaxIdx));
+      }
     },
   });
 
@@ -65,7 +71,9 @@ export function BrandSlider() {
   }, []);
 
   useEffect(() => {
-    sliderInstanceRef.current?.update();
+    if (sliderInstanceRef.current && typeof sliderInstanceRef.current.update === 'function') {
+      sliderInstanceRef.current.update();
+    }
   }, [allBrands.length, sliderInstanceRef]);
 
   const mobilePageCount = Math.ceil((maxSlide + 1) / mobileSlidesPerView);
