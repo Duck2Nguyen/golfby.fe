@@ -1,4 +1,6 @@
-import { Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2 } from 'lucide-react';
+
+import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 
 import { getSortedChoices } from '../engine';
 import { isChoiceType, PRICE_MODIFIER_OPTIONS, CUSTOM_OPTION_TYPE_OPTIONS } from '../types';
@@ -38,6 +40,8 @@ export default function StructureTab({
   selectedOptionId,
   sortedOptions,
 }: StructureTabProps) {
+  const isImageSwatchOption = selectedOption?.type === 'IMAGE_SWATCH';
+
   return (
     <div className="grid min-h-0 flex-1 grid-cols-12 gap-4 p-4">
       <div className="col-span-4 flex min-h-0 flex-col rounded-xl border border-gray-200">
@@ -265,12 +269,19 @@ export default function StructureTab({
 
                   <div className="space-y-2">
                     <div className="grid grid-cols-12 gap-2 px-0.5">
-                      <p className="col-span-3 text-[1.1rem] font-600 uppercase tracking-wide text-gray-500">
+                      <p
+                        className={`${isImageSwatchOption ? 'col-span-2' : 'col-span-3'} text-[1.1rem] font-600 uppercase tracking-wide text-gray-500`}
+                      >
                         Nhãn
                       </p>
                       <p className="col-span-2 text-[1.1rem] font-600 uppercase tracking-wide text-gray-500">
                         Giá trị
                       </p>
+                      {isImageSwatchOption && (
+                        <p className="col-span-2 text-[1.1rem] font-600 uppercase tracking-wide text-gray-500">
+                          Ảnh
+                        </p>
+                      )}
                       <p className="col-span-2 text-[1.1rem] font-600 uppercase tracking-wide text-gray-500">
                         Kiểu phụ phí
                       </p>
@@ -285,75 +296,133 @@ export default function StructureTab({
                       </p>
                     </div>
 
-                    {getSortedChoices(selectedOption).map(choice => (
-                      <div className="grid grid-cols-12 gap-2" key={choice.id}>
-                        <input
-                          className="col-span-3 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
-                          onChange={event =>
-                            onChoicePatch(selectedOption.id, choice.id, {
-                              label: event.target.value,
-                            })
-                          }
-                          placeholder="Nhãn"
-                          value={choice.label}
-                        />
-                        <input
-                          className="col-span-2 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
-                          onChange={event =>
-                            onChoicePatch(selectedOption.id, choice.id, {
-                              value: event.target.value,
-                            })
-                          }
-                          placeholder="Giá trị"
-                          value={choice.value}
-                        />
-                        <select
-                          className="col-span-2 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
-                          onChange={event => {
-                            onChoicePatch(selectedOption.id, choice.id, {
-                              priceModifierType: event.target.value as PriceModifierType,
-                            });
-                          }}
-                          value={choice.priceModifierType}
-                        >
-                          {PRICE_MODIFIER_OPTIONS.map(item => (
-                            <option key={item.value} value={item.value}>
-                              {item.label}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          className="col-span-2 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
-                          disabled={choice.priceModifierType === 'NONE'}
-                          onChange={event =>
-                            onChoicePatch(selectedOption.id, choice.id, {
-                              priceModifierValue: Number(event.target.value) || 0,
-                            })
-                          }
-                          placeholder="Phụ phí"
-                          type="number"
-                          value={choice.priceModifierValue ?? 0}
-                        />
-                        <input
-                          className="col-span-2 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
-                          min={0}
-                          onChange={event =>
-                            onChoicePatch(selectedOption.id, choice.id, {
-                              sortOrder: Number(event.target.value) || 0,
-                            })
-                          }
-                          type="number"
-                          value={choice.sortOrder}
-                        />
-                        <button
-                          className="col-span-1 h-9 rounded-md border border-red-200 text-[1.2rem] text-red-500 hover:bg-red-50"
-                          onClick={() => onRemoveChoice(selectedOption.id, choice.id)}
-                          type="button"
-                        >
-                          <Trash2 className="mx-auto h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                    {getSortedChoices(selectedOption).map(choice => {
+                      const displayImageUrl = choice.presignedImageUrl ?? choice.imageUrl;
+
+                      return (
+                        <div className="grid grid-cols-12 gap-2" key={choice.id}>
+                          <input
+                            className={`${isImageSwatchOption ? 'col-span-2' : 'col-span-3'} h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]`}
+                            onChange={event =>
+                              onChoicePatch(selectedOption.id, choice.id, {
+                                label: event.target.value,
+                              })
+                            }
+                            placeholder="Nhãn"
+                            value={choice.label}
+                          />
+                          <input
+                            className="col-span-2 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
+                            onChange={event =>
+                              onChoicePatch(selectedOption.id, choice.id, {
+                                value: event.target.value,
+                              })
+                            }
+                            placeholder="Giá trị"
+                            value={choice.value}
+                          />
+
+                          {isImageSwatchOption && (
+                            <div className="col-span-2 rounded-md border border-gray-200 p-1">
+                              {displayImageUrl ? (
+                                <div className="relative h-7 w-full overflow-hidden rounded">
+                                  <ImageWithFallback
+                                    alt={choice.label || 'Choice image'}
+                                    className="h-full w-full object-cover"
+                                    src={displayImageUrl}
+                                  />
+                                  <button
+                                    className="absolute top-0.5 right-0.5 rounded border border-red-200 bg-white p-0.5 text-red-500 hover:bg-red-50"
+                                    onClick={() => {
+                                      onChoicePatch(selectedOption.id, choice.id, {
+                                        imageFile: null,
+                                        imageUrl: undefined,
+                                        presignedImageUrl: undefined,
+                                      });
+                                    }}
+                                    type="button"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <input
+                                    accept="image/png,image/jpeg,image/webp"
+                                    className="hidden"
+                                    id={`choice-image-${choice.id}`}
+                                    onChange={event => {
+                                      const nextFile = event.target.files?.[0] ?? null;
+
+                                      onChoicePatch(selectedOption.id, choice.id, {
+                                        imageFile: nextFile,
+                                        presignedImageUrl: nextFile
+                                          ? URL.createObjectURL(nextFile)
+                                          : undefined,
+                                      });
+                                    }}
+                                    type="file"
+                                  />
+
+                                  <label
+                                    className="flex h-7 w-full cursor-pointer items-center justify-center rounded border border-dashed border-gray-300 text-[1.1rem] text-gray-600 hover:bg-gray-100"
+                                    htmlFor={`choice-image-${choice.id}`}
+                                  >
+                                    Chọn ảnh
+                                  </label>
+                                </>
+                              )}
+                            </div>
+                          )}
+
+                          <select
+                            className="col-span-2 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
+                            onChange={event => {
+                              onChoicePatch(selectedOption.id, choice.id, {
+                                priceModifierType: event.target.value as PriceModifierType,
+                              });
+                            }}
+                            value={choice.priceModifierType}
+                          >
+                            {PRICE_MODIFIER_OPTIONS.map(item => (
+                              <option key={item.value} value={item.value}>
+                                {item.label}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            className="col-span-2 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
+                            disabled={choice.priceModifierType === 'NONE'}
+                            onChange={event =>
+                              onChoicePatch(selectedOption.id, choice.id, {
+                                priceModifierValue: Number(event.target.value) || 0,
+                              })
+                            }
+                            placeholder="Phụ phí"
+                            type="number"
+                            value={choice.priceModifierValue ?? 0}
+                          />
+                          <input
+                            className="col-span-1 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
+                            min={0}
+                            onChange={event =>
+                              onChoicePatch(selectedOption.id, choice.id, {
+                                sortOrder: Number(event.target.value) || 0,
+                              })
+                            }
+                            type="number"
+                            value={choice.sortOrder}
+                          />
+                          <button
+                            className="col-span-1 h-9 rounded-md border border-red-200 text-[1.2rem] text-red-500 hover:bg-red-50"
+                            onClick={() => onRemoveChoice(selectedOption.id, choice.id)}
+                            type="button"
+                          >
+                            <Trash2 className="mx-auto h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
 
                     {selectedOption.choices.length === 0 && (
                       <p className="text-[1.2rem] text-gray-500">Chưa có lựa chọn nào.</p>

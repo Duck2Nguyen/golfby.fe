@@ -22,6 +22,7 @@ export interface AdminCustomOptionChoice {
   colorHex?: string | null;
   id: string;
   imageUrl?: string | null;
+  presignedImageUrl?: string | null;
   isDefault?: boolean | null;
   label: string;
   linkedVariantId?: string | null;

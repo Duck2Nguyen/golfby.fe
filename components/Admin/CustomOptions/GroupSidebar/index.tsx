@@ -99,23 +99,33 @@ export default function GroupSidebar({
 
               return (
                 <div
-                  className={`w-full rounded-lg border px-3 py-3 text-left transition-colors ${
+                  className={`w-full rounded-lg border px-3 py-3 cursor-pointer text-left transition-colors ${
                     active ? 'border-primary bg-primary-light' : 'border-gray-200 bg-white hover:bg-gray-50'
                   }`}
+                  onClick={() => onSelectGroup(group.id)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      onSelectGroup(group.id);
+                    }
+                  }}
                   key={group.id}
+                  role="button"
+                  tabIndex={0}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <button className="text-left" onClick={() => onSelectGroup(group.id)} type="button">
-                        <p className="text-[1.3rem] font-600 text-gray-900">{group.name}</p>
-                      </button>
+                      <p className="text-[1.3rem] font-600 text-gray-900">{group.name}</p>
                     </div>
 
                     <div className="flex items-center gap-1">
                       <button
                         aria-label="Sửa tên nhóm"
                         className="rounded p-1.5 text-gray-500 hover:bg-white/70 hover:text-gray-700"
-                        onClick={() => onRenameGroup(group.id)}
+                        onClick={event => {
+                          event.stopPropagation();
+                          onRenameGroup(group.id);
+                        }}
                         title="Sửa tên nhóm"
                         type="button"
                       >
@@ -128,11 +138,9 @@ export default function GroupSidebar({
                     </div>
                   </div>
 
-                  <button className="mt-1 text-left" onClick={() => onSelectGroup(group.id)} type="button">
-                    <p className="text-[1.2rem] text-gray-500">
-                      {group.options.length} tùy chọn | {group.conditions.length} điều kiện
-                    </p>
-                  </button>
+                  <p className="mt-1 text-[1.2rem] text-gray-500">
+                    {group.options.length} tùy chọn | {group.conditions.length} điều kiện
+                  </p>
                 </div>
               );
             })}

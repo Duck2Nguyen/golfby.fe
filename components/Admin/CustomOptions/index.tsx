@@ -15,6 +15,7 @@ import type {
   AdminCustomOptionChoice,
 } from '@/hooks/admin/useAdminCustomOptions';
 
+import { useUploadAdminStaticContentImage } from '@/hooks/useStaticData';
 import {
   useAdminCustomOptionGroups,
   useCreateAdminCustomOption,
@@ -72,6 +73,7 @@ type GroupNameDialogState = {
 };
 
 const PREVIEW_BASE_PRICE = 15210000;
+const CUSTOM_OPTION_IMAGE_UPLOAD_PATH = 'custom-options/choices';
 
 const WORKSPACE_TABS: Array<{ label: string; value: WorkspaceTab }> = [
   { label: 'Cấu trúc', value: 'structure' },
@@ -138,7 +140,9 @@ const toCustomOptionType = (value: AdminCustomOption['type']): CustomOption['typ
 const mapApiChoiceToUiChoice = (choice: AdminCustomOptionChoice, index: number): CustomOptionChoice => {
   return {
     id: choice.id,
+    imageFile: null,
     imageUrl: choice.imageUrl ?? undefined,
+    presignedImageUrl: choice.presignedImageUrl ?? undefined,
     label: choice.label,
     priceModifierType: toCustomPriceModifierType(choice.priceModifierType),
     priceModifierValue: toNumber(choice.priceModifierValue),
@@ -293,6 +297,7 @@ export default function CustomOptions() {
   const deleteChoiceMutation = useDeleteAdminCustomOptionChoice();
   const createConditionMutation = useCreateAdminCustomOptionCondition();
   const deleteConditionMutation = useDeleteAdminCustomOptionCondition();
+  const uploadAdminStaticContentImageMutation = useUploadAdminStaticContentImage();
 
   const groupsApiData = groupsQuery.data?.data;
   const activeGroupDetailApiData = activeGroupDetailQuery.data?.data;
@@ -703,6 +708,7 @@ export default function CustomOptions() {
 
     const newChoice: CustomOptionChoice = {
       id: createTempId('CHOICE'),
+      imageFile: null,
       label: 'Lựa chọn mới',
       priceModifierType: 'NONE',
       priceModifierValue: 0,
@@ -835,7 +841,7 @@ export default function CustomOptions() {
   };
 
   const handleSaveStructure = async () => {
-    if (!activeGroupId || !activeGroup) return;
+    if (!activeGroupId || !activeGroup || !selectedOptionId) return;
 
     const snapshot = syncedGroupsById[activeGroupId];
 
@@ -844,73 +850,75 @@ export default function CustomOptions() {
     setIsSavingStructure(true);
 
     try {
-      const snapshotOptionsById = new Map(snapshot.options.map(option => [option.id, option]));
-      const persistedOptions: CustomOption[] = [];
+      const targetOption = normalizeOptions(activeGroup.options).find(
+        option => option.id === selectedOptionId,
+      );
 
-      for (const option of normalizeOptions(activeGroup.options)) {
-        await safelyTrigger(
-          updateOptionMutation.trigger({
+      if (!targetOption) return;
+
+      const snapshotOption = snapshot.options.find(option => option.id === selectedOptionId);
+
+      if (!snapshotOption) return;
+
+      const resolveChoiceImageUrl = async (choice: CustomOptionChoice): Promise<string> => {
+        if (!choice.imageFile) {
+          return choice.imageUrl ?? '';
+        }
+
+        const uploadResponse = await safelyTrigger(
+          uploadAdminStaticContentImageMutation.trigger({
             csrf: true,
-            isRequired: option.isRequired,
-            label: option.label,
-            optionId: option.id,
-            placeholder: option.placeholder ?? '',
-            priceModifierType: option.priceModifierType as AdminPriceModifierType,
-            priceModifierValue: option.priceModifierType === 'NONE' ? 0 : (option.priceModifierValue ?? 0),
-            sortOrder: option.sortOrder,
-            type: option.type,
+            image: choice.imageFile,
+            path: CUSTOM_OPTION_IMAGE_UPLOAD_PATH,
           }),
         );
 
-        const snapshotOption = snapshotOptionsById.get(option.id);
-        const currentChoices = normalizeChoices(option.choices);
-        const currentChoiceIds = new Set(
-          currentChoices.filter(choice => !choice.id.startsWith('tmp_')).map(choice => choice.id),
+        return uploadResponse?.data.key || choice.imageUrl || '';
+      };
+
+      await safelyTrigger(
+        updateOptionMutation.trigger({
+          csrf: true,
+          isRequired: targetOption.isRequired,
+          label: targetOption.label,
+          optionId: targetOption.id,
+          placeholder: targetOption.placeholder ?? '',
+          priceModifierType: targetOption.priceModifierType as AdminPriceModifierType,
+          priceModifierValue:
+            targetOption.priceModifierType === 'NONE' ? 0 : (targetOption.priceModifierValue ?? 0),
+          sortOrder: targetOption.sortOrder,
+          type: targetOption.type,
+        }),
+      );
+
+      const currentChoices = normalizeChoices(targetOption.choices);
+      const currentChoiceIds = new Set(
+        currentChoices.filter(choice => !choice.id.startsWith('tmp_')).map(choice => choice.id),
+      );
+
+      for (const snapshotChoice of snapshotOption.choices ?? []) {
+        if (currentChoiceIds.has(snapshotChoice.id)) continue;
+
+        await safelyTrigger(
+          deleteChoiceMutation.trigger({
+            choiceId: snapshotChoice.id,
+            csrf: true,
+          }),
         );
+      }
 
-        for (const snapshotChoice of snapshotOption?.choices ?? []) {
-          if (currentChoiceIds.has(snapshotChoice.id)) continue;
+      const persistedChoices: CustomOptionChoice[] = [];
 
-          await safelyTrigger(
-            deleteChoiceMutation.trigger({
-              choiceId: snapshotChoice.id,
+      for (const choice of currentChoices) {
+        const resolvedImageUrl = await resolveChoiceImageUrl(choice);
+
+        if (choice.id.startsWith('tmp_')) {
+          const createdChoice = await safelyTrigger(
+            createChoiceMutation.trigger({
               csrf: true,
-            }),
-          );
-        }
-
-        const persistedChoices: CustomOptionChoice[] = [];
-
-        for (const choice of currentChoices) {
-          if (choice.id.startsWith('tmp_')) {
-            const createdChoice = await safelyTrigger(
-              createChoiceMutation.trigger({
-                csrf: true,
-                imageUrl: choice.imageUrl,
-                label: choice.label,
-                optionId: option.id,
-                priceModifierType: choice.priceModifierType as AdminPriceModifierType,
-                priceModifierValue:
-                  choice.priceModifierType === 'NONE' ? 0 : (choice.priceModifierValue ?? 0),
-                sortOrder: choice.sortOrder,
-                value: choice.value,
-              }),
-            );
-
-            persistedChoices.push({
-              ...choice,
-              id: createdChoice?.data?.id ?? choice.id,
-            });
-
-            continue;
-          }
-
-          await safelyTrigger(
-            updateChoiceMutation.trigger({
-              choiceId: choice.id,
-              csrf: true,
-              imageUrl: choice.imageUrl,
+              imageUrl: resolvedImageUrl,
               label: choice.label,
+              optionId: targetOption.id,
               priceModifierType: choice.priceModifierType as AdminPriceModifierType,
               priceModifierValue: choice.priceModifierType === 'NONE' ? 0 : (choice.priceModifierValue ?? 0),
               sortOrder: choice.sortOrder,
@@ -918,18 +926,49 @@ export default function CustomOptions() {
             }),
           );
 
-          persistedChoices.push(choice);
+          persistedChoices.push({
+            ...choice,
+            imageFile: null,
+            imageUrl: resolvedImageUrl || undefined,
+            presignedImageUrl: choice.presignedImageUrl,
+            id: createdChoice?.data?.id ?? choice.id,
+          });
+
+          continue;
         }
 
-        persistedOptions.push({
-          ...option,
-          choices: normalizeChoices(persistedChoices),
+        await safelyTrigger(
+          updateChoiceMutation.trigger({
+            choiceId: choice.id,
+            csrf: true,
+            imageUrl: resolvedImageUrl,
+            label: choice.label,
+            priceModifierType: choice.priceModifierType as AdminPriceModifierType,
+            priceModifierValue: choice.priceModifierType === 'NONE' ? 0 : (choice.priceModifierValue ?? 0),
+            sortOrder: choice.sortOrder,
+            value: choice.value,
+          }),
+        );
+
+        persistedChoices.push({
+          ...choice,
+          imageFile: null,
+          imageUrl: resolvedImageUrl || undefined,
+          presignedImageUrl: choice.presignedImageUrl,
         });
       }
 
+      const persistedOption: CustomOption = {
+        ...targetOption,
+        choices: normalizeChoices(persistedChoices),
+      };
+
       updateActiveGroup(group => ({
         ...group,
-        options: persistedOptions,
+        options: group.options.map(option => {
+          if (option.id !== persistedOption.id) return option;
+          return persistedOption;
+        }),
       }));
 
       await refreshActiveGroupDetail();

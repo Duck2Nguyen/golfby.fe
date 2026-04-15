@@ -16,7 +16,9 @@ export type ConditionAction = 'SHOW' | 'HIDE';
 
 export interface CustomOptionChoice {
   id: string;
+  imageFile?: File | null;
   imageUrl?: string;
+  presignedImageUrl?: string;
   label: string;
   priceModifierType: PriceModifierType;
   priceModifierValue?: number;

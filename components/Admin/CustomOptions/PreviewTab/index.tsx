@@ -1,4 +1,7 @@
-import { Eye, SlidersHorizontal } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Eye, ChevronUp, ChevronDown, SlidersHorizontal } from 'lucide-react';
+
+import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 
 import { isChoiceType } from '../types';
 import { getSortedChoices } from '../engine';
@@ -26,11 +29,50 @@ export default function PreviewTab({
   previewSelections,
   visibleOptions,
 }: PreviewTabProps) {
+  const [openImageDropdownOptionId, setOpenImageDropdownOptionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+
+      if (target?.closest('[data-image-swatch-dropdown="true"]')) return;
+
+      setOpenImageDropdownOptionId(null);
+    };
+
+    window.addEventListener('mousedown', handleOutsideClick);
+
+    return () => {
+      window.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!openImageDropdownOptionId) return;
+
+    const stillVisible = visibleOptions.some(option => option.id === openImageDropdownOptionId);
+
+    if (!stillVisible) {
+      setOpenImageDropdownOptionId(null);
+    }
+  }, [openImageDropdownOptionId, visibleOptions]);
+
+  const getChoicePreviewLabel = (choiceLabel: string, choicePriceModifierValue?: number): string => {
+    if (!choicePriceModifierValue || choicePriceModifierValue <= 0) return choiceLabel;
+
+    const formattedAmount = formatCurrency(choicePriceModifierValue);
+    return `${choiceLabel} (+${formattedAmount})`;
+  };
+
   const renderPreviewField = (option: CustomOption) => {
     const sortedChoices = getSortedChoices(option);
     const selectedValue = previewSelections[option.id];
+    const selectedChoice =
+      typeof selectedValue === 'string'
+        ? sortedChoices.find(choice => choice.id === selectedValue)
+        : undefined;
 
-    if (option.type === 'DROPDOWN' || option.type === 'IMAGE_SWATCH') {
+    if (option.type === 'DROPDOWN') {
       return (
         <select
           className="h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-[1.3rem]"
@@ -47,6 +89,86 @@ export default function PreviewTab({
             </option>
           ))}
         </select>
+      );
+    }
+
+    if (option.type === 'IMAGE_SWATCH') {
+      const isOpen = openImageDropdownOptionId === option.id;
+      const selectedChoiceImageUrl = selectedChoice?.presignedImageUrl ?? selectedChoice?.imageUrl;
+
+      return (
+        <div className="relative" data-image-swatch-dropdown="true">
+          <button
+            className="flex w-full items-start justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 text-left"
+            onClick={() => {
+              setOpenImageDropdownOptionId(previous => (previous === option.id ? null : option.id));
+            }}
+            type="button"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[1.3rem] text-gray-700">
+                {selectedChoice
+                  ? getChoicePreviewLabel(selectedChoice.label, selectedChoice.priceModifierValue)
+                  : 'Chọn...'}
+              </p>
+
+              {selectedChoiceImageUrl ? (
+                <div className="mt-2 h-[4.8rem] w-full overflow-hidden">
+                  <ImageWithFallback
+                    alt={selectedChoice?.label}
+                    className="h-full w-full object-cover"
+                    src={selectedChoiceImageUrl}
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            {isOpen ? (
+              <ChevronUp className="mt-1 h-4 w-4 shrink-0 text-gray-500" />
+            ) : (
+              <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-gray-500" />
+            )}
+          </button>
+
+          {isOpen && (
+            <div className="absolute z-20 mt-1 max-h-[24rem] w-full overflow-y-auto rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+              {sortedChoices.map(choice => {
+                const isSelected = selectedChoice?.id === choice.id;
+                const choiceImageUrl = choice.presignedImageUrl ?? choice.imageUrl;
+
+                return (
+                  <button
+                    className={`mb-2 w-full rounded-lg border p-2 text-left transition-colors last:mb-0 ${
+                      isSelected
+                        ? 'border-primary bg-primary-light'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                    key={choice.id}
+                    onClick={() => {
+                      onPreviewSelectionChange(option, choice.id);
+                      setOpenImageDropdownOptionId(null);
+                    }}
+                    type="button"
+                  >
+                    <p className="text-[1.3rem] text-gray-700">
+                      {getChoicePreviewLabel(choice.label, choice.priceModifierValue)}
+                    </p>
+
+                    {choiceImageUrl ? (
+                      <div className="mt-2 h-[4.8rem] w-full overflow-hidden">
+                        <ImageWithFallback
+                          alt={choice.label}
+                          className="h-full w-full object-cover"
+                          src={choiceImageUrl}
+                        />
+                      </div>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       );
     }
 
