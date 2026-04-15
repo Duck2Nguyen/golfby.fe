@@ -3,6 +3,10 @@
 import { Trash2 } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 
+import { Input } from '@heroui/input';
+import { Button } from '@heroui/button';
+import { Modal, ModalBody, ModalFooter, ModalHeader, ModalContent } from '@heroui/modal';
+
 import type {
   AdminCustomOption,
   AdminConditionAction,
@@ -50,6 +54,22 @@ import type {
 } from './types';
 
 type WorkspaceTab = 'conditions' | 'preview' | 'structure';
+
+type GroupNameDialogMode = 'create' | 'rename';
+
+type DeleteDialogTarget = {
+  id: string;
+  label: string;
+  type: 'group' | 'option';
+};
+
+type GroupNameDialogState = {
+  description: string;
+  groupId: string | null;
+  mode: GroupNameDialogMode;
+  title: string;
+  value: string;
+};
 
 const PREVIEW_BASE_PRICE = 15210000;
 
@@ -243,6 +263,11 @@ export default function CustomOptions() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('structure');
   const [groups, setGroups] = useState<CustomOptionGroup[]>([]);
   const [isGroupPanelCollapsed, setIsGroupPanelCollapsed] = useState(false);
+  const [groupNameDialog, setGroupNameDialog] = useState<GroupNameDialogState | null>(null);
+  const [groupNameError, setGroupNameError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<DeleteDialogTarget | null>(null);
+  const [isDeletingTarget, setIsDeletingTarget] = useState(false);
+  const [isSavingGroupName, setIsSavingGroupName] = useState(false);
   const [isSavingStructure, setIsSavingStructure] = useState(false);
   const [isSavingConditions, setIsSavingConditions] = useState(false);
   const [syncedGroupsById, setSyncedGroupsById] = useState<Record<string, CustomOptionGroup>>({});
@@ -416,6 +441,193 @@ export default function CustomOptions() {
     }
   };
 
+  const closeGroupNameDialog = () => {
+    if (isSavingGroupName) return;
+
+    setGroupNameDialog(null);
+    setGroupNameError('');
+  };
+
+  const openCreateGroupDialog = () => {
+    setGroupNameError('');
+    setGroupNameDialog({
+      description: 'Nhập tên nhóm custom option để bắt đầu cấu hình.',
+      groupId: null,
+      mode: 'create',
+      title: 'Tạo nhóm custom option',
+      value: `Nhóm mới ${groups.length + 1}`,
+    });
+  };
+
+  const openRenameGroupDialog = (groupId: string) => {
+    const targetGroup = groups.find(group => group.id === groupId);
+
+    if (!targetGroup) return;
+
+    setGroupNameError('');
+    setGroupNameDialog({
+      description: 'Đổi tên nhóm custom option đang được chọn.',
+      groupId: targetGroup.id,
+      mode: 'rename',
+      title: 'Đổi tên nhóm custom option',
+      value: targetGroup.name,
+    });
+  };
+
+  const requestDeleteGroup = (groupId: string) => {
+    const targetGroup = groups.find(group => group.id === groupId);
+
+    if (!targetGroup) return;
+
+    setDeleteTarget({
+      id: groupId,
+      label: targetGroup.name,
+      type: 'group',
+    });
+  };
+
+  const requestDeleteOption = (optionId: string, optionLabel: string) => {
+    setDeleteTarget({
+      id: optionId,
+      label: optionLabel || 'tùy chọn này',
+      type: 'option',
+    });
+  };
+
+  const handleSubmitGroupNameDialog = async () => {
+    if (!groupNameDialog || isSavingGroupName) return;
+
+    const normalizedName = groupNameDialog.value.trim();
+
+    if (!normalizedName) {
+      setGroupNameError('Vui lòng nhập tên nhóm.');
+      return;
+    }
+
+    if (groupNameDialog.mode === 'rename') {
+      const targetGroup = groups.find(group => group.id === groupNameDialog.groupId);
+
+      if (!targetGroup) return;
+
+      if (normalizedName === targetGroup.name) {
+        closeGroupNameDialog();
+        return;
+      }
+
+      setIsSavingGroupName(true);
+
+      try {
+        const updated = await safelyTrigger(
+          updateGroupMutation.trigger({
+            csrf: true,
+            groupId: targetGroup.id,
+            name: normalizedName,
+          }),
+        );
+
+        if (!updated) return;
+
+        await refreshGroups();
+
+        if (activeGroupId === targetGroup.id) {
+          await refreshActiveGroupDetail();
+        }
+
+        closeGroupNameDialog();
+      } finally {
+        setIsSavingGroupName(false);
+      }
+
+      return;
+    }
+
+    setIsSavingGroupName(true);
+
+    try {
+      const response = await safelyTrigger(
+        createGroupMutation.trigger({
+          csrf: true,
+          name: normalizedName,
+        }),
+      );
+
+      if (!response) return;
+
+      await refreshGroups();
+
+      setActiveGroupId(response.data?.id ?? null);
+      setActiveTab('structure');
+      setSelectedOptionId(null);
+      setPreviewSelections({});
+      closeGroupNameDialog();
+    } finally {
+      setIsSavingGroupName(false);
+    }
+  };
+
+  const handleConfirmDeleteTarget = async () => {
+    if (!deleteTarget || isDeletingTarget) return;
+
+    setIsDeletingTarget(true);
+
+    try {
+      if (deleteTarget.type === 'group') {
+        const deleted = await safelyTrigger(
+          deleteGroupMutation.trigger({
+            csrf: true,
+            groupId: deleteTarget.id,
+          }),
+        );
+
+        if (!deleted) return;
+
+        if (activeGroupId === deleteTarget.id) {
+          setSelectedOptionId(null);
+          setActiveTab('structure');
+          setPreviewSelections({});
+        }
+
+        await refreshGroups();
+        setDeleteTarget(null);
+        return;
+      }
+
+      const deleted = await safelyTrigger(
+        deleteOptionMutation.trigger({
+          csrf: true,
+          optionId: deleteTarget.id,
+        }),
+      );
+
+      if (!deleted) return;
+
+      updateActiveGroup(group => ({
+        ...group,
+        conditions: group.conditions.filter(
+          condition =>
+            condition.targetOptionId !== deleteTarget.id && condition.triggerOptionId !== deleteTarget.id,
+        ),
+        options: group.options.filter(option => option.id !== deleteTarget.id),
+      }));
+
+      if (selectedOptionId === deleteTarget.id) {
+        setSelectedOptionId(sortedOptions.filter(option => option.id !== deleteTarget.id)[0]?.id ?? null);
+      }
+
+      setPreviewSelections(previousSelections => {
+        const nextSelections = { ...previousSelections };
+        delete nextSelections[deleteTarget.id];
+        return nextSelections;
+      });
+
+      await refreshActiveGroupDetail();
+      await refreshGroups();
+      setDeleteTarget(null);
+    } finally {
+      setIsDeletingTarget(false);
+    }
+  };
+
   const updateActiveGroup = (updater: (group: CustomOptionGroup) => CustomOptionGroup) => {
     if (!activeGroupId) return;
 
@@ -432,83 +644,6 @@ export default function CustomOptions() {
         };
       }),
     );
-  };
-
-  const handleCreateGroup = async () => {
-    const defaultGroupName = `Nhóm mới ${groups.length + 1}`;
-    const inputName = window.prompt('Nhập tên nhóm custom option', defaultGroupName);
-
-    if (inputName === null) return;
-
-    const normalizedName = inputName.trim();
-
-    if (!normalizedName) return;
-
-    const response = await safelyTrigger(
-      createGroupMutation.trigger({
-        csrf: true,
-        name: normalizedName,
-      }),
-    );
-
-    if (!response) return;
-
-    await refreshGroups();
-
-    setActiveGroupId(response.data?.id ?? null);
-    setActiveTab('structure');
-    setSelectedOptionId(null);
-    setPreviewSelections({});
-  };
-
-  const handleDeleteGroup = async (groupId: string) => {
-    const deleted = await safelyTrigger(
-      deleteGroupMutation.trigger({
-        csrf: true,
-        groupId,
-      }),
-    );
-
-    if (!deleted) return;
-
-    if (activeGroupId === groupId) {
-      setSelectedOptionId(null);
-      setActiveTab('structure');
-      setPreviewSelections({});
-    }
-
-    await refreshGroups();
-  };
-
-  const handleRenameGroup = async (groupId: string) => {
-    const targetGroup = groups.find(group => group.id === groupId);
-
-    if (!targetGroup) return;
-
-    const inputName = window.prompt('Nhập tên nhóm custom option', targetGroup.name);
-
-    if (inputName === null) return;
-
-    const normalizedName = inputName.trim();
-
-    if (!normalizedName) return;
-    if (normalizedName === targetGroup.name) return;
-
-    const updated = await safelyTrigger(
-      updateGroupMutation.trigger({
-        csrf: true,
-        groupId,
-        name: normalizedName,
-      }),
-    );
-
-    if (!updated) return;
-
-    await refreshGroups();
-
-    if (activeGroupId === groupId) {
-      await refreshActiveGroupDetail();
-    }
   };
 
   const handleAddOption = async () => {
@@ -535,38 +670,6 @@ export default function CustomOptions() {
 
     setSelectedOptionId(response.data?.id ?? null);
     setActiveTab('structure');
-  };
-
-  const handleRemoveOption = async (optionId: string) => {
-    const deleted = await safelyTrigger(
-      deleteOptionMutation.trigger({
-        csrf: true,
-        optionId,
-      }),
-    );
-
-    if (!deleted) return;
-
-    updateActiveGroup(group => ({
-      ...group,
-      conditions: group.conditions.filter(
-        condition => condition.targetOptionId !== optionId && condition.triggerOptionId !== optionId,
-      ),
-      options: group.options.filter(option => option.id !== optionId),
-    }));
-
-    if (selectedOptionId === optionId) {
-      setSelectedOptionId(sortedOptions.filter(option => option.id !== optionId)[0]?.id ?? null);
-    }
-
-    setPreviewSelections(previousSelections => {
-      const nextSelections = { ...previousSelections };
-      delete nextSelections[optionId];
-      return nextSelections;
-    });
-
-    await refreshActiveGroupDetail();
-    await refreshGroups();
   };
 
   const handleOptionPatch = (optionId: string, patch: Partial<CustomOption>) => {
@@ -913,12 +1016,8 @@ export default function CustomOptions() {
           filteredGroups={filteredGroups}
           groups={groups}
           isGroupPanelCollapsed={isGroupPanelCollapsed}
-          onCreateGroup={() => {
-            void handleCreateGroup();
-          }}
-          onRenameGroup={groupId => {
-            void handleRenameGroup(groupId);
-          }}
+          onCreateGroup={openCreateGroupDialog}
+          onRenameGroup={openRenameGroupDialog}
           onSearchQueryChange={setSearchQuery}
           onSelectGroup={groupId => {
             setActiveGroupId(groupId);
@@ -971,7 +1070,7 @@ export default function CustomOptions() {
                   <button
                     aria-label="Xóa nhóm"
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-500 hover:bg-red-50"
-                    onClick={() => void handleDeleteGroup(activeGroup.id)}
+                    onClick={() => requestDeleteGroup(activeGroup.id)}
                     title="Xóa nhóm"
                     type="button"
                   >
@@ -990,8 +1089,8 @@ export default function CustomOptions() {
                   onChoicePatch={handleChoicePatch}
                   onOptionPatch={handleOptionPatch}
                   onRemoveChoice={handleRemoveChoice}
-                  onRemoveOption={optionId => {
-                    void handleRemoveOption(optionId);
+                  onRemoveOption={(optionId, optionLabel) => {
+                    requestDeleteOption(optionId, optionLabel);
                   }}
                   onSaveStructure={() => {
                     void handleSaveStructure();
@@ -1027,6 +1126,114 @@ export default function CustomOptions() {
                   visibleOptions={visibleOptions}
                 />
               )}
+
+              <Modal
+                isOpen={Boolean(groupNameDialog)}
+                onOpenChange={isOpen => {
+                  if (!isOpen) {
+                    closeGroupNameDialog();
+                  }
+                }}
+                placement="center"
+              >
+                <ModalContent>
+                  {onClose => (
+                    <>
+                      <ModalHeader className="flex flex-col gap-1">
+                        {groupNameDialog?.title ?? 'Nhập tên nhóm custom option'}
+                      </ModalHeader>
+                      <ModalBody>
+                        <p className="text-[1.3rem] text-gray-500">
+                          {groupNameDialog?.description ?? 'Nhập tên nhóm custom option.'}
+                        </p>
+                        <Input
+                          autoFocus
+                          errorMessage={groupNameError || undefined}
+                          isInvalid={Boolean(groupNameError)}
+                          labelPlacement="outside"
+                          className="border-none text-[1.4rem]"
+                          placeholder="Nhập tên nhóm custom option"
+                          value={groupNameDialog?.value ?? ''}
+                          variant="bordered"
+                          onValueChange={value => {
+                            setGroupNameError('');
+
+                            setGroupNameDialog(current =>
+                              current
+                                ? {
+                                    ...current,
+                                    value,
+                                  }
+                                : current,
+                            );
+                          }}
+                        />
+                      </ModalBody>
+                      <ModalFooter>
+                        <Button variant="flat" onPress={() => onClose()}>
+                          Hủy
+                        </Button>
+                        <Button
+                          color="primary"
+                          isLoading={isSavingGroupName}
+                          onPress={() => {
+                            void handleSubmitGroupNameDialog();
+                          }}
+                        >
+                          {groupNameDialog?.mode === 'rename' ? 'Lưu tên' : 'Tạo nhóm'}
+                        </Button>
+                      </ModalFooter>
+                    </>
+                  )}
+                </ModalContent>
+              </Modal>
+
+              <Modal
+                isOpen={Boolean(deleteTarget)}
+                onOpenChange={isOpen => {
+                  if (!isOpen && !isDeletingTarget) {
+                    setDeleteTarget(null);
+                  }
+                }}
+                placement="center"
+              >
+                <ModalContent>
+                  {onClose => (
+                    <>
+                      <ModalHeader className="flex flex-col gap-1">
+                        Xác nhận xóa {deleteTarget?.type === 'group' ? 'nhóm' : 'option'}
+                      </ModalHeader>
+                      <ModalBody>
+                        <p className="text-[1.3rem] text-gray-600">
+                          Bạn có chắc chắn muốn xóa {deleteTarget?.type === 'group' ? 'nhóm' : 'option'}{' '}
+                          <span className="font-600 text-gray-900">{deleteTarget?.label}</span> không? Hành
+                          động này không thể hoàn tác.
+                        </p>
+                      </ModalBody>
+                      <ModalFooter>
+                        <Button
+                          variant="flat"
+                          onPress={() => {
+                            setDeleteTarget(null);
+                            onClose();
+                          }}
+                        >
+                          Hủy
+                        </Button>
+                        <Button
+                          color="danger"
+                          isLoading={isDeletingTarget}
+                          onPress={() => {
+                            void handleConfirmDeleteTarget();
+                          }}
+                        >
+                          Xóa
+                        </Button>
+                      </ModalFooter>
+                    </>
+                  )}
+                </ModalContent>
+              </Modal>
             </>
           )}
         </section>

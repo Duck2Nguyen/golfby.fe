@@ -12,7 +12,7 @@ interface StructureTabProps {
   onChoicePatch: (optionId: string, choiceId: string, patch: Partial<CustomOptionChoice>) => void;
   onOptionPatch: (optionId: string, patch: Partial<CustomOption>) => void;
   onRemoveChoice: (optionId: string, choiceId: string) => void;
-  onRemoveOption: (optionId: string) => void;
+  onRemoveOption: (optionId: string, optionLabel: string) => void;
   onSaveStructure: () => void;
   onSelectOption: (optionId: string) => void;
   selectedOption: CustomOption | null;
@@ -91,7 +91,7 @@ export default function StructureTab({
                       className="rounded p-1.5 text-red-500 hover:bg-red-50"
                       onClick={event => {
                         event.stopPropagation();
-                        onRemoveOption(option.id);
+                        onRemoveOption(option.id, option.label);
                       }}
                       type="button"
                     >
