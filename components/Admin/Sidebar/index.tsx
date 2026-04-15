@@ -60,6 +60,7 @@ const MENU_ITEMS: SidebarItem[] = [
       { href: '/admin/products/categories', label: 'Quản lý danh mục' },
       { exact: true, href: '/admin/products/collections', label: 'Quản lý collection' },
       { href: '/admin/products/tags', label: 'Quản lý tag' },
+      { href: '/admin/products/custom-options', label: 'Quản lý custom' },
     ],
   },
   {

@@ -93,9 +93,7 @@ export default function Checkout() {
   const userEmail = sessionData?.userInfo?.email || '';
 
   useEffect(() => {
-    const savedDirectItems = normalizeDirectCheckoutItems(
-      getSessionKey<unknown>(CHECKOUT_DIRECT_ITEMS_KEY),
-    );
+    const savedDirectItems = normalizeDirectCheckoutItems(getSessionKey<unknown>(CHECKOUT_DIRECT_ITEMS_KEY));
 
     if (savedDirectItems.length > 0) {
       setDirectCheckoutItems(savedDirectItems);
@@ -267,13 +265,7 @@ export default function Checkout() {
 
     const fullName = `${lastName} ${firstName}`.trim();
 
-    if (
-      !fullName ||
-      !phone.trim() ||
-      !address.trim() ||
-      !province.trim() ||
-      !commune.trim()
-    ) {
+    if (!fullName || !phone.trim() || !address.trim() || !province.trim() || !commune.trim()) {
       addToast({
         color: 'warning',
         description: 'Vui lòng nhập đầy đủ thông tin giao hàng bắt buộc.',
