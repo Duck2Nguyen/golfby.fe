@@ -61,6 +61,48 @@ interface ApiProductVariant {
   stock?: number | null;
 }
 
+interface ApiCustomOptionCondition {
+  action: 'SHOW' | 'HIDE';
+  id: string;
+  targetOptionId: string;
+  triggerChoiceId: string;
+  triggerOptionId: string;
+}
+
+interface ApiCustomOptionChoice {
+  id: string;
+  imageUrl?: string | null;
+  label: string;
+  presignedImageUrl?: string | null;
+  priceModifierType?: 'NONE' | 'FIXED' | 'PERCENT' | null;
+  priceModifierValue?: number | string | null;
+  value: string;
+}
+
+interface ApiCustomOption {
+  conditionsAsTarget?: ApiCustomOptionCondition[];
+  id: string;
+  isRequired?: boolean | null;
+  label: string;
+  placeholder?: string | null;
+  sortOrder?: number | null;
+  type: 'RADIO' | 'DROPDOWN' | 'IMAGE_SWATCH' | 'CHECKBOX' | 'TEXT' | 'TEXTAREA' | 'NUMBER';
+  choices?: ApiCustomOptionChoice[];
+}
+
+interface ApiCustomOptionGroup {
+  id: string;
+  name: string;
+  options?: ApiCustomOption[];
+}
+
+interface ApiProductCustomOptionGroupLink {
+  customOptionGroupId: string;
+  group?: ApiCustomOptionGroup;
+  productId: string;
+  sortOrder?: number | null;
+}
+
 interface ApiProductListItem {
   brand?: ApiProductBrand | null;
   id: string;
@@ -73,6 +115,7 @@ interface ApiProductListItem {
 interface ApiProductDetail extends ApiProductListItem {
   category?: ApiProductCategory | null;
   categoryId?: string | null;
+  customOptionGroups?: ApiProductCustomOptionGroupLink[];
   description?: string | null;
   options?: ApiProductOption[];
   variants?: ApiProductVariant[];
@@ -183,6 +226,38 @@ const mapApiProductToDetailData = (item: ApiProductDetail): ProductDetailViewDat
       };
     }) || [];
 
+  const customOptions =
+    (item.customOptionGroups ?? [])
+      .sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0))
+      .flatMap(link => {
+        return (link.group?.options ?? [])
+          .sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0))
+          .map(option => ({
+            choices: (option.choices ?? []).map(choice => ({
+              id: choice.id,
+              imageUrl: choice.presignedImageUrl || choice.imageUrl || undefined,
+              label: choice.label,
+              priceModifierType: choice.priceModifierType ?? 'NONE',
+              priceModifierValue: toNumber(choice.priceModifierValue),
+              value: choice.value,
+            })),
+            conditionsAsTarget: (option.conditionsAsTarget ?? []).map(condition => ({
+              action: condition.action,
+              id: condition.id,
+              targetOptionId: condition.targetOptionId,
+              triggerChoiceId: condition.triggerChoiceId,
+              triggerOptionId: condition.triggerOptionId,
+            })),
+            groupId: link.customOptionGroupId,
+            groupName: link.group?.name ?? '',
+            id: option.id,
+            isRequired: Boolean(option.isRequired),
+            label: option.label,
+            placeholder: option.placeholder ?? '',
+            type: option.type,
+          }));
+      }) || [];
+
   const hasVariants = variants.length > 0;
   const inStock = hasVariants ? variants.some(variant => (variant.stock ?? 0) > 0) : true;
 
@@ -199,6 +274,7 @@ const mapApiProductToDetailData = (item: ApiProductDetail): ProductDetailViewDat
     inStock,
     options,
     sku,
+    customOptions,
     variants,
   };
 };
@@ -228,9 +304,39 @@ export interface ProductDetailVariant {
   stock?: number | null;
 }
 
+export interface ProductDetailCustomOptionCondition {
+  action: 'SHOW' | 'HIDE';
+  id: string;
+  targetOptionId: string;
+  triggerChoiceId: string;
+  triggerOptionId: string;
+}
+
+export interface ProductDetailCustomOptionChoice {
+  id: string;
+  imageUrl?: string;
+  label: string;
+  priceModifierType: 'NONE' | 'FIXED' | 'PERCENT';
+  priceModifierValue: number;
+  value: string;
+}
+
+export interface ProductDetailCustomOption {
+  choices: ProductDetailCustomOptionChoice[];
+  conditionsAsTarget: ProductDetailCustomOptionCondition[];
+  groupId: string;
+  groupName: string;
+  id: string;
+  isRequired: boolean;
+  label: string;
+  placeholder: string;
+  type: 'RADIO' | 'DROPDOWN' | 'IMAGE_SWATCH' | 'CHECKBOX' | 'TEXT' | 'TEXTAREA' | 'NUMBER';
+}
+
 export interface ProductDetailViewData {
   category: string;
   categorySlug?: string;
+  customOptions: ProductDetailCustomOption[];
   descriptionHtml: string;
   images: string[];
   inStock: boolean;
@@ -394,6 +500,7 @@ export default function ProductDetailPageClient({ productId }: ProductDetailClie
               originalPrice={product.originalPrice}
               discount={product.discount}
               options={detail.options}
+              customOptions={detail.customOptions}
               variants={detail.variants}
               inStock={detail.inStock}
             />

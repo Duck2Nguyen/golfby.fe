@@ -31,6 +31,11 @@ import type {
 import { toSlug } from '@/utils/common';
 
 import { useAdminProduct, buildCreateProductMultipartPayload } from '@/hooks/admin/useAdminProduct';
+import {
+  useAdminCustomOptionGroupsByProduct,
+  useAssignAdminCustomOptionGroupToProduct,
+  useUnassignAdminCustomOptionGroupFromProduct,
+} from '@/hooks/admin/useAdminCustomOptions';
 
 import { Field } from '@/elements';
 
@@ -43,6 +48,7 @@ import CollectionPicker from '../CollectionPicker';
 import MultiUploadImage from '../MultiUploadImage';
 import ProductOptionManager from '../ProductOptionManager';
 import ProductVariantsTable from '../ProductVariantsTable';
+import CustomOptionGroupPicker from '../CustomOptionGroupPicker';
 
 import type { ProductOptionForm } from '../product-types';
 
@@ -329,13 +335,31 @@ export default function ProductForm({ productId }: ProductFormProps) {
     detailProductId: isEdit ? productId : undefined,
   });
   const hasLoggedDetailRef = useRef(false);
+  const hasSyncedInitialAssignedGroupRef = useRef(false);
 
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+  const [isUpdatingCustomOptionGroup, setIsUpdatingCustomOptionGroup] = useState(false);
+  const [selectedCustomOptionGroupId, setSelectedCustomOptionGroupId] = useState('');
   const detailProduct = getAdminProductById.data?.data;
+  const assignedCustomOptionGroups = useAdminCustomOptionGroupsByProduct(productId, isEdit);
+  const assignCustomOptionGroupToProductMutation = useAssignAdminCustomOptionGroupToProduct();
+  const unassignCustomOptionGroupFromProductMutation = useUnassignAdminCustomOptionGroupFromProduct();
 
   useEffect(() => {
     hasLoggedDetailRef.current = false;
+    hasSyncedInitialAssignedGroupRef.current = false;
+    setSelectedCustomOptionGroupId('');
   }, [productId]);
+
+  useEffect(() => {
+    if (!isEdit || hasSyncedInitialAssignedGroupRef.current) return;
+
+    if (!assignedCustomOptionGroups.data) return;
+
+    const assignedGroupList = assignedCustomOptionGroups.data.data ?? [];
+    setSelectedCustomOptionGroupId(assignedGroupList[0]?.customOptionGroupId ?? '');
+    hasSyncedInitialAssignedGroupRef.current = true;
+  }, [assignedCustomOptionGroups.data, isEdit]);
 
   useEffect(() => {
     if (!isEdit || hasLoggedDetailRef.current) return;
@@ -470,6 +494,15 @@ export default function ProductForm({ productId }: ProductFormProps) {
           const createdProductId = createdProductResponse?.data?.id;
 
           if (createdProductId) {
+            if (selectedCustomOptionGroupId) {
+              await assignCustomOptionGroupToProductMutation.trigger({
+                csrf: true,
+                customOptionGroupId: selectedCustomOptionGroupId,
+                productId: createdProductId,
+                sortOrder: 0,
+              });
+            }
+
             router.push(`/admin/products/edit/${createdProductId}`);
 
             return;
@@ -557,6 +590,53 @@ export default function ProductForm({ productId }: ProductFormProps) {
     }
 
     await formik.submitForm();
+  };
+
+  const handleCustomOptionGroupSelection = async (nextGroupIds: string[]) => {
+    const nextGroupId = nextGroupIds[0] ?? '';
+    const currentGroupId = selectedCustomOptionGroupId;
+
+    if (nextGroupId === currentGroupId) {
+      return;
+    }
+
+    if (!isEdit || !productId) {
+      setSelectedCustomOptionGroupId(nextGroupId);
+
+      return;
+    }
+
+    setIsUpdatingCustomOptionGroup(true);
+
+    try {
+      if (currentGroupId) {
+        await unassignCustomOptionGroupFromProductMutation.trigger({
+          csrf: true,
+          groupId: currentGroupId,
+          productId,
+        });
+      }
+
+      if (nextGroupId) {
+        await assignCustomOptionGroupToProductMutation.trigger({
+          csrf: true,
+          customOptionGroupId: nextGroupId,
+          productId,
+          sortOrder: 0,
+        });
+      }
+
+      setSelectedCustomOptionGroupId(nextGroupId);
+      await assignedCustomOptionGroups.mutate();
+    } catch (error) {
+      console.error('[Admin Products][CustomOptionGroup] Update assignment failed:', error);
+      addToast({
+        color: 'danger',
+        description: 'Không thể cập nhật nhóm custom option cho sản phẩm.',
+      });
+    } finally {
+      setIsUpdatingCustomOptionGroup(false);
+    }
   };
 
   return (
@@ -723,6 +803,25 @@ export default function ProductForm({ productId }: ProductFormProps) {
                   {collectErrorMessages(formik.errors.selectedCollections)[0]}
                 </p>
               )}
+            </FormSection>
+
+            <FormSection
+              description="Gán 1 nhóm custom option cho sản phẩm"
+              icon={<Grid3x3 className="h-4 w-4 text-primary" />}
+              title="Nhóm custom option"
+            >
+              <CustomOptionGroupPicker
+                onSelectAction={handleCustomOptionGroupSelection}
+                selectedGroupIds={selectedCustomOptionGroupId ? [selectedCustomOptionGroupId] : []}
+              />
+
+              <p className="mt-2 text-[1.2rem] text-muted-foreground">
+                {isEdit
+                  ? isUpdatingCustomOptionGroup
+                    ? 'Đang cập nhật nhóm custom option...'
+                    : 'Khi đổi nhóm: hệ thống sẽ gỡ nhóm cũ và gán nhóm mới ngay.'
+                  : 'Nhóm đã chọn sẽ được gán tự động sau khi tạo sản phẩm thành công.'}
+              </p>
             </FormSection>
 
             <FormSection

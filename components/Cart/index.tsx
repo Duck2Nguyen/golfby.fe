@@ -25,6 +25,11 @@ const toNumber = (value?: string | null) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const toModifierNumber = (value?: number | string | null) => {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 const getErrorMessage = (error: unknown) => {
   if (typeof error === 'object' && error !== null && 'message' in error) {
     const message = (error as { message?: string | string[] }).message;
@@ -68,6 +73,10 @@ export default function Cart() {
         const listPrice = variantListPrice > 0 ? variantListPrice : productListPrice;
         const salePrice = variantSalePrice > 0 ? variantSalePrice : productSalePrice;
         const hasSalePrice = salePrice > 0;
+        const customModifier = (item.customValues ?? []).reduce(
+          (sum, customValue) => sum + toModifierNumber(customValue.priceModifier),
+          0,
+        );
 
         const firstImage = product.images?.[0];
         const optionSpecs = (variant?.selectedOptionValues ?? [])
@@ -86,19 +95,43 @@ export default function Cart() {
           })
           .filter((spec): spec is { label: string; value: string } => Boolean(spec));
 
+        const customSpecs = (item.customValues ?? [])
+          .map(customValue => {
+            const label = customValue.customOption?.label?.trim();
+            const choiceLabel = customValue.choice?.label?.trim();
+            const textValue = customValue.textValue?.trim();
+            const fileUrl = customValue.fileUrl?.trim();
+
+            const value = choiceLabel || textValue || fileUrl;
+
+            if (!label || !value) {
+              return null;
+            }
+
+            return {
+              label,
+              value,
+            };
+          })
+          .filter((spec): spec is { label: string; value: string } => Boolean(spec));
+
         const specs = [
           ...optionSpecs,
-          variant?.sku ? { label: 'SKU', value: variant.sku } : null,
+          ...customSpecs,
           variant?.barcode ? { label: 'Barcode', value: variant.barcode } : null,
         ].filter((spec): spec is { label: string; value: string } => Boolean(spec));
+
+        const finalPrice = (hasSalePrice ? salePrice : listPrice) + customModifier;
+        const finalOriginalPrice =
+          hasSalePrice && listPrice > salePrice ? listPrice + customModifier : undefined;
 
         return {
           brand: 'GolfBy',
           id: item.id,
           image: firstImage?.url || firstImage?.key || 'https://placehold.co/600x600?text=GolfBy',
           name: product.name,
-          originalPrice: hasSalePrice && listPrice > salePrice ? listPrice : undefined,
-          price: hasSalePrice ? salePrice : listPrice,
+          originalPrice: finalOriginalPrice,
+          price: finalPrice,
           productId: item.productId,
           quantity: item.quantity,
           specs,

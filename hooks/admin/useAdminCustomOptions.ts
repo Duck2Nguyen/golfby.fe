@@ -65,6 +65,15 @@ export interface AdminCustomOptionGroup {
   updatedAt?: string | null;
 }
 
+export interface AdminProductCustomOptionGroupLink {
+  createdAt?: string | null;
+  customOptionGroupId: string;
+  group?: AdminCustomOptionGroup;
+  productId: string;
+  sortOrder?: number | null;
+  updatedAt?: string | null;
+}
+
 export interface CreateAdminCustomOptionGroupPayload {
   csrf?: boolean;
   name: string;
@@ -158,6 +167,19 @@ export interface DeleteAdminCustomOptionConditionPayload {
   csrf?: boolean;
 }
 
+export interface AssignAdminCustomOptionGroupToProductPayload {
+  csrf?: boolean;
+  customOptionGroupId: string;
+  productId: string;
+  sortOrder?: number;
+}
+
+export interface UnassignAdminCustomOptionGroupFromProductPayload {
+  csrf?: boolean;
+  groupId: string;
+  productId: string;
+}
+
 export const useAdminCustomOptionGroups = () => {
   return useSWRWrapper<AdminCustomOptionGroup[]>('/api/v1/admin/custom-options/groups', {
     method: METHOD.GET,
@@ -175,6 +197,21 @@ export const useAdminCustomOptionGroupDetail = (groupId?: string, enabled: boole
       method: METHOD.GET,
       revalidateOnFocus: false,
       url: groupId ? `/api/v1/admin/custom-options/groups/${groupId}` : '/api/v1/admin/custom-options/groups',
+    },
+  );
+};
+
+export const useAdminCustomOptionGroupsByProduct = (productId?: string, enabled: boolean = true) => {
+  const shouldFetch = Boolean(productId && enabled);
+
+  return useSWRWrapper<AdminProductCustomOptionGroupLink[]>(
+    shouldFetch ? `/api/v1/admin/custom-options/product/${productId}` : null,
+    {
+      method: METHOD.GET,
+      revalidateOnFocus: false,
+      url: productId
+        ? `/api/v1/admin/custom-options/product/${productId}`
+        : '/api/v1/admin/custom-options/product',
     },
   );
 };
@@ -296,5 +333,21 @@ export const useDeleteAdminCustomOptionCondition = () => {
       title: 'Thành công',
     },
     url: '/api/v1/admin/custom-options/conditions/{conditionId}',
+  });
+};
+
+export const useAssignAdminCustomOptionGroupToProduct = () => {
+  return useMutation<AdminProductCustomOptionGroupLink>('/api/v1/admin/custom-options/assign', {
+    loading: true,
+    method: METHOD.POST,
+    url: '/api/v1/admin/custom-options/assign',
+  });
+};
+
+export const useUnassignAdminCustomOptionGroupFromProduct = () => {
+  return useMutation<boolean>('/api/v1/admin/custom-options/assign/{productId}/{groupId}', {
+    loading: true,
+    method: METHOD.DELETE,
+    url: '/api/v1/admin/custom-options/assign/{productId}/{groupId}',
   });
 };

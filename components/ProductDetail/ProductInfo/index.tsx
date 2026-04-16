@@ -9,7 +9,9 @@ import {
   Minus,
   Phone,
   Shield,
+  ChevronUp,
   RotateCcw,
+  ChevronDown,
   ShoppingCart,
   AlertTriangle,
   MessageCircle,
@@ -17,6 +19,11 @@ import {
 
 import { addToast } from '@heroui/toast';
 import { useRouter } from 'next/navigation';
+
+import type {
+  ProductDetailCustomOption,
+  ProductDetailCustomOptionChoice,
+} from '@/components/ProductDetail/ProductDetailClient';
 
 import { setSessionKey, removeSessionKey } from '@/utils/localStorage';
 import {
@@ -27,6 +34,8 @@ import {
 
 import { useCarts } from '@/hooks/useCarts';
 import { useWishlistToggle } from '@/hooks/useWishlistToggle';
+
+import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 
 interface ProductOptionValue {
   id?: string;
@@ -67,6 +76,7 @@ interface ProductInfoProps {
   rating?: number;
   reviews?: number;
   options: ProductOption[];
+  customOptions: ProductDetailCustomOption[];
   variants: ProductVariant[];
   inStock: boolean;
 }
@@ -85,6 +95,7 @@ export default function ProductInfo({
   rating,
   reviews,
   options,
+  customOptions,
   variants,
   inStock,
 }: ProductInfoProps) {
@@ -96,6 +107,10 @@ export default function ProductInfo({
   const [selectedOptions, setSelectedOptions] = useState<Record<string, { value: string; valueId?: string }>>(
     {},
   );
+  const [selectedCustomOptions, setSelectedCustomOptions] = useState<
+    Record<string, { choiceId: string; value: string }>
+  >({});
+  const [openImageDropdownOptionId, setOpenImageDropdownOptionId] = useState<string | null>(null);
   const showRating = typeof rating === 'number' && typeof reviews === 'number' && reviews > 0;
 
   const toNumber = (value?: number | null) => {
@@ -104,6 +119,47 @@ export default function ProductInfo({
   };
 
   const getOptionKey = (option: ProductOption) => option.id ?? option.label;
+
+  const isCustomOptionVisible = (
+    option: ProductDetailCustomOption,
+    selections: Record<string, { choiceId: string; value: string }>,
+  ) => {
+    if (!option.conditionsAsTarget || option.conditionsAsTarget.length === 0) {
+      return true;
+    }
+
+    const matchedConditions = option.conditionsAsTarget.filter(condition => {
+      const selectedTrigger = selections[condition.triggerOptionId];
+      return selectedTrigger?.choiceId === condition.triggerChoiceId;
+    });
+
+    if (matchedConditions.some(condition => condition.action === 'HIDE')) {
+      return false;
+    }
+
+    if (matchedConditions.some(condition => condition.action === 'SHOW')) {
+      return true;
+    }
+
+    const hasShowConditions = option.conditionsAsTarget.some(condition => condition.action === 'SHOW');
+    if (hasShowConditions) {
+      return false;
+    }
+
+    return true;
+  };
+
+  const formatPriceModifier = (choice: ProductDetailCustomOptionChoice) => {
+    if (choice.priceModifierType === 'NONE' || choice.priceModifierValue <= 0) {
+      return '';
+    }
+
+    if (choice.priceModifierType === 'PERCENT') {
+      return `+${choice.priceModifierValue}%`;
+    }
+
+    return `+${new Intl.NumberFormat('vi-VN').format(choice.priceModifierValue)}đ`;
+  };
 
   useEffect(() => {
     if (options.length === 0 || variants.length === 0) {
@@ -165,6 +221,75 @@ export default function ProductInfo({
       return hasSameSelection ? current : next;
     });
   }, [options, variants.length]);
+
+  useEffect(() => {
+    if (customOptions.length === 0) {
+      return;
+    }
+
+    setSelectedCustomOptions(current => {
+      const next: Record<string, { choiceId: string; value: string }> = {};
+
+      customOptions.forEach(option => {
+        const optionChoices = option.choices ?? [];
+        if (optionChoices.length === 0) {
+          return;
+        }
+
+        if (!isCustomOptionVisible(option, current)) {
+          return;
+        }
+
+        const currentSelection = current[option.id];
+        const currentStillValid = currentSelection
+          ? optionChoices.some(choice => choice.id === currentSelection.choiceId)
+          : false;
+
+        if (currentStillValid && currentSelection) {
+          next[option.id] = currentSelection;
+          return;
+        }
+
+        next[option.id] = {
+          choiceId: optionChoices[0].id,
+          value: optionChoices[0].value,
+        };
+      });
+
+      const currentKeys = Object.keys(current);
+      const nextKeys = Object.keys(next);
+      const sameState =
+        currentKeys.length === nextKeys.length &&
+        nextKeys.every(key => {
+          const currentSelection = current[key];
+          const nextSelection = next[key];
+
+          return (
+            currentSelection?.choiceId === nextSelection?.choiceId &&
+            currentSelection?.value === nextSelection?.value
+          );
+        });
+
+      return sameState ? current : next;
+    });
+  }, [customOptions]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('[data-image-swatch-dropdown="true"]')) {
+        return;
+      }
+
+      setOpenImageDropdownOptionId(null);
+    };
+
+    window.addEventListener('mousedown', handleOutsideClick);
+
+    return () => {
+      window.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, []);
 
   const selectedVariant = useMemo(() => {
     if (variants.length === 0 || options.length === 0) {
@@ -285,9 +410,31 @@ export default function ProductInfo({
       return false;
     }
 
+    const customValuesPayload = visibleCustomOptions
+      .map(option => {
+        const selected = selectedCustomOptions[option.id];
+        if (!selected?.choiceId) {
+          return null;
+        }
+
+        return {
+          choiceId: selected.choiceId,
+          customOptionId: option.id,
+        };
+      })
+      .filter(
+        (
+          value,
+        ): value is {
+          choiceId: string;
+          customOptionId: string;
+        } => Boolean(value),
+      );
+
     try {
       await addToCartMutation.trigger({
         csrf: true,
+        ...(customValuesPayload.length > 0 ? { customValues: customValuesPayload } : {}),
         productId,
         quantity,
         ...(selectedVariantId ? { variantId: selectedVariantId } : {}),
@@ -364,6 +511,37 @@ export default function ProductInfo({
   };
 
   const formatPrice = (v: number) => new Intl.NumberFormat('vi-VN').format(v) + ' VNĐ';
+
+  const visibleCustomOptions = useMemo(() => {
+    return customOptions.filter(option => isCustomOptionVisible(option, selectedCustomOptions));
+  }, [customOptions, selectedCustomOptions]);
+  const hasVisibleCustomOptions = visibleCustomOptions.length > 0;
+
+  const customOptionSurcharge = useMemo(() => {
+    return visibleCustomOptions.reduce((total, option) => {
+      const selected = selectedCustomOptions[option.id];
+      if (!selected) {
+        return total;
+      }
+
+      const selectedChoice = option.choices.find(choice => choice.id === selected.choiceId);
+      if (!selectedChoice) {
+        return total;
+      }
+
+      if (selectedChoice.priceModifierType === 'FIXED') {
+        return total + selectedChoice.priceModifierValue;
+      }
+
+      if (selectedChoice.priceModifierType === 'PERCENT' && displayPrice > 0) {
+        return total + (displayPrice * selectedChoice.priceModifierValue) / 100;
+      }
+
+      return total;
+    }, 0);
+  }, [displayPrice, selectedCustomOptions, visibleCustomOptions]);
+
+  const subTotalPrice = displayPrice > 0 ? (displayPrice + customOptionSurcharge) * quantity : 0;
 
   return (
     <div className="space-y-5">
@@ -458,10 +636,10 @@ export default function ProductInfo({
                         },
                       }));
                     }}
-                    className={`h-10 px-4 rounded-xl text-[13px] border-2 transition-all duration-200 font-500 ${
+                    className={`h-10 px-4 rounded-md text-[13px] border transition-all duration-200 font-500 ${
                       isSelected
-                        ? 'border-primary bg-primary-light text-primary'
-                        : 'border-border bg-white text-foreground hover:border-primary/40'
+                        ? 'border-black bg-black text-white'
+                        : 'border-border bg-white text-foreground hover:border-foreground/40'
                     }`}
                   >
                     {value.value}
@@ -497,13 +675,194 @@ export default function ProductInfo({
 
       {/* Total Price */}
       <div className="flex items-center gap-2">
-        <span className="text-[14px] text-muted-foreground">Tổng cộng:</span>
-        <span className="text-[20px] text-primary font-700">
+        <span
+          className={
+            hasVisibleCustomOptions
+              ? 'text-[13px] text-muted-foreground'
+              : 'text-[16px] text-foreground font-600'
+          }
+        >
+          {hasVisibleCustomOptions ? 'Tổng phụ:' : 'Tổng cộng:'}
+        </span>
+        <span className={`${hasVisibleCustomOptions ? 'text-[20px]' : 'text-[24px]'} text-primary font-700`}>
           {displayPrice > 0 ? formatPrice(displayPrice * quantity) : 'Liên hệ'}
         </span>
       </div>
 
-      <div className="h-px bg-border/60" />
+      {hasVisibleCustomOptions && (
+        <div className="space-y-4">
+          {visibleCustomOptions.map(option => {
+            const selectedChoiceId = selectedCustomOptions[option.id]?.choiceId;
+            const choiceLabel = option.label + (option.isRequired ? '*' : '');
+
+            if (option.type === 'RADIO') {
+              return (
+                <div key={option.id} className="space-y-2">
+                  <label className="block text-[13px] text-foreground font-600">{choiceLabel}</label>
+                  <div className="flex flex-wrap gap-2">
+                    {option.choices.map(choice => {
+                      const selected = choice.id === selectedChoiceId;
+                      return (
+                        <button
+                          key={choice.id}
+                          className={`h-10 px-4 rounded-md text-[13px] border transition-all font-600 ${
+                            selected
+                              ? 'bg-black text-white border-black'
+                              : 'bg-white text-foreground border-border hover:border-primary/40'
+                          }`}
+                          onClick={() => {
+                            setSelectedCustomOptions(prev => ({
+                              ...prev,
+                              [option.id]: {
+                                choiceId: choice.id,
+                                value: choice.value,
+                              },
+                            }));
+                          }}
+                          type="button"
+                        >
+                          {choice.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }
+
+            if (option.type === 'DROPDOWN') {
+              return (
+                <div key={option.id} className="space-y-2">
+                  <label className="block text-[13px] text-foreground font-600">{choiceLabel}</label>
+                  <select
+                    className="h-12 w-full rounded-md border border-border bg-white px-4 text-[14px] text-foreground"
+                    onChange={event => {
+                      const nextChoice = option.choices.find(choice => choice.id === event.target.value);
+                      if (!nextChoice) return;
+
+                      setSelectedCustomOptions(prev => ({
+                        ...prev,
+                        [option.id]: {
+                          choiceId: nextChoice.id,
+                          value: nextChoice.value,
+                        },
+                      }));
+                    }}
+                    value={selectedChoiceId ?? ''}
+                  >
+                    {option.choices.map(choice => (
+                      <option key={choice.id} value={choice.id}>
+                        {choice.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            }
+
+            if (option.type === 'IMAGE_SWATCH') {
+              const selectedChoice = option.choices.find(choice => choice.id === selectedChoiceId);
+              const isOpen = openImageDropdownOptionId === option.id;
+
+              return (
+                <div className="space-y-2" data-image-swatch-dropdown="true" key={option.id}>
+                  <label className="block text-[13px] text-foreground font-600">{choiceLabel}</label>
+                  <button
+                    className="w-full rounded-md border border-border bg-white px-4 py-3 text-left"
+                    onClick={() => {
+                      setOpenImageDropdownOptionId(previous => (previous === option.id ? null : option.id));
+                    }}
+                    type="button"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-[14px] text-foreground">
+                        {selectedChoice
+                          ? (() => {
+                              const modifier = formatPriceModifier(selectedChoice);
+
+                              return modifier
+                                ? `${selectedChoice.label} (${modifier})`
+                                : selectedChoice.label;
+                            })()
+                          : 'Chọn...'}
+                      </p>
+                      {isOpen ? (
+                        <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      )}
+                    </div>
+
+                    {selectedChoice?.imageUrl ? (
+                      <div className="mt-2 h-[4.8rem] w-full overflow-hidden">
+                        <ImageWithFallback
+                          alt={selectedChoice.label}
+                          className="h-full w-full object-cover"
+                          src={selectedChoice.imageUrl}
+                        />
+                      </div>
+                    ) : null}
+                  </button>
+
+                  {isOpen ? (
+                    <div className="rounded-md border border-border bg-white p-2 shadow-sm">
+                      {option.choices.map(choice => {
+                        const isSelected = choice.id === selectedChoiceId;
+                        const modifier = formatPriceModifier(choice);
+
+                        return (
+                          <button
+                            className={`mb-2 w-full rounded-md border p-2 text-left transition-colors last:mb-0 ${
+                              isSelected
+                                ? 'border-[#7DBC72] bg-[#EAF5E8]'
+                                : 'border-border bg-white hover:border-primary/40'
+                            }`}
+                            key={choice.id}
+                            onClick={() => {
+                              setSelectedCustomOptions(prev => ({
+                                ...prev,
+                                [option.id]: {
+                                  choiceId: choice.id,
+                                  value: choice.value,
+                                },
+                              }));
+                              setOpenImageDropdownOptionId(null);
+                            }}
+                            type="button"
+                          >
+                            <p className="text-[14px] text-foreground">
+                              {modifier ? `${choice.label} (${modifier})` : choice.label}
+                            </p>
+
+                            {choice.imageUrl ? (
+                              <div className="mt-2 h-[4.8rem] w-full overflow-hidden">
+                                <ImageWithFallback
+                                  alt={choice.label}
+                                  className="h-full w-full object-cover"
+                                  src={choice.imageUrl}
+                                />
+                              </div>
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            }
+
+            return null;
+          })}
+
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[16px] text-foreground font-600">Tổng cộng:</span>
+            <span className="text-[22px] text-primary font-700">
+              {subTotalPrice > 0 ? formatPrice(subTotalPrice) : 'Liên hệ'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="space-y-3">

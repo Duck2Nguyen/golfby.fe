@@ -70,6 +70,7 @@ export interface CartVariantSelectedOptionValue {
 }
 
 export interface CartItem {
+  customValues?: CartItemCustomValue[];
   createdAt?: string | null;
   id: string;
   product?: CartProduct | null;
@@ -81,8 +82,39 @@ export interface CartItem {
   variantId?: string | null;
 }
 
+export interface CartItemCustomOption {
+  id: string;
+  label?: string | null;
+  type?: string | null;
+}
+
+export interface CartItemCustomChoice {
+  id: string;
+  label?: string | null;
+  value?: string | null;
+}
+
+export interface CartItemCustomValue {
+  choice?: CartItemCustomChoice | null;
+  choiceId?: string | null;
+  customOption?: CartItemCustomOption | null;
+  customOptionId?: string | null;
+  fileUrl?: string | null;
+  id: string;
+  priceModifier?: string | number | null;
+  textValue?: string | null;
+}
+
+export interface AddToCartCustomValuePayload {
+  choiceId?: string;
+  customOptionId: string;
+  fileUrl?: string;
+  textValue?: string;
+}
+
 export interface AddToCartPayload {
   csrf?: boolean;
+  customValues?: AddToCartCustomValuePayload[];
   productId: string;
   quantity?: number;
   variantId?: string;
