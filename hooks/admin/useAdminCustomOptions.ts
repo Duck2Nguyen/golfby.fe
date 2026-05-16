@@ -121,6 +121,28 @@ export interface DeleteAdminCustomOptionPayload {
   optionId: string;
 }
 
+export interface BulkCreateAdminCustomOptionPayload {
+  csrf?: boolean;
+  options: Array<Omit<CreateAdminCustomOptionPayload, 'csrf'>>;
+}
+
+export interface BulkUpdateAdminCustomOptionItem {
+  isRequired?: boolean;
+  label?: string;
+  optionId: string;
+  placeholder?: string;
+  priceModifierType?: AdminPriceModifierType;
+  priceModifierValue?: number;
+  sortOrder?: number;
+  type?: AdminCustomOptionType;
+  validationRules?: Record<string, unknown>;
+}
+
+export interface BulkUpdateAdminCustomOptionPayload {
+  csrf?: boolean;
+  options: BulkUpdateAdminCustomOptionItem[];
+}
+
 export interface CreateAdminCustomOptionChoicePayload {
   colorHex?: string;
   csrf?: boolean;
@@ -152,6 +174,29 @@ export interface UpdateAdminCustomOptionChoicePayload {
 export interface DeleteAdminCustomOptionChoicePayload {
   choiceId: string;
   csrf?: boolean;
+}
+
+export interface BulkCreateAdminCustomOptionChoicePayload {
+  csrf?: boolean;
+  choices: Array<Omit<CreateAdminCustomOptionChoicePayload, 'csrf'>>;
+}
+
+export interface BulkUpdateAdminCustomOptionChoiceItem {
+  choiceId: string;
+  colorHex?: string;
+  imageUrl?: string;
+  isDefault?: boolean;
+  label?: string;
+  linkedVariantId?: string;
+  priceModifierType?: AdminPriceModifierType;
+  priceModifierValue?: number;
+  sortOrder?: number;
+  value?: string;
+}
+
+export interface BulkUpdateAdminCustomOptionChoicePayload {
+  csrf?: boolean;
+  choices: BulkUpdateAdminCustomOptionChoiceItem[];
 }
 
 export interface CreateAdminCustomOptionConditionPayload {
@@ -309,6 +354,38 @@ export const useDeleteAdminCustomOptionChoice = () => {
     loading: true,
     method: METHOD.DELETE,
     url: '/api/v1/admin/custom-options/choices/{choiceId}',
+  });
+};
+
+export const useBulkCreateAdminCustomOptions = () => {
+  return useMutation<AdminCustomOption[]>('/api/v1/admin/custom-options/options/bulk', {
+    loading: true,
+    method: METHOD.POST,
+    url: '/api/v1/admin/custom-options/options/bulk',
+  });
+};
+
+export const useBulkUpdateAdminCustomOptions = () => {
+  return useMutation<AdminCustomOption[]>('/api/v1/admin/custom-options/options/bulk', {
+    loading: true,
+    method: METHOD.PATCH,
+    url: '/api/v1/admin/custom-options/options/bulk',
+  });
+};
+
+export const useBulkCreateAdminCustomOptionChoices = () => {
+  return useMutation<AdminCustomOptionChoice[]>('/api/v1/admin/custom-options/choices/bulk', {
+    loading: true,
+    method: METHOD.POST,
+    url: '/api/v1/admin/custom-options/choices/bulk',
+  });
+};
+
+export const useBulkUpdateAdminCustomOptionChoices = () => {
+  return useMutation<AdminCustomOptionChoice[]>('/api/v1/admin/custom-options/choices/bulk', {
+    loading: true,
+    method: METHOD.PATCH,
+    url: '/api/v1/admin/custom-options/choices/bulk',
   });
 };
 

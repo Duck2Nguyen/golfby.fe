@@ -16,6 +16,7 @@ interface TextFieldProps {
   className?: string;
   labelClassName?: string;
   readOnly?: boolean;
+  disabled?: boolean;
 }
 
 const TextField = ({
@@ -28,6 +29,7 @@ const TextField = ({
   className,
   labelClassName,
   readOnly,
+  disabled,
 }: TextFieldProps) => {
   return (
     <FormikField name={name}>
@@ -44,6 +46,7 @@ const TextField = ({
             )}
             <InputField
               readOnly={readOnly}
+              disabled={disabled}
               field={field}
               form={form}
               meta={meta}

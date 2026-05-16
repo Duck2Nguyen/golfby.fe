@@ -216,9 +216,37 @@ export default function Checkout() {
           })
           .filter((spec): spec is { label: string; value: string } => Boolean(spec));
 
-        const specs = [variant?.sku ? { label: 'SKU', value: variant.sku } : null, ...optionSpecs].filter(
-          (spec): spec is { label: string; value: string } => Boolean(spec),
-        );
+        // Extract custom values (product customization options)
+        const customValueSpecs = (item.customValues ?? [])
+          .map(customValue => {
+            const customLabel = customValue.customOption?.label?.trim();
+            let customVal = '';
+
+            if (customValue.choice?.value) {
+              customVal = customValue.choice.value.trim();
+            } else if (customValue.textValue) {
+              customVal = customValue.textValue.trim();
+            } else if (customValue.fileUrl) {
+              // For file uploads, show "File đã chọn" or the filename
+              customVal = 'File đã chọn';
+            }
+
+            if (!customLabel || !customVal) {
+              return null;
+            }
+
+            return {
+              label: customLabel,
+              value: customVal,
+            };
+          })
+          .filter((spec): spec is { label: string; value: string } => Boolean(spec));
+
+        const specs = [
+          variant?.sku ? { label: 'SKU', value: variant.sku } : null,
+          ...optionSpecs,
+          ...customValueSpecs,
+        ].filter((spec): spec is { label: string; value: string } => Boolean(spec));
 
         return {
           id: item.id,

@@ -25,11 +25,11 @@ import {
   useCreateAdminCustomOptionGroup,
   useDeleteAdminCustomOptionGroup,
   useUpdateAdminCustomOptionGroup,
-  useCreateAdminCustomOptionChoice,
   useDeleteAdminCustomOptionChoice,
-  useUpdateAdminCustomOptionChoice,
   useCreateAdminCustomOptionCondition,
   useDeleteAdminCustomOptionCondition,
+  useBulkCreateAdminCustomOptionChoices,
+  useBulkUpdateAdminCustomOptionChoices,
 } from '@/hooks/admin/useAdminCustomOptions';
 
 import PreviewTab from './PreviewTab';
@@ -292,9 +292,9 @@ export default function CustomOptions() {
   const createOptionMutation = useCreateAdminCustomOption();
   const updateOptionMutation = useUpdateAdminCustomOption();
   const deleteOptionMutation = useDeleteAdminCustomOption();
-  const createChoiceMutation = useCreateAdminCustomOptionChoice();
-  const updateChoiceMutation = useUpdateAdminCustomOptionChoice();
   const deleteChoiceMutation = useDeleteAdminCustomOptionChoice();
+  const bulkCreateChoicesMutation = useBulkCreateAdminCustomOptionChoices();
+  const bulkUpdateChoicesMutation = useBulkUpdateAdminCustomOptionChoices();
   const createConditionMutation = useCreateAdminCustomOptionCondition();
   const deleteConditionMutation = useDeleteAdminCustomOptionCondition();
   const uploadAdminStaticContentImageMutation = useUploadAdminStaticContentImage();
@@ -892,13 +892,18 @@ export default function CustomOptions() {
       );
 
       const currentChoices = normalizeChoices(targetOption.choices);
+
+      // Xoá các choice đã bị xóa khỏi UI
       const currentChoiceIds = new Set(
         currentChoices.filter(choice => !choice.id.startsWith('tmp_')).map(choice => choice.id),
       );
 
-      for (const snapshotChoice of snapshotOption.choices ?? []) {
-        if (currentChoiceIds.has(snapshotChoice.id)) continue;
+      const choicesToDelete = (snapshotOption.choices ?? []).filter(
+        snapshotChoice => !currentChoiceIds.has(snapshotChoice.id),
+      );
 
+      // Xoá tuần tự các choice đã bị xóa (không có bulk delete)
+      for (const snapshotChoice of choicesToDelete) {
         await safelyTrigger(
           deleteChoiceMutation.trigger({
             choiceId: snapshotChoice.id,
@@ -907,15 +912,26 @@ export default function CustomOptions() {
         );
       }
 
-      const persistedChoices: CustomOptionChoice[] = [];
+      // Resolve ảnh cho tất cả choice song song
+      const resolvedChoices = await Promise.all(
+        currentChoices.map(async choice => {
+          const resolvedImageUrl = await resolveChoiceImageUrl(choice);
+          return { choice, resolvedImageUrl };
+        }),
+      );
 
-      for (const choice of currentChoices) {
-        const resolvedImageUrl = await resolveChoiceImageUrl(choice);
+      // Tách thành 2 batch: create (tmp_) và update (existing)
+      const choicesToCreate = resolvedChoices.filter(({ choice }) => choice.id.startsWith('tmp_'));
+      const choicesToUpdate = resolvedChoices.filter(({ choice }) => !choice.id.startsWith('tmp_'));
 
-        if (choice.id.startsWith('tmp_')) {
-          const createdChoice = await safelyTrigger(
-            createChoiceMutation.trigger({
-              csrf: true,
+      // Bulk create
+      let createdChoices: AdminCustomOptionChoice[] = [];
+
+      if (choicesToCreate.length > 0) {
+        const bulkCreateResponse = await safelyTrigger(
+          bulkCreateChoicesMutation.trigger({
+            csrf: true,
+            choices: choicesToCreate.map(({ choice, resolvedImageUrl }) => ({
               imageUrl: resolvedImageUrl,
               label: choice.label,
               optionId: targetOption.id,
@@ -923,40 +939,56 @@ export default function CustomOptions() {
               priceModifierValue: choice.priceModifierType === 'NONE' ? 0 : (choice.priceModifierValue ?? 0),
               sortOrder: choice.sortOrder,
               value: choice.value,
-            }),
-          );
+            })),
+          }),
+        );
 
-          persistedChoices.push({
+        createdChoices = bulkCreateResponse?.data ?? [];
+      }
+
+      // Bulk update
+      if (choicesToUpdate.length > 0) {
+        await safelyTrigger(
+          bulkUpdateChoicesMutation.trigger({
+            csrf: true,
+            choices: choicesToUpdate.map(({ choice, resolvedImageUrl }) => ({
+              choiceId: choice.id,
+              imageUrl: resolvedImageUrl,
+              label: choice.label,
+              priceModifierType: choice.priceModifierType as AdminPriceModifierType,
+              priceModifierValue: choice.priceModifierType === 'NONE' ? 0 : (choice.priceModifierValue ?? 0),
+              sortOrder: choice.sortOrder,
+              value: choice.value,
+            })),
+          }),
+        );
+      }
+
+      // Ghép lại danh sách persistedChoices
+      let createdIndex = 0;
+      const persistedChoices: CustomOptionChoice[] = currentChoices.map(choice => {
+        const { resolvedImageUrl } = resolvedChoices.find(({ choice: rc }) => rc.id === choice.id) ?? {
+          resolvedImageUrl: '',
+        };
+
+        if (choice.id.startsWith('tmp_')) {
+          const serverChoice = createdChoices[createdIndex++];
+          return {
             ...choice,
             imageFile: null,
             imageUrl: resolvedImageUrl || undefined,
             presignedImageUrl: choice.presignedImageUrl,
-            id: createdChoice?.data?.id ?? choice.id,
-          });
-
-          continue;
+            id: serverChoice?.id ?? choice.id,
+          };
         }
 
-        await safelyTrigger(
-          updateChoiceMutation.trigger({
-            choiceId: choice.id,
-            csrf: true,
-            imageUrl: resolvedImageUrl,
-            label: choice.label,
-            priceModifierType: choice.priceModifierType as AdminPriceModifierType,
-            priceModifierValue: choice.priceModifierType === 'NONE' ? 0 : (choice.priceModifierValue ?? 0),
-            sortOrder: choice.sortOrder,
-            value: choice.value,
-          }),
-        );
-
-        persistedChoices.push({
+        return {
           ...choice,
           imageFile: null,
           imageUrl: resolvedImageUrl || undefined,
           presignedImageUrl: choice.presignedImageUrl,
-        });
-      }
+        };
+      });
 
       const persistedOption: CustomOption = {
         ...targetOption,

@@ -8,8 +8,19 @@ export type CheckoutPaymentMethod = 'CASH_ON_DELIVERY' | 'BANK_TRANSFER' | 'ONLI
 export type OrderStatus = 'PENDING' | 'PAID' | 'SHIPPED' | 'COMPLETED' | 'CANCELED' | 'REFUNDED';
 export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED' | 'FAILED';
 
+export interface CheckoutOrderLineCustomValue {
+  choiceId?: string | null;
+  customOptionId?: string | null;
+  fileUrl?: string | null;
+  id: string;
+  optionLabel?: string | null;
+  priceModifier?: number | null;
+  valueLabel?: string | null;
+}
+
 export interface CheckoutOrderLine {
   createdAt?: string;
+  customValues?: CheckoutOrderLineCustomValue[];
   id: string;
   lineTotal?: number;
   product?: {

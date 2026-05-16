@@ -291,10 +291,25 @@ export default function CheckoutPayment() {
                     >
                       <div>
                         <p className="text-[1.4rem] font-600 text-foreground">{line.productName || '--'}</p>
-                        <p className="text-[1.2rem] text-muted-foreground">
-                          SL: {line.quantity ?? 0}
-                          {line.sku ? ` • SKU: ${line.sku}` : ''}
-                        </p>
+                        <p className="text-[1.2rem] text-muted-foreground">SL: {line.quantity ?? 0}</p>
+                        {(line.customValues ?? []).length > 0 && (
+                          <div className="mt-1 space-y-0.5">
+                            {line.customValues?.map(customValue => {
+                              const label = customValue.optionLabel?.trim();
+                              const value = customValue.valueLabel?.trim();
+
+                              if (!label || !value) {
+                                return null;
+                              }
+
+                              return (
+                                <p key={customValue.id} className="text-[1.2rem] text-muted-foreground">
+                                  {label}: <span className="text-foreground">{value}</span>
+                                </p>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                       <p className="text-[1.3rem] font-700 text-foreground">
                         {formatCurrency(line.lineTotal)}

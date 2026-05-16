@@ -9,6 +9,7 @@ interface InputFieldProps {
   className?: string;
   hasError?: boolean;
   readOnly?: boolean;
+  disabled?: boolean;
 }
 
 // Formik Field component compatible
@@ -18,6 +19,8 @@ export default function InputField({
   type = 'text',
   className = '',
   hasError = false,
+  readOnly,
+  disabled,
   field,
   form,
   ...props
