@@ -999,7 +999,7 @@ export default function CustomOptions() {
         const bulkCreateResponse = await safelyTrigger(
           bulkCreateChoicesMutation.trigger({
             csrf: true,
-            choices: choicesToCreate.map(({ choice, resolvedImageUrl }) => ({
+            items: choicesToCreate.map(({ choice, resolvedImageUrl }) => ({
               imageUrl: resolvedImageUrl,
               label: choice.label,
               optionId: targetOption.id,
@@ -1019,9 +1019,9 @@ export default function CustomOptions() {
         await safelyTrigger(
           bulkUpdateChoicesMutation.trigger({
             csrf: true,
-            choices: choicesToUpdate.map(({ choice, resolvedImageUrl }) => ({
-              choiceId: choice.id,
+            items: choicesToUpdate.map(({ choice, resolvedImageUrl }) => ({
               imageUrl: resolvedImageUrl,
+              id: choice.id,
               label: choice.label,
               priceModifierType: choice.priceModifierType as AdminPriceModifierType,
               priceModifierValue: choice.priceModifierType === 'NONE' ? 0 : (choice.priceModifierValue ?? 0),

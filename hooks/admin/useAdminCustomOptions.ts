@@ -123,7 +123,7 @@ export interface DeleteAdminCustomOptionPayload {
 
 export interface BulkCreateAdminCustomOptionPayload {
   csrf?: boolean;
-  options: Array<Omit<CreateAdminCustomOptionPayload, 'csrf'>>;
+  items: Array<Omit<CreateAdminCustomOptionPayload, 'csrf'>>;
 }
 
 export interface BulkUpdateAdminCustomOptionItem {
@@ -140,7 +140,7 @@ export interface BulkUpdateAdminCustomOptionItem {
 
 export interface BulkUpdateAdminCustomOptionPayload {
   csrf?: boolean;
-  options: BulkUpdateAdminCustomOptionItem[];
+  items: BulkUpdateAdminCustomOptionItem[];
 }
 
 export interface CreateAdminCustomOptionChoicePayload {
@@ -178,12 +178,12 @@ export interface DeleteAdminCustomOptionChoicePayload {
 
 export interface BulkCreateAdminCustomOptionChoicePayload {
   csrf?: boolean;
-  choices: Array<Omit<CreateAdminCustomOptionChoicePayload, 'csrf'>>;
+  items: Array<Omit<CreateAdminCustomOptionChoicePayload, 'csrf'>>;
 }
 
 export interface BulkUpdateAdminCustomOptionChoiceItem {
-  choiceId: string;
   colorHex?: string;
+  id: string;
   imageUrl?: string;
   isDefault?: boolean;
   label?: string;
@@ -196,7 +196,7 @@ export interface BulkUpdateAdminCustomOptionChoiceItem {
 
 export interface BulkUpdateAdminCustomOptionChoicePayload {
   csrf?: boolean;
-  choices: BulkUpdateAdminCustomOptionChoiceItem[];
+  items: BulkUpdateAdminCustomOptionChoiceItem[];
 }
 
 export interface CreateAdminCustomOptionConditionPayload {
