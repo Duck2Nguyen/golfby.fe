@@ -1,5 +1,4 @@
-import type { Product } from '@/components/mock-data';
-import type { ProductListItem, GetAllProductsParams } from '@/hooks/useProducts';
+import type { GetAllProductsParams } from '@/hooks/useProducts';
 import type { CollectionCategory, CollectionTreeNode } from '@/hooks/useCollections';
 
 export interface BreadcrumbItem {
@@ -28,15 +27,11 @@ export interface PriceRange {
   min: number;
 }
 
+export { mapApiProductToCardData } from '@/utils/product';
+
 export const DEFAULT_PAGE_SIZE = 24;
 export const DEFAULT_MAX_PRICE = 100000000;
 export const DEFAULT_MIN_PRICE = 0;
-const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
-
-const toNumber = (value?: string | null) => {
-  const parsed = Number(value ?? 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
 
 export const toSlug = (value?: string | null) => {
   const normalized = value?.trim().toLowerCase();
@@ -50,31 +45,6 @@ export const normalizeSlugSegments = (slugSegments: string[]) => {
 };
 
 const buildRouteKey = (slugSegments: string[]) => slugSegments.join('/');
-
-export const mapApiProductToCardData = (item: ProductListItem): Product => {
-  const salePrice = toNumber(item.salePrice);
-  const listPrice = toNumber(item.listPrice);
-
-  const price = salePrice > 0 ? salePrice : listPrice;
-  const originalPrice = salePrice > 0 && listPrice > salePrice ? listPrice : undefined;
-  const discount =
-    originalPrice && originalPrice > 0
-      ? Math.round(((originalPrice - price) / originalPrice) * 100)
-      : undefined;
-
-  return {
-    brand: item.brand?.name ?? 'GolfBy',
-    ...(discount ? { badge: 'sale' } : {}),
-    ...(discount ? { discount } : {}),
-    id: item.id,
-    image: item.images?.[0]?.url || PRODUCT_IMAGE_FALLBACK,
-    name: item.name,
-    ...(originalPrice ? { originalPrice } : {}),
-    price,
-    rating: 0,
-    reviews: 0,
-  };
-};
 
 const buildCollectionHref = (...slugSegments: string[]) => {
   const normalizedSegments = slugSegments.filter(Boolean);

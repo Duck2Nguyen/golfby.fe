@@ -1,13 +1,16 @@
-import { useMemo } from 'react';
 import { Search } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
 
 import Link from 'next/link';
+
+import { getKey } from '@/utils/localStorage';
 
 import { useProducts, type ProductListItem } from '@/hooks/useProducts';
 
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 
-const popularKeywords = ['g10', 'g430', 'taylormade', 'ping', 'prov1', 'bóng golf', 'titleist', 'callaway'];
+const SEARCH_HISTORY_KEY = 'golfby-search-history';
+const MAX_RECENT_KEYWORDS = 8;
 const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
 
 interface SearchProductItem {
@@ -69,6 +72,7 @@ export function SearchSuggestion({
   onSubmitSearch,
   searchText,
 }: SearchSuggestionProps) {
+  const [recentKeywords, setRecentKeywords] = useState<string[]>([]);
   const normalizedSearchText = normalizeText(searchText);
   const hasSearchText = Boolean(normalizedSearchText);
   const { getAllProducts, getTopProducts } = useProducts({
@@ -84,7 +88,11 @@ export function SearchSuggestion({
     },
   });
 
-  const filteredKeywords = popularKeywords;
+  useEffect(() => {
+    const savedRecentKeywords = getKey<string[]>(SEARCH_HISTORY_KEY) ?? [];
+
+    setRecentKeywords(savedRecentKeywords.slice(0, MAX_RECENT_KEYWORDS));
+  }, []);
 
   const bestSellingProducts = useMemo(() => {
     const apiItems = getTopProducts.data?.data ?? [];
@@ -184,25 +192,29 @@ export function SearchSuggestion({
                 className="text-[1.2rem] text-muted-foreground uppercase tracking-wider mb-3"
                 style={{ fontWeight: 700 }}
               >
-                Từ khóa hay được tìm kiếm
+                Từ khóa tìm kiếm gần đây
               </h4>
-              <div className="flex flex-wrap gap-2">
-                {filteredKeywords.map(keyword => (
-                  <button
-                    key={keyword}
-                    type="button"
-                    onClick={() => {
-                      onSearchTextChange(keyword);
-                      onSubmitSearch(keyword);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f5f5f5] hover:bg-primary-light hover:text-primary border border-transparent hover:border-primary/20 rounded-full text-[1.3rem] text-muted-foreground transition-all duration-150"
-                    style={{ fontWeight: 500 }}
-                  >
-                    <Search className="w-3 h-3 opacity-50" />
-                    {keyword}
-                  </button>
-                ))}
-              </div>
+              {recentKeywords.length === 0 ? (
+                <p className="text-[1.2rem] text-muted-foreground">Chưa có lịch sử tìm kiếm.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {recentKeywords.map(keyword => (
+                    <button
+                      key={keyword}
+                      type="button"
+                      onClick={() => {
+                        onSearchTextChange(keyword);
+                        onSubmitSearch(keyword);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f5f5f5] hover:bg-primary-light hover:text-primary border border-transparent hover:border-primary/20 rounded-full text-[1.3rem] text-muted-foreground transition-all duration-150"
+                      style={{ fontWeight: 500 }}
+                    >
+                      <Search className="w-3 h-3 opacity-50" />
+                      {keyword}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>

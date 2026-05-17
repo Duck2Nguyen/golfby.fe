@@ -23,7 +23,7 @@ export function ProductCard({
   onToggleWishlistAction,
   product,
 }: ProductCardProps) {
-  const formatPrice = (price: number) => new Intl.NumberFormat('vi-VN').format(price) + '₫';
+  const formatPrice = (price: number) => new Intl.NumberFormat('vi-VN').format(price) + ' VND';
 
   const handleAddToCart = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -67,20 +67,15 @@ export function ProductCard({
         {/* Badge */}
         {product.badge && (
           <span
-            className={`absolute top-3 left-3 px-3 py-1 rounded-lg text-[1.1rem] text-white uppercase tracking-wide ${
+            className={`absolute top-3 left-3 px-3 py-1 rounded-lg text-[1.1rem] tracking-wide font-700 ${
               product.badge === 'new'
-                ? 'bg-primary'
+                ? 'bg-primary text-white uppercase'
                 : product.badge === 'sale'
-                  ? 'bg-destructive'
-                  : 'bg-accent'
+                  ? 'bg-[#FFE5E5] text-[#FF0000] italic'
+                  : 'bg-accent text-white uppercase'
             }`}
-            style={{ fontWeight: 700 }}
           >
-            {product.badge === 'sale' && product.discount
-              ? `-${product.discount}%`
-              : product.badge === 'new'
-                ? 'Mới'
-                : 'Hot'}
+            {product.badge === 'sale' ? 'Sale' : product.badge === 'new' ? 'Mới' : 'Hot'}
           </span>
         )}
 
@@ -128,20 +123,23 @@ export function ProductCard({
         </h3>
 
         {/* Price */}
-        <div className="flex items-end gap-2">
-          {product.price > 0 ? (
-            <span className="text-[1.7rem] text-primary" style={{ fontWeight: 700 }}>
-              {formatPrice(product.price)}
-            </span>
-          ) : (
-            <span className="text-[1.7rem] text-foreground" style={{ fontWeight: 700 }}>
-              Giá: Liên hệ
-            </span>
-          )}
-          {product.price > 0 && product.originalPrice && (
-            <span className="text-[1.3rem] text-muted-foreground line-through">
-              {formatPrice(product.originalPrice)}
-            </span>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1">
+            {product.price > 0 && product.originalPrice && product.originalPrice > product.price && (
+              <span className="text-[1.4rem] text-foreground line-through font-600">
+                {formatPrice(product.originalPrice)}
+              </span>
+            )}
+            {product.price > 0 ? (
+              <span className="text-[1.4rem] text-[#FF0000] font-700">{formatPrice(product.price)}</span>
+            ) : (
+              <span className="text-[1.4rem] text-foreground font-700">Giá: Liên hệ</span>
+            )}
+          </div>
+          {product.discount && product.discount > 0 && (
+            <div className="inline-flex w-fit items-center justify-center px-2 py-0.5 rounded-[4px] bg-[#FFE5E5] text-[#FF0000] text-[1.2rem] font-500">
+              (-{product.discount}%)
+            </div>
           )}
         </div>
       </Link>

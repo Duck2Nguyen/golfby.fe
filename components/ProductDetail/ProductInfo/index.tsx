@@ -11,14 +11,18 @@ import {
   Shield,
   ChevronUp,
   RotateCcw,
+  HelpCircle,
   ChevronDown,
   ShoppingCart,
   AlertTriangle,
   MessageCircle,
 } from 'lucide-react';
 
+import { Button } from '@heroui/button';
 import { addToast } from '@heroui/toast';
+import { Checkbox } from '@heroui/checkbox';
 import { useRouter } from 'next/navigation';
+import { Modal, ModalBody, ModalFooter, ModalHeader, ModalContent } from '@heroui/modal';
 
 import type {
   ProductDetailCustomOption,
@@ -36,6 +40,7 @@ import { useCarts } from '@/hooks/useCarts';
 import { useWishlistToggle } from '@/hooks/useWishlistToggle';
 
 import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
+import TermsConditionsModal from '@/components/ProductDetail/TermsConditionsModal';
 
 interface ProductOptionValue {
   id?: string;
@@ -543,6 +548,10 @@ export default function ProductInfo({
 
   const subTotalPrice = displayPrice > 0 ? (displayPrice + customOptionSurcharge) * quantity : 0;
 
+  const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [agreedTerms, setAgreedTerms] = useState(false);
+
   return (
     <div className="space-y-5">
       {/* Brand & SKU */}
@@ -591,20 +600,15 @@ export default function ProductInfo({
 
       {/* Price */}
       <div className="flex items-end gap-3">
-        {displayPrice > 0 && displayOriginalPrice && (
-          <span className="text-[16px] text-muted-foreground line-through">
+        {displayPrice > 0 && displayOriginalPrice && displayOriginalPrice > displayPrice && (
+          <span className="text-[28px] text-foreground-600 line-through font-600">
             {formatPrice(displayOriginalPrice)}
           </span>
         )}
         {displayPrice > 0 ? (
-          <span className="text-[28px] text-destructive font-700">{formatPrice(displayPrice)}</span>
+          <span className="text-[28px] text-[#FF0000] font-700">{formatPrice(displayPrice)}</span>
         ) : (
           <span className="text-[28px] text-foreground font-700">Giá: Liên hệ</span>
-        )}
-        {displayPrice > 0 && displayDiscount && (
-          <span className="text-[13px] text-destructive bg-destructive/10 px-2.5 py-1 rounded-lg font-600">
-            -{displayDiscount}%
-          </span>
         )}
       </div>
 
@@ -896,6 +900,27 @@ export default function ProductInfo({
           </button>
         </div>
 
+        <div className="pt-2 flex items-center gap-2 text-[14px] text-muted-foreground">
+          <Checkbox
+            isSelected={agreedTerms}
+            onValueChange={selected => setAgreedTerms(selected)}
+            classNames={{
+              base: 'm-0 p-0',
+              wrapper: 'm-0 p-0',
+            }}
+            radius="sm"
+            aria-label="Tôi đồng ý với điều khoản và điều kiện"
+          />
+          <span>Tôi đồng ý với</span>
+          <button
+            type="button"
+            onClick={() => setIsTermsModalOpen(true)}
+            className="text-primary underline text-[1.4rem]"
+          >
+            Điều khoản và điều kiện
+          </button>
+        </div>
+
         <button
           onClick={() => {
             void handleBuyNow();
@@ -908,19 +933,32 @@ export default function ProductInfo({
 
         {/* Contact Buttons */}
         <div className="grid grid-cols-2 gap-3">
-          <button className="h-11 bg-[#0068FF] hover:bg-[#0068FF]/90 text-white rounded-xl text-[13px] flex items-center justify-center gap-2 transition-colors font-600">
+          <a
+            href="http://m.me/golfby.ltd"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="h-11 bg-[#0068FF] hover:bg-[#0068FF]/90 text-white rounded-xl text-[13px] flex items-center justify-center gap-2 transition-colors font-600"
+          >
             <MessageCircle className="w-4 h-4" />
             Liên Hệ Qua FB Messenger
-          </button>
-          <button className="h-11 bg-[#0068FF] hover:bg-[#0068FF]/90 text-white rounded-xl text-[13px] flex items-center justify-center gap-2 transition-colors font-600">
+          </a>
+          <a
+            href="https://zalo.me/0889686883"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="h-11 bg-[#0068FF] hover:bg-[#0068FF]/90 text-white rounded-xl text-[13px] flex items-center justify-center gap-2 transition-colors font-600"
+          >
             <MessageCircle className="w-4 h-4" />
             Liên Hệ Qua Zalo
-          </button>
+          </a>
         </div>
-        <button className="w-full h-11 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-[13px] flex items-center justify-center gap-2 transition-colors font-600">
+        <a
+          href="tel:+84889686883"
+          className="w-full h-11 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-[13px] flex items-center justify-center gap-2 transition-colors font-600"
+        >
           <Phone className="w-4 h-4" />
-          Liên Hệ Qua Hotline: +84 899 686 063
-        </button>
+          Liên Hệ Qua Hotline: +84 889 686 883
+        </a>
       </div>
 
       <div className="h-px bg-border/60" />
@@ -931,7 +969,7 @@ export default function ProductInfo({
           {
             icon: Truck,
             title: 'Miễn phí giao hàng',
-            desc: 'Cho đơn hàng từ 5.000.000 VNĐ',
+            desc: 'Miễn phí giao hàng cho các đơn hàng có giá trị từ 3.000.000 VNĐ trở lên.',
           },
           {
             icon: RotateCcw,
@@ -948,13 +986,107 @@ export default function ProductInfo({
             <div className="w-10 h-10 rounded-xl bg-primary-light flex items-center justify-center shrink-0">
               <item.icon className="w-5 h-5 text-primary" />
             </div>
-            <div>
-              <p className="text-[13px] text-foreground font-600">{item.title}</p>
-              <p className="text-[12px] text-muted-foreground">{item.desc}</p>
+            <div className="flex items-start gap-2">
+              <div>
+                <p className="text-[13px] text-foreground font-600 flex items-center gap-2">
+                  {item.title}
+                  {item.title === 'Miễn phí giao hàng' ? (
+                    <button
+                      onClick={() => setIsDeliveryModalOpen(true)}
+                      type="button"
+                      aria-label="Xem chi tiết miễn phí giao hàng"
+                      className="w-6 h-6 flex items-center justify-center rounded-full bg-border/40 text-muted-foreground"
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                    </button>
+                  ) : null}
+                </p>
+                <p className="text-[12px] text-muted-foreground">{item.desc}</p>
+              </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Delivery Info Modal */}
+      <Modal
+        isOpen={isDeliveryModalOpen}
+        onOpenChange={isOpen => {
+          if (!isOpen) setIsDeliveryModalOpen(false);
+        }}
+        placement="center"
+      >
+        <ModalContent>
+          {onClose => (
+            <>
+              <ModalHeader className="text-[18px] font-700">MIỄN PHÍ GIAO HÀNG</ModalHeader>
+              <ModalBody>
+                <div className="space-y-4 text-[14px] text-foreground">
+                  <p className="font-600">Chính sách giao hàng</p>
+                  <p>
+                    Với mục tiêu mang đến sự tiện lợi và nhanh chóng cho khách hàng khi mua sản phẩm, GolfBy
+                    áp dụng chính sách vận chuyển như sau:
+                  </p>
+
+                  <div>
+                    <p className="font-600">1. Đối với khu vực Hà Nội</p>
+                    <ul className="list-disc ml-5 mt-2 text-[14px] text-foreground">
+                      <li>
+                        Miễn phí giao hàng cho các đơn hàng có giá trị từ 3.000.000 VNĐ trở lên và có kích
+                        thước nhỏ gọn.
+                      </li>
+                      <li>
+                        Đối với các đơn hàng có giá trị dưới 3.000.000 VNĐ, GolfBy sẽ thông báo chi phí vận
+                        chuyển sau khi làm việc với đơn vị vận chuyển.
+                      </li>
+                      <li>
+                        Thời gian nhận hàng: Từ 10 đến 15 ngày kể từ khi đặt hàng, không bao gồm ngày lễ và
+                        cuối tuần.
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <p className="font-600">2. Đối với các khu vực khác</p>
+                    <ul className="list-disc ml-5 mt-2 text-[14px] text-foreground">
+                      <li>
+                        Miễn phí giao hàng cho các đơn hàng có giá trị từ 3.000.000 VNĐ trở lên và có kích
+                        thước nhỏ gọn.
+                      </li>
+                      <li>
+                        Với các đơn hàng khác, chi phí vận chuyển sẽ được áp dụng dựa trên bảng giá của đơn vị
+                        vận chuyển.
+                      </li>
+                      <li>
+                        Thời gian giao hàng: Dao động từ 10 đến 15 ngày kể từ thời điểm đặt hàng, tùy thuộc
+                        vào vị trí địa lý và số lượng sản phẩm.
+                      </li>
+                    </ul>
+                  </div>
+
+                  <p className="text-[13px] text-muted-foreground">
+                    Lưu ý: Chính sách này nhằm đảm bảo dịch vụ giao hàng hiệu quả và minh bạch, không bao gồm
+                    ngày lễ và cuối tuần.
+                  </p>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <div className="w-full flex justify-end">
+                  <Button onClick={() => onClose?.()} variant="ghost">
+                    Đóng
+                  </Button>
+                </div>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+      <TermsConditionsModal
+        isOpen={isTermsModalOpen}
+        onOpenChange={isOpen => {
+          if (!isOpen) setIsTermsModalOpen(false);
+        }}
+      />
     </div>
   );
 }

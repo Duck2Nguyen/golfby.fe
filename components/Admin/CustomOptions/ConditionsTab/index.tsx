@@ -106,7 +106,7 @@ export default function ConditionsTab({
                 </select>
 
                 <select
-                  className="col-span-2 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
+                  className="col-span-1 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
                   onChange={event =>
                     onConditionPatch(condition.id, {
                       action: event.target.value as CustomCondition['action'],
@@ -122,7 +122,7 @@ export default function ConditionsTab({
                 </select>
 
                 <select
-                  className="col-span-2 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
+                  className="col-span-3 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
                   onChange={event =>
                     onConditionPatch(condition.id, {
                       targetOptionId: event.target.value,

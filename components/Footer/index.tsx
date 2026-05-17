@@ -32,25 +32,20 @@ const fallbackBrandLinks = [
 ];
 
 const policyLinks = [
-  { href: '#', label: 'Điều Khoản Và Điều Kiện' },
-  { href: '#', label: 'Chính Sách Vận Chuyển' },
-  { href: '#', label: 'Chính Sách Trả Đổi Trả' },
-  { href: '#', label: 'Phương Thức Thanh Toán' },
-  { href: '#', label: 'Chính Sách Bảo Mật' },
-  { href: '#', label: 'Chính Sách Kiểm Hàng' },
+  { href: '/dieu-khoan-va-dieu-kien', label: 'Điều Khoản Và Điều Kiện' },
+  { href: '/chinh-sach-giao-hang', label: 'Chính Sách Vận Chuyển' },
+  { href: '/chinh-sach-doi-tra', label: 'Chính Sách Đổi Trả' },
+  { href: '/phuong-thuc-thanh-toan', label: 'Phương Thức Thanh Toán' },
+  { href: '/chinh-sach-bao-mat', label: 'Chính Sách Bảo Mật' },
+  { href: '/chinh-sach-kiem-hang', label: 'Chính Sách Kiểm Hàng' },
 ];
 
 const moreInfoLinks = [
-  { href: '#', label: 'Về Chúng Tôi' },
-  { href: '#', label: 'Liên Hệ' },
+  { href: '/ve-chung-toi', label: 'Về Chúng Tôi' },
+  { href: '/lien-he', label: 'Liên Hệ' },
 ];
 
-const socialLinks = [
-  { href: 'https://facebook.com', isExternal: true, label: 'Facebook' },
-  { href: 'https://instagram.com', isExternal: true, label: 'Instagram' },
-  { href: 'https://youtube.com', isExternal: true, label: 'YouTube' },
-  { href: 'https://zalo.me', isExternal: true, label: 'Zalo' },
-];
+const socialLinks = [{ href: 'https://www.facebook.com/golfby.ltd', isExternal: true, label: 'Facebook' }];
 
 export function Footer() {
   const { getAllCollections } = useCollections();

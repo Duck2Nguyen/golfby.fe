@@ -15,7 +15,7 @@ interface WishlistGridItemProps {
 }
 
 const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('vi-VN').format(price) + ' ₫';
+  return new Intl.NumberFormat('vi-VN').format(price) + ' VNĐ';
 };
 
 export default function WishlistGridItem({
@@ -77,13 +77,19 @@ export default function WishlistGridItem({
           {item.name}
         </h3>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {item.originalPrice && (
-            <span className="text-[13px] text-muted-foreground line-through">
-              {formatPrice(item.originalPrice)}
-            </span>
-          )}
-          <span className="text-[17px] text-primary font-700">{formatPrice(item.price)}</span>
+        <div className="flex flex-col gap-1 items-start mt-auto">
+          <div className="flex items-center gap-2">
+            {item.price > 0 && item.originalPrice && item.originalPrice > item.price && (
+              <span className="text-[1.6rem] text-foreground line-through font-600">
+                {formatPrice(item.originalPrice)}
+              </span>
+            )}
+            {item.price > 0 ? (
+              <span className="text-[1.6rem] text-[#FF0000] font-700">{formatPrice(item.price)}</span>
+            ) : (
+              <span className="text-[1.6rem] text-foreground font-700">Giá: Liên hệ</span>
+            )}
+          </div>
         </div>
       </Link>
     </div>

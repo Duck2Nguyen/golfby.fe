@@ -7,7 +7,6 @@ import { useMemo, useState, useEffect } from 'react';
 import { Link } from '@heroui/link';
 
 import type { Product } from '@/components/mock-data';
-import type { ProductListItem } from '@/hooks/useProducts';
 
 import { useProducts } from '@/hooks/useProducts';
 import { useWishlistToggle } from '@/hooks/useWishlistToggle';
@@ -25,37 +24,8 @@ interface TopSellingSectionProps {
 
 const DEFAULT_LIMIT = 8;
 const MOBILE_PRODUCTS_PER_VIEW = 2;
-const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
 
-const toNumber = (value?: string | null) => {
-  const parsed = Number(value ?? 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const mapApiProductToCardData = (item: ProductListItem): Product => {
-  const salePrice = toNumber(item.salePrice);
-  const listPrice = toNumber(item.listPrice);
-
-  const price = salePrice > 0 ? salePrice : listPrice;
-  const originalPrice = salePrice > 0 && listPrice > salePrice ? listPrice : undefined;
-  const discount =
-    originalPrice && originalPrice > 0
-      ? Math.round(((originalPrice - price) / originalPrice) * 100)
-      : undefined;
-
-  return {
-    brand: item.brand?.name ?? 'GolfBy',
-    ...(discount ? { badge: 'sale' } : {}),
-    ...(discount ? { discount } : {}),
-    id: item.id,
-    image: item.images?.[0]?.url || PRODUCT_IMAGE_FALLBACK,
-    name: item.name,
-    ...(originalPrice ? { originalPrice } : {}),
-    price,
-    rating: 0,
-    reviews: 0,
-  };
-};
+import { mapApiProductToCardData } from '@/utils/product';
 
 export default function TopSellingSection({
   bgColor = 'bg-white',
@@ -114,7 +84,7 @@ export default function TopSellingSection({
   if (getTopProducts.isLoading && products.length === 0) {
     return (
       <section className={`${bgColor} py-14`}>
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-[140rem] mx-auto px-4">
           <div className="py-8 text-center text-[1.4rem] text-muted-foreground">Đang tải top sản phẩm...</div>
         </div>
       </section>
@@ -127,7 +97,7 @@ export default function TopSellingSection({
 
   return (
     <section className={`${bgColor} py-14`}>
-      <div className="max-w-7xl mx-auto px-4">
+      <div className="max-w-[140rem] mx-auto px-4">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-1">

@@ -100,6 +100,18 @@ const normalizeOptions = (options: CustomOption[]): CustomOption[] => {
     }));
 };
 
+const moveArrayItem = <T,>(items: T[], fromIndex: number, toIndex: number): T[] => {
+  const nextItems = [...items];
+  const [movedItem] = nextItems.splice(fromIndex, 1);
+
+  if (movedItem === undefined) {
+    return items;
+  }
+
+  nextItems.splice(toIndex, 0, movedItem);
+  return nextItems;
+};
+
 const toNumber = (value: number | string | null | undefined, fallback: number = 0): number => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
 
@@ -756,6 +768,62 @@ export default function CustomOptions() {
     }));
   };
 
+  const handleMoveOption = (optionId: string, direction: 'up' | 'down') => {
+    updateActiveGroup(group => {
+      const orderedOptions = normalizeOptions(group.options);
+      const currentIndex = orderedOptions.findIndex(option => option.id === optionId);
+
+      if (currentIndex < 0) return group;
+
+      const nextIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+      if (nextIndex < 0 || nextIndex >= orderedOptions.length) return group;
+
+      const reorderedOptions = moveArrayItem(orderedOptions, currentIndex, nextIndex).map(
+        (option, index) => ({
+          ...option,
+          choices: normalizeChoices(option.choices),
+          sortOrder: index,
+        }),
+      );
+
+      return {
+        ...group,
+        options: reorderedOptions,
+      };
+    });
+  };
+
+  const handleMoveChoice = (optionId: string, choiceId: string, direction: 'up' | 'down') => {
+    updateActiveGroup(group => ({
+      ...group,
+      options: group.options.map(option => {
+        if (option.id !== optionId) return option;
+
+        const orderedChoices = normalizeChoices(option.choices);
+        const currentIndex = orderedChoices.findIndex(choice => choice.id === choiceId);
+
+        if (currentIndex < 0) return option;
+
+        const nextIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+        if (nextIndex < 0 || nextIndex >= orderedChoices.length) return option;
+
+        const reorderedChoices = moveArrayItem(orderedChoices, currentIndex, nextIndex).map(
+          (choice, index) => ({
+            ...choice,
+            sortOrder: index,
+          }),
+        );
+
+        return {
+          ...option,
+          choices: reorderedChoices,
+        };
+      }),
+    }));
+  };
+
   const handleRemoveChoice = (optionId: string, choiceId: string) => {
     updateActiveGroup(group => ({
       ...group,
@@ -1158,6 +1226,8 @@ export default function CustomOptions() {
                     void handleAddOption();
                   }}
                   onChoicePatch={handleChoicePatch}
+                  onMoveChoice={handleMoveChoice}
+                  onMoveOption={handleMoveOption}
                   onOptionPatch={handleOptionPatch}
                   onRemoveChoice={handleRemoveChoice}
                   onRemoveOption={(optionId, optionLabel) => {

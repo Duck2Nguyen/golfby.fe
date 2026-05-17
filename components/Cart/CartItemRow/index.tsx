@@ -36,7 +36,7 @@ export default function CartItemRow({
   onRemove,
 }: CartItemRowProps) {
   const [isRemoving, setIsRemoving] = useState(false);
-  const formatPrice = (v: number) => new Intl.NumberFormat('vi-VN').format(v) + '₫';
+  const formatPrice = (v: number) => new Intl.NumberFormat('vi-VN').format(v) + ' VNĐ';
   const subtotal = item.price * item.quantity;
 
   const handleRemove = () => {
@@ -100,11 +100,13 @@ export default function CartItemRow({
           <div className="flex items-center gap-6 sm:gap-8 shrink-0">
             {/* Price */}
             <div className="hidden md:flex flex-col items-end gap-0.5 min-w-[110px]">
-              <span className="text-[15px] text-foreground font-600">{formatPrice(item.price)}</span>
-              {item.originalPrice && (
-                <span className="text-[12px] text-muted-foreground line-through">
+              {item.originalPrice && item.originalPrice > item.price && (
+                <span className="text-[13px] text-foreground line-through font-600">
                   {formatPrice(item.originalPrice)}
                 </span>
+              )}
+              {item.price > 0 && (
+                <span className="text-[15px] text-[#FF0000] font-700">{formatPrice(item.price)}</span>
               )}
             </div>
 
@@ -148,12 +150,14 @@ export default function CartItemRow({
 
       {/* Mobile: Price shown below on small screens */}
       <div className="flex md:hidden items-center justify-between mt-3 pt-3 border-t border-border/40">
-        <div className="flex items-center gap-2">
-          <span className="text-[13px] text-foreground font-500">{formatPrice(item.price)}</span>
-          {item.originalPrice && (
-            <span className="text-[11px] text-muted-foreground line-through">
+        <div className="flex flex-col gap-0.5">
+          {item.originalPrice && item.originalPrice > item.price && (
+            <span className="text-[12px] text-foreground line-through font-600">
               {formatPrice(item.originalPrice)}
             </span>
+          )}
+          {item.price > 0 && (
+            <span className="text-[14px] text-[#FF0000] font-700">{formatPrice(item.price)}</span>
           )}
         </div>
 

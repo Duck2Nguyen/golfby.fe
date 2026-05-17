@@ -19,6 +19,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Form, Field, Formik } from 'formik';
 
+import { getKey, setKey } from '@/utils/localStorage';
+
 import { useSession } from '@/hooks/auth';
 import { useCarts } from '@/hooks/useCarts';
 import { useWishlists } from '@/hooks/useWishlists';
@@ -32,6 +34,9 @@ import { SearchSuggestion } from '../SearchSuggestion';
 const searchSchema = Yup.object().shape({
   query: Yup.string(),
 });
+
+const SEARCH_HISTORY_KEY = 'golfby-search-history';
+const MAX_SEARCH_HISTORY_ITEMS = 8;
 
 interface DropdownColumn {
   title: string;
@@ -47,6 +52,7 @@ interface NavItem {
 }
 
 const PROMOTION_NAV_ITEM: NavItem = { label: 'Khuyến Mãi', highlight: true, href: '/collection/khuyen-mai' };
+const TERMS_NAV_ITEM: NavItem = { label: 'Điều Khoản', href: '/dieu-khoan-va-dieu-kien' };
 const BRAND_NAV_ITEM_LABEL = 'Thương hiệu';
 const BRAND_NAV_ITEM_HREF = '/collection';
 
@@ -288,7 +294,7 @@ export function Header() {
       return [brandNavItem];
     }
 
-    return [brandNavItem, ...mappedNavItems, PROMOTION_NAV_ITEM];
+    return [brandNavItem, ...mappedNavItems, TERMS_NAV_ITEM, PROMOTION_NAV_ITEM];
   }, [brands, collectionTree]);
 
   const { getMyWishlist } = useWishlists();
@@ -316,6 +322,14 @@ export function Header() {
 
     if (trimmedQuery) {
       nextSearchParams.set('search', trimmedQuery);
+
+      const existingHistory = getKey<string[]>(SEARCH_HISTORY_KEY) ?? [];
+      const nextHistory = [trimmedQuery, ...existingHistory.filter(item => item !== trimmedQuery)].slice(
+        0,
+        MAX_SEARCH_HISTORY_ITEMS,
+      );
+
+      setKey(SEARCH_HISTORY_KEY, nextHistory);
     }
 
     const nextQuery = nextSearchParams.toString();
@@ -390,11 +404,13 @@ export function Header() {
             >
               {({ setFieldValue, values }) => (
                 <>
-                  <Form className="relative">
+                  <Form autoComplete="off" className="relative">
                     <Field
                       name="query"
                       placeholder="Tìm kiếm sản phẩm golf..."
                       component={InputField}
+                      autoComplete="new-password"
+                      spellCheck={false}
                       onFocus={() => setSearchOpen(true)}
                       classNames={{
                         inputWrapper: [
@@ -664,11 +680,13 @@ export function Header() {
                 setMobileMenuOpen(false);
               }}
             >
-              <Form className="relative mb-3">
+              <Form autoComplete="off" className="relative mb-3">
                 <Field
                   name="query"
                   placeholder="Tìm kiếm..."
                   component={InputField}
+                  autoComplete="new-password"
+                  spellCheck={false}
                   classNames={{
                     inputWrapper: '!bg-muted !border-none !h-10 !pr-10 !rounded-lg',
                     input: '!text-[1.4rem]',

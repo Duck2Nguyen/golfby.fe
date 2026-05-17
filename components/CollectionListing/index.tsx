@@ -468,7 +468,7 @@ export default function CollectionListing({ slugSegments = [] }: CollectionListi
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="mx-auto max-w-7xl px-4">
+      <main className="mx-auto max-w-[140rem] px-4">
         {getAllCollections.isLoading ? (
           <div className="py-20 text-center text-[1.4rem] text-muted-foreground">Đang tải dữ liệu...</div>
         ) : showRouteNotFound ? (

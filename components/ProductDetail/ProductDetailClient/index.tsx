@@ -5,8 +5,6 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import Link from 'next/link';
 
-import type { Product } from '@/components/mock-data';
-
 import { useSWRWrapper } from '@/hooks/swr';
 import { useWishlistToggle } from '@/hooks/useWishlistToggle';
 import { useAddToCartFromList } from '@/hooks/useAddToCartFromList';
@@ -125,35 +123,7 @@ const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
 const RELATED_PRODUCTS_LIMIT = 8;
 const PRODUCT_DETAIL_CACHE_MS = 60 * 1000;
 
-const toNumber = (value?: string | number | null) => {
-  const parsed = Number(value ?? 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const mapApiProductToCardData = (item: ApiProductListItem): Product => {
-  const salePrice = toNumber(item.salePrice);
-  const listPrice = toNumber(item.listPrice);
-
-  const price = salePrice > 0 ? salePrice : listPrice;
-  const originalPrice = salePrice > 0 && listPrice > salePrice ? listPrice : undefined;
-  const discount =
-    originalPrice && originalPrice > 0
-      ? Math.round(((originalPrice - price) / originalPrice) * 100)
-      : undefined;
-
-  return {
-    brand: item.brand?.name ?? 'GolfBy',
-    ...(discount ? { badge: 'sale' } : {}),
-    ...(discount ? { discount } : {}),
-    id: item.id,
-    image: item.images?.[0]?.url || item.images?.[0]?.key || PRODUCT_IMAGE_FALLBACK,
-    name: item.name,
-    ...(originalPrice ? { originalPrice } : {}),
-    price,
-    rating: 0,
-    reviews: 0,
-  };
-};
+import { toNumber, mapApiProductToCardData } from '@/utils/product';
 
 const mapApiProductToDetailData = (item: ApiProductDetail): ProductDetailViewData => {
   const images =

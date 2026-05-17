@@ -66,7 +66,7 @@ const DatePickerField = ({
                     ),
                     selectorButton: 'text-text-text-disable',
                   }}
-                  onChange={value => form.setFieldValue(field.name, value?.toString() || '')}
+                  onChange={value => form.setFieldValue(field.name, String(value ?? ''))}
                   onBlur={() => form.setFieldTouched(field.name, true)}
                 />
               </I18nProvider>

@@ -15,7 +15,7 @@ interface WishlistListItemProps {
 }
 
 const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('vi-VN').format(price) + ' ₫';
+  return new Intl.NumberFormat('vi-VN').format(price) + ' VNĐ';
 };
 
 export default function WishlistListItem({
@@ -47,12 +47,16 @@ export default function WishlistListItem({
             </h3>
           </Link>
           <div className="flex items-center gap-2 flex-wrap">
-            {item.originalPrice && (
-              <span className="text-[14px] text-muted-foreground line-through">
+            {item.price > 0 && item.originalPrice && item.originalPrice > item.price && (
+              <span className="text-[1.6rem] text-foreground line-through font-600">
                 {formatPrice(item.originalPrice)}
               </span>
             )}
-            <span className="text-[18px] text-primary font-700">{formatPrice(item.price)}</span>
+            {item.price > 0 ? (
+              <span className="text-[1.6rem] text-[#FF0000] font-700">{formatPrice(item.price)}</span>
+            ) : (
+              <span className="text-[1.6rem] text-foreground font-700">Giá: Liên hệ</span>
+            )}
           </div>
           <p className="text-[12px] text-muted-foreground mt-2">Đã thêm {item.addedAtLabel}</p>
         </div>

@@ -9,6 +9,11 @@ import { Checkbox } from '@heroui/checkbox';
 
 import type { CartItem } from '@/components/Cart/CartItemRow';
 
+import { mapApiProductToCardData } from '@/utils/product';
+
+import { useProducts } from '@/hooks/useProducts';
+import { useWishlistToggle } from '@/hooks/useWishlistToggle';
+import { useAddToCartFromList } from '@/hooks/useAddToCartFromList';
 import { useCarts, type CartItem as ApiCartItem } from '@/hooks/useCarts';
 
 import { Footer } from '@/components/Footer';
@@ -16,9 +21,6 @@ import { Header } from '@/components/Header';
 import { ProductCard } from '@/components/ProductCard';
 import CartItemRow from '@/components/Cart/CartItemRow';
 import OrderSummary from '@/components/Cart/OrderSummary';
-import { ballProducts, clubProducts, accessoryProducts } from '@/components/mock-data';
-
-const bestSellers = [...clubProducts, ...ballProducts, ...accessoryProducts].slice(0, 6);
 
 const toNumber = (value?: string | null) => {
   const parsed = Number(value ?? 0);
@@ -52,6 +54,20 @@ export default function Cart() {
 
   const { getMyCart, removeCartItemMutation, updateCartItemMutation } = useCarts();
   const { data, error, isLoading, mutate } = getMyCart;
+
+  const { getTopProducts } = useProducts({
+    getTopParams: {
+      by: 'bestsellers',
+      limit: 6,
+    },
+  });
+  const { addToCartFromList, addingProductId } = useAddToCartFromList();
+  const { isWishlisted, togglingProductId, toggleWishlist } = useWishlistToggle();
+
+  const products = useMemo(() => {
+    const items = getTopProducts.data?.data ?? [];
+    return items.map(mapApiProductToCardData);
+  }, [getTopProducts.data?.data]);
 
   const cartApiItems = useMemo<ApiCartItem[]>(
     () => (Array.isArray(data?.data) ? data.data : []),
@@ -429,9 +445,26 @@ export default function Cart() {
             className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory"
             style={{ scrollbarWidth: 'none' }}
           >
-            {bestSellers.map(product => (
-              <div key={product.id} className="shrink-0 w-[240px] snap-start">
-                <ProductCard product={product} />
+            {products.map(product => (
+              <div key={product.id} className="shrink-0 w-[28rem] snap-start">
+                <ProductCard
+                  product={product}
+                  isAddingToCart={addingProductId === String(product.id)}
+                  isWishlisted={isWishlisted(String(product.id))}
+                  isWishlistLoading={togglingProductId === String(product.id)}
+                  onAddToCartAction={currentProduct =>
+                    addToCartFromList({
+                      productId: String(currentProduct.id),
+                      productName: currentProduct.name,
+                    })
+                  }
+                  onToggleWishlistAction={currentProduct =>
+                    toggleWishlist({
+                      productId: String(currentProduct.id),
+                      productName: currentProduct.name,
+                    })
+                  }
+                />
               </div>
             ))}
           </div>

@@ -8,19 +8,16 @@ import {
   Users,
   LogOut,
   Package,
-  Settings,
-  BarChart3,
   ChevronDown,
   ChevronRight,
   ChevronsLeft,
   ShoppingCart,
   ChevronsRight,
-  MessageSquare,
   LayoutDashboard,
 } from 'lucide-react';
 
 import { Link } from '@heroui/link';
-import { usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface SidebarChild {
   exact?: boolean;
@@ -75,36 +72,36 @@ const MENU_ITEMS: SidebarItem[] = [
     href: '/admin/promotions',
     icon: Tag,
   },
-  {
-    key: 'reviews',
-    label: 'Đánh giá',
-    href: '/admin/reviews',
-    icon: MessageSquare,
-  },
+  // {
+  //   key: 'reviews',
+  //   label: 'Đánh giá',
+  //   href: '/admin/reviews',
+  //   icon: MessageSquare,
+  // },
   {
     key: 'banners',
     label: 'Banner',
     href: '/admin/banners',
     icon: Image,
   },
-  {
-    key: 'media',
-    label: 'Static Content',
-    href: '/admin/static-contents',
-    icon: Image,
-  },
-  {
-    key: 'analytics',
-    label: 'Thống kê',
-    href: '/admin/analytics',
-    icon: BarChart3,
-  },
-  {
-    key: 'settings',
-    label: 'Cài đặt',
-    href: '/admin/settings',
-    icon: Settings,
-  },
+  // {
+  //   key: 'media',
+  //   label: 'Static Content',
+  //   href: '/admin/static-contents',
+  //   icon: Image,
+  // },
+  // {
+  //   key: 'analytics',
+  //   label: 'Thống kê',
+  //   href: '/admin/analytics',
+  //   icon: BarChart3,
+  // },
+  // {
+  //   key: 'settings',
+  //   label: 'Cài đặt',
+  //   href: '/admin/settings',
+  //   icon: Settings,
+  // },
 ];
 
 interface SidebarProps {
@@ -114,6 +111,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onCloseAction }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['products']);
 
@@ -147,6 +145,10 @@ export default function Sidebar({ isOpen, onCloseAction }: SidebarProps) {
   const isGroupActive = (item: SidebarItem) => {
     if (!item.children) return false;
     return item.children.some(child => isActive(child.href, child.exact));
+  };
+
+  const handleNavigate = (href: string) => {
+    router.push(href);
   };
 
   return (
@@ -221,6 +223,10 @@ export default function Sidebar({ isOpen, onCloseAction }: SidebarProps) {
                               : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
                           }`}
                           href={child.href}
+                          onClick={event => {
+                            event.preventDefault();
+                            handleNavigate(child.href);
+                          }}
                         >
                           {child.label}
                         </Link>
@@ -241,6 +247,10 @@ export default function Sidebar({ isOpen, onCloseAction }: SidebarProps) {
                   : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
               }`}
               href={item.href as string}
+              onClick={event => {
+                event.preventDefault();
+                handleNavigate(item.href as string);
+              }}
             >
               <Icon className="h-5 w-5 flex-shrink-0" />
               {!collapsed && <span className="truncate">{item.label}</span>}
@@ -266,6 +276,10 @@ export default function Sidebar({ isOpen, onCloseAction }: SidebarProps) {
         <Link
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[1.4rem] text-gray-500 transition-colors duration-150 hover:bg-red-50 hover:text-red-500"
           href="/"
+          onClick={event => {
+            event.preventDefault();
+            handleNavigate('/');
+          }}
         >
           <LogOut className="h-5 w-5 flex-shrink-0" />
           {!collapsed && <span>Về trang chủ</span>}

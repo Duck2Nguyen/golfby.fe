@@ -1,4 +1,8 @@
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
+
+import { toSlug } from '@/utils/common';
+
+import { PriceInput } from '@/elements';
 
 import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 
@@ -12,6 +16,8 @@ interface StructureTabProps {
   onAddChoice: (optionId: string) => void;
   onAddOption: () => void;
   onChoicePatch: (optionId: string, choiceId: string, patch: Partial<CustomOptionChoice>) => void;
+  onMoveChoice: (optionId: string, choiceId: string, direction: 'up' | 'down') => void;
+  onMoveOption: (optionId: string, direction: 'up' | 'down') => void;
   onOptionPatch: (optionId: string, patch: Partial<CustomOption>) => void;
   onRemoveChoice: (optionId: string, choiceId: string) => void;
   onRemoveOption: (optionId: string, optionLabel: string) => void;
@@ -31,6 +37,8 @@ export default function StructureTab({
   onAddChoice,
   onAddOption,
   onChoicePatch,
+  onMoveChoice,
+  onMoveOption,
   onOptionPatch,
   onRemoveChoice,
   onRemoveOption,
@@ -41,11 +49,13 @@ export default function StructureTab({
   sortedOptions,
 }: StructureTabProps) {
   const isImageSwatchOption = selectedOption?.type === 'IMAGE_SWATCH';
+  const choiceLabelColSpan = isImageSwatchOption ? 'col-span-2' : 'col-span-3';
+  const choiceImageColSpan = isImageSwatchOption ? 'col-span-1' : '';
 
   return (
     <div className="grid min-h-0 flex-1 grid-cols-12 gap-4 p-4">
-      <div className="col-span-4 flex min-h-0 flex-col rounded-xl border border-gray-200">
-        <div className="flex items-center justify-between border-b border-gray-200 p-3">
+      <div className="col-span-4 flex min-h-0 flex-col rounded-xl border border-gray-300">
+        <div className="flex items-center justify-between border-b border-gray-300 p-3">
           <div>
             <p className="text-[1.3rem] font-600 text-gray-900">Danh sách tùy chọn</p>
             <p className="text-[1.2rem] text-gray-500">Chọn 1 tùy chọn để sửa chi tiết</p>
@@ -61,7 +71,7 @@ export default function StructureTab({
         </div>
 
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
-          {sortedOptions.map(option => {
+          {sortedOptions.map((option, index) => {
             const active = option.id === selectedOptionId;
 
             return (
@@ -69,7 +79,7 @@ export default function StructureTab({
                 className={`w-full rounded-lg border p-3 text-left transition-colors ${
                   active
                     ? 'border-primary bg-primary-light'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
+                    : 'border-gray-300 bg-white hover:border-gray-300'
                 }`}
                 key={option.id}
                 onClick={() => onSelectOption(option.id)}
@@ -91,6 +101,30 @@ export default function StructureTab({
                         Bắt buộc
                       </span>
                     )}
+                    <button
+                      className="rounded p-1.5 text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30"
+                      disabled={index === 0}
+                      onClick={event => {
+                        event.stopPropagation();
+                        onMoveOption(option.id, 'up');
+                      }}
+                      type="button"
+                      title="Lên"
+                    >
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      className="rounded p-1.5 text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30"
+                      disabled={index === sortedOptions.length - 1}
+                      onClick={event => {
+                        event.stopPropagation();
+                        onMoveOption(option.id, 'down');
+                      }}
+                      type="button"
+                      title="Xuống"
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
                     <button
                       className="rounded p-1.5 text-red-500 hover:bg-red-50"
                       onClick={event => {
@@ -115,7 +149,7 @@ export default function StructureTab({
         </div>
       </div>
 
-      <div className="col-span-8 flex min-h-0 flex-col rounded-xl border border-gray-200">
+      <div className="col-span-8 flex min-h-0 flex-col rounded-xl border border-gray-300">
         {!selectedOption && (
           <div className="m-auto max-w-[32rem] text-center">
             <p className="text-[1.7rem] font-600 text-gray-900">Chưa chọn option</p>
@@ -148,7 +182,7 @@ export default function StructureTab({
                 <div className="col-span-7">
                   <label className="mb-1 block text-[1.2rem] text-gray-600">Nhãn</label>
                   <input
-                    className="h-10 w-full rounded-lg border border-gray-200 px-3 text-[1.3rem]"
+                    className="h-10 w-full rounded-lg border border-gray-300 px-3 text-[1.3rem]"
                     onChange={event => onOptionPatch(selectedOption.id, { label: event.target.value })}
                     value={selectedOption.label}
                   />
@@ -157,7 +191,7 @@ export default function StructureTab({
                 <div className="col-span-5">
                   <label className="mb-1 block text-[1.2rem] text-gray-600">Kiểu</label>
                   <select
-                    className="h-10 w-full rounded-lg border border-gray-200 px-3 text-[1.3rem]"
+                    className="h-10 w-full rounded-lg border border-gray-300 px-3 text-[1.3rem]"
                     onChange={event => {
                       onOptionPatch(selectedOption.id, {
                         type: event.target.value as CustomOption['type'],
@@ -175,23 +209,15 @@ export default function StructureTab({
 
                 <div className="col-span-3">
                   <label className="mb-1 block text-[1.2rem] text-gray-600">Thứ tự</label>
-                  <input
-                    className="h-10 w-full rounded-lg border border-gray-200 px-3 text-[1.3rem]"
-                    min={0}
-                    onChange={event =>
-                      onOptionPatch(selectedOption.id, {
-                        sortOrder: Number(event.target.value) || 0,
-                      })
-                    }
-                    type="number"
-                    value={selectedOption.sortOrder}
-                  />
+                  <div className="flex h-10 items-center rounded-lg border border-gray-300 bg-gray-50 px-3 text-[1.3rem] text-gray-700">
+                    {selectedOption.sortOrder}
+                  </div>
                 </div>
 
                 <div className="col-span-5">
                   <label className="mb-1 block text-[1.2rem] text-gray-600">Kiểu phụ phí</label>
                   <select
-                    className="h-10 w-full rounded-lg border border-gray-200 px-3 text-[1.3rem]"
+                    className="h-10 w-full rounded-lg border border-gray-300 px-3 text-[1.3rem]"
                     onChange={event => {
                       onOptionPatch(selectedOption.id, {
                         priceModifierType: event.target.value as PriceModifierType,
@@ -209,24 +235,21 @@ export default function StructureTab({
 
                 <div className="col-span-4">
                   <label className="mb-1 block text-[1.2rem] text-gray-600">Giá trị phụ phí</label>
-                  <input
-                    className="h-10 w-full rounded-lg border border-gray-200 px-3 text-[1.3rem]"
+                  <PriceInput
+                    className="h-10"
                     disabled={selectedOption.priceModifierType === 'NONE'}
-                    min={0}
-                    onChange={event =>
-                      onOptionPatch(selectedOption.id, {
-                        priceModifierValue: Number(event.target.value) || 0,
-                      })
-                    }
-                    type="number"
-                    value={selectedOption.priceModifierValue ?? 0}
+                    onValueChange={value => {
+                      onOptionPatch(selectedOption.id, { priceModifierValue: value });
+                    }}
+                    placeholder="0"
+                    value={selectedOption.priceModifierValue}
                   />
                 </div>
 
                 <div className="col-span-12">
                   <label className="mb-1 block text-[1.2rem] text-gray-600">Gợi ý nhập liệu</label>
                   <input
-                    className="h-10 w-full rounded-lg border border-gray-200 px-3 text-[1.3rem]"
+                    className="h-10 w-full rounded-lg border border-gray-300 px-3 text-[1.3rem]"
                     onChange={event =>
                       onOptionPatch(selectedOption.id, {
                         placeholder: event.target.value,
@@ -270,7 +293,7 @@ export default function StructureTab({
                   <div className="space-y-2">
                     <div className="grid grid-cols-12 gap-2 px-0.5">
                       <p
-                        className={`${isImageSwatchOption ? 'col-span-2' : 'col-span-3'} text-[1.1rem] font-600 uppercase tracking-wide text-gray-500`}
+                        className={`${choiceLabelColSpan} text-[1.1rem] font-600 uppercase tracking-wide text-gray-500`}
                       >
                         Nhãn
                       </p>
@@ -278,7 +301,9 @@ export default function StructureTab({
                         Giá trị
                       </p>
                       {isImageSwatchOption && (
-                        <p className="col-span-2 text-[1.1rem] font-600 uppercase tracking-wide text-gray-500">
+                        <p
+                          className={`${choiceImageColSpan} text-[1.1rem] font-600 uppercase tracking-wide text-gray-500`}
+                        >
                           Ảnh
                         </p>
                       )}
@@ -288,31 +313,53 @@ export default function StructureTab({
                       <p className="col-span-2 text-[1.1rem] font-600 uppercase tracking-wide text-gray-500">
                         Giá trị phụ phí
                       </p>
-                      <p className="col-span-2 text-[1.1rem] font-600 uppercase tracking-wide text-gray-500">
-                        Thứ tự
+                      <p className="col-span-2 text-[1.1rem] font-600 uppercase tracking-wide text-gray-500 text-center">
+                        Sắp xếp
                       </p>
-                      <p className="col-span-1 text-[1.1rem] font-600 uppercase tracking-wide text-gray-500">
+                      <p className="col-span-1 text-[1.1rem] font-600 uppercase tracking-wide text-gray-500 text-center">
                         Thao tác
                       </p>
                     </div>
 
-                    {getSortedChoices(selectedOption).map(choice => {
+                    {getSortedChoices(selectedOption).map((choice, index) => {
                       const displayImageUrl = choice.presignedImageUrl ?? choice.imageUrl;
 
                       return (
                         <div className="grid grid-cols-12 gap-2" key={choice.id}>
                           <input
-                            className={`${isImageSwatchOption ? 'col-span-2' : 'col-span-3'} h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]`}
-                            onChange={event =>
+                            className={`${choiceLabelColSpan} h-9 rounded-md border border-gray-300 px-2 text-[1.2rem]`}
+                            onChange={event => {
+                              const nextLabel = event.target.value;
+                              const prevSlug = toSlug(choice.label ?? '');
+                              const nextSlug = toSlug(nextLabel);
+                              const isDefaultValue = !!(choice.value && /^value-\d+$/.test(choice.value));
+                              const shouldUpdateValue =
+                                !choice.value || choice.value === prevSlug || isDefaultValue;
+
                               onChoicePatch(selectedOption.id, choice.id, {
-                                label: event.target.value,
-                              })
-                            }
+                                label: nextLabel,
+                                value: shouldUpdateValue ? nextSlug : choice.value,
+                              });
+                            }}
+                            onBlur={() => {
+                              const nextLabel = choice.label ?? '';
+                              const nextSlug = toSlug(nextLabel);
+                              const prevSlug = toSlug(choice.label ?? '');
+                              const isDefaultValue = !!(choice.value && /^value-\d+$/.test(choice.value));
+                              const shouldUpdateValue =
+                                !choice.value || choice.value === prevSlug || isDefaultValue;
+
+                              if (shouldUpdateValue) {
+                                onChoicePatch(selectedOption.id, choice.id, {
+                                  value: nextSlug,
+                                });
+                              }
+                            }}
                             placeholder="Nhãn"
                             value={choice.label}
                           />
                           <input
-                            className="col-span-2 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
+                            className="col-span-2 h-9 rounded-md border border-gray-300 px-2 text-[1.2rem]"
                             onChange={event =>
                               onChoicePatch(selectedOption.id, choice.id, {
                                 value: event.target.value,
@@ -323,7 +370,7 @@ export default function StructureTab({
                           />
 
                           {isImageSwatchOption && (
-                            <div className="col-span-2 rounded-md border border-gray-200 p-1">
+                            <div className={`${choiceImageColSpan} rounded-md border border-gray-300 p-1`}>
                               {displayImageUrl ? (
                                 <div className="relative h-7 w-full overflow-hidden rounded">
                                   <ImageWithFallback
@@ -376,7 +423,7 @@ export default function StructureTab({
                           )}
 
                           <select
-                            className="col-span-2 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
+                            className="col-span-2 h-9 rounded-md border border-gray-300 px-2 text-[1.2rem]"
                             onChange={event => {
                               onChoicePatch(selectedOption.id, choice.id, {
                                 priceModifierType: event.target.value as PriceModifierType,
@@ -390,36 +437,47 @@ export default function StructureTab({
                               </option>
                             ))}
                           </select>
-                          <input
-                            className="col-span-2 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
+                          <PriceInput
+                            className="col-span-2 h-9 px-2 text-[1.2rem]"
                             disabled={choice.priceModifierType === 'NONE'}
-                            onChange={event =>
+                            onValueChange={value => {
                               onChoicePatch(selectedOption.id, choice.id, {
-                                priceModifierValue: Number(event.target.value) || 0,
-                              })
-                            }
+                                priceModifierValue: value,
+                              });
+                            }}
                             placeholder="Phụ phí"
-                            type="number"
-                            value={choice.priceModifierValue ?? 0}
+                            value={choice.priceModifierValue}
                           />
-                          <input
-                            className="col-span-1 h-9 rounded-md border border-gray-200 px-2 text-[1.2rem]"
-                            min={0}
-                            onChange={event =>
-                              onChoicePatch(selectedOption.id, choice.id, {
-                                sortOrder: Number(event.target.value) || 0,
-                              })
-                            }
-                            type="number"
-                            value={choice.sortOrder}
-                          />
-                          <button
-                            className="col-span-1 h-9 rounded-md border border-red-200 text-[1.2rem] text-red-500 hover:bg-red-50"
-                            onClick={() => onRemoveChoice(selectedOption.id, choice.id)}
-                            type="button"
-                          >
-                            <Trash2 className="mx-auto h-3.5 w-3.5" />
-                          </button>
+                          <div className="col-span-2 flex items-center justify-center gap-1 whitespace-nowrap">
+                            <button
+                              className="rounded border border-gray-300 bg-white p-1 text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30"
+                              disabled={index === 0}
+                              onClick={() => onMoveChoice(selectedOption.id, choice.id, 'up')}
+                              type="button"
+                              title="Lên"
+                            >
+                              <ChevronUp className="h-3 w-3" />
+                            </button>
+                            <button
+                              className="rounded border border-gray-300 bg-white p-1 text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30"
+                              disabled={index === getSortedChoices(selectedOption).length - 1}
+                              onClick={() => onMoveChoice(selectedOption.id, choice.id, 'down')}
+                              type="button"
+                              title="Xuống"
+                            >
+                              <ChevronDown className="h-3 w-3" />
+                            </button>
+                          </div>
+                          <div className="col-span-1 flex items-center justify-center">
+                            <button
+                              className="rounded border border-red-200 p-1 text-red-500 hover:bg-red-50"
+                              onClick={() => onRemoveChoice(selectedOption.id, choice.id)}
+                              type="button"
+                              title="Xóa"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
                       );
                     })}

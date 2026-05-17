@@ -9,9 +9,9 @@ import { Link } from '@heroui/link';
 
 import { useSWRWrapper } from '@/hooks/swr';
 import { useBrands } from '@/hooks/useBrands';
+import { useProducts } from '@/hooks/useProducts';
 import { useWishlistToggle } from '@/hooks/useWishlistToggle';
 import { useAddToCartFromList } from '@/hooks/useAddToCartFromList';
-import { useProducts, type ProductListItem } from '@/hooks/useProducts';
 import { useCollections, type CollectionTreeNode } from '@/hooks/useCollections';
 import {
   type StaticHomeItem,
@@ -64,7 +64,6 @@ const MOBILE_PRODUCTS_PER_COLLECTION = 6;
 const PRODUCTS_PER_COLLECTION_WITH_VERTICAL_BANNER = 3;
 const MOBILE_PRODUCTS_PER_VIEW = 2;
 const BRANDS_PER_COLLECTION = 4;
-const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
 const API_BASE_URL = (process.env.BASE_API_URL ?? '').replace(/\/$/, '');
 const SECTION_CONTAINER_CLASSNAME = 'mx-auto w-full max-w-[140rem] px-4 md:px-6 xl:px-0';
 
@@ -153,35 +152,7 @@ const normalizeBrandLogoUrl = (logoUrl?: string | null) => {
   return `${API_BASE_URL}/${normalizedUrl}`;
 };
 
-const toNumber = (value?: string | null) => {
-  const parsed = Number(value ?? 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const mapApiProductToCardData = (item: ProductListItem): Product => {
-  const salePrice = toNumber(item.salePrice);
-  const listPrice = toNumber(item.listPrice);
-
-  const price = salePrice > 0 ? salePrice : listPrice;
-  const originalPrice = salePrice > 0 && listPrice > salePrice ? listPrice : undefined;
-  const discount =
-    originalPrice && originalPrice > 0
-      ? Math.round(((originalPrice - price) / originalPrice) * 100)
-      : undefined;
-
-  return {
-    brand: item.brand?.name ?? 'GolfBy',
-    ...(discount ? { badge: 'sale' } : {}),
-    ...(discount ? { discount } : {}),
-    id: item.id,
-    image: item.images?.[0]?.url || PRODUCT_IMAGE_FALLBACK,
-    name: item.name,
-    ...(originalPrice ? { originalPrice } : {}),
-    price,
-    rating: 5,
-    reviews: 0,
-  };
-};
+import { mapApiProductToCardData } from '@/utils/product';
 
 interface CollectionProductSectionProps {
   bgColor: string;

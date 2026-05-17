@@ -115,19 +115,16 @@ export default function VoucherFormModal({
               </div>
 
               <div className="grid grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <label className="text-[1.3rem] font-500 text-gray-700">Loại giảm giá *</label>
-                  <select
-                    className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-[1.3rem] outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
-                    name="type"
-                    onChange={e => setFieldValue('type', e.target.value)}
-                    value={values.type}
-                  >
-                    <option value="PERCENT">Phần trăm (%)</option>
-                    <option value="FIXED_AMOUNT">Số tiền cố định (VNĐ)</option>
-                    <option value="FREE_SHIPPING">Miễn phí vận chuyển</option>
-                  </select>
-                </div>
+                <Field.Select
+                  label="Loại giảm giá *"
+                  name="type"
+                  required
+                  options={[
+                    { label: 'Phần trăm (%)', value: 'PERCENT' },
+                    { label: 'Số tiền cố định (VNĐ)', value: 'FIXED_AMOUNT' },
+                    { label: 'Miễn phí vận chuyển', value: 'FREE_SHIPPING' },
+                  ]}
+                />
 
                 <Field.Text
                   label={`Giá trị ${values.type === 'PERCENT' ? '(%)' : '(VNĐ)'}`}
@@ -156,27 +153,8 @@ export default function VoucherFormModal({
               </div>
 
               <div className="grid grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <label className="text-[1.3rem] font-500 text-gray-700">Thời gian bắt đầu</label>
-                  <input
-                    type="datetime-local"
-                    name="startsAt"
-                    className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-[1.3rem] outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
-                    value={values.startsAt}
-                    onChange={e => setFieldValue('startsAt', e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[1.3rem] font-500 text-gray-700">Thời gian kết thúc</label>
-                  <input
-                    type="datetime-local"
-                    name="endsAt"
-                    className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-[1.3rem] outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary"
-                    value={values.endsAt}
-                    onChange={e => setFieldValue('endsAt', e.target.value)}
-                  />
-                </div>
+                <Field.Text label="Thời gian bắt đầu" name="startsAt" type="datetime-local" />
+                <Field.Text label="Thời gian kết thúc" name="endsAt" type="datetime-local" />
               </div>
 
               <div className="grid grid-cols-2 gap-5">
