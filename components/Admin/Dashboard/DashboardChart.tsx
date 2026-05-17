@@ -7,14 +7,32 @@ import { Bar, XAxis, YAxis, Legend, Tooltip, BarChart, CartesianGrid, Responsive
 import { type DashboardPeriod, type DashboardGroupBy, useDashboardStatistics } from '@/hooks/useStatistic';
 
 interface DashboardChartProps {
-  period?: DashboardPeriod;
+  initialPeriod?: DashboardPeriod;
 }
 
-export default function DashboardChart({ period = 'LAST_MONTH' }: DashboardChartProps) {
+interface TimeRangeOption {
+  label: string;
+  period: DashboardPeriod;
+  groupBy: DashboardGroupBy;
+}
+
+const TIME_RANGE_OPTIONS: TimeRangeOption[] = [
+  { label: 'Theo 7 ngày', period: 'LAST_7_DAYS', groupBy: 'day' },
+  { label: 'Theo 7 tuần', period: 'LAST_7_WEEKS', groupBy: 'week' },
+  { label: 'Theo 12 tháng', period: 'LAST_12_MONTHS', groupBy: 'month' },
+];
+
+export default function DashboardChart({ initialPeriod = 'LAST_7_DAYS' }: DashboardChartProps) {
+  const [period, setPeriod] = useState<DashboardPeriod>(initialPeriod);
   const [groupBy, setGroupBy] = useState<DashboardGroupBy>('day');
 
   const { data: chartDataResp, isLoading } = useDashboardStatistics({ period, groupBy });
   const chartData = chartDataResp?.data?.items || [];
+
+  const handleSelectRange = (option: TimeRangeOption) => {
+    setPeriod(option.period);
+    setGroupBy(option.groupBy);
+  };
 
   return (
     <div className="flex h-[45rem] flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm xl:col-span-2">
@@ -25,15 +43,17 @@ export default function DashboardChart({ period = 'LAST_MONTH' }: DashboardChart
         </div>
 
         <div className="flex rounded-lg bg-gray-100 p-1">
-          {(['day', 'week', 'month'] as const).map(p => (
+          {TIME_RANGE_OPTIONS.map(option => (
             <button
-              key={p}
-              onClick={() => setGroupBy(p)}
+              key={option.period}
+              onClick={() => handleSelectRange(option)}
               className={`rounded-md px-4 py-1.5 text-[1.3rem] font-500 transition-all ${
-                groupBy === p ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-900'
+                groupBy === option.groupBy
+                  ? 'bg-white text-primary shadow-sm'
+                  : 'text-gray-500 hover:text-gray-900'
               }`}
             >
-              {p === 'day' ? 'Theo ngày' : p === 'week' ? 'Theo tuần' : 'Theo tháng'}
+              {option.label}
             </button>
           ))}
         </div>
@@ -60,7 +80,7 @@ export default function DashboardChart({ period = 'LAST_MONTH' }: DashboardChart
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#6b7280', fontSize: 13 }}
-                tickFormatter={value => `${value / 1000000}M`}
+                tickFormatter={value => `${Math.round(value / 1000000)}Triệu`}
                 width={60}
               />
               <YAxis
@@ -86,7 +106,15 @@ export default function DashboardChart({ period = 'LAST_MONTH' }: DashboardChart
                 }}
                 labelStyle={{ color: '#111827', fontWeight: 600, marginBottom: '8px' }}
               />
-              <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
+              <Legend
+                iconType="circle"
+                wrapperStyle={{
+                  paddingTop: '20px',
+                  fontSize: '13px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                }}
+              />
               <Bar
                 yAxisId="left"
                 dataKey="revenue"

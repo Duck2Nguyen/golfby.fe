@@ -5,7 +5,13 @@ import { useSWRWrapper } from '@/hooks/swr';
 
 import { METHOD } from '@/global/common';
 
-export type DashboardPeriod = 'YESTERDAY' | 'LAST_WEEK' | 'LAST_MONTH';
+export type DashboardPeriod =
+  | 'YESTERDAY'
+  | 'LAST_7_DAYS'
+  | 'LAST_WEEK'
+  | 'LAST_7_WEEKS'
+  | 'LAST_12_MONTHS'
+  | 'LAST_MONTH';
 export type DashboardGroupBy = 'day' | 'week' | 'month';
 
 export interface DashboardPeriodDto {

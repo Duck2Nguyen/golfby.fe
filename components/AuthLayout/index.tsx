@@ -62,7 +62,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
               cho golfer.
             </p>
 
-            <div className="flex items-center gap-8 mt-8">
+            {/* <div className="flex items-center gap-8 mt-8">
               {[
                 { value: '10K+', label: 'Sản phẩm' },
                 { value: '50K+', label: 'Khách hàng' },
@@ -73,7 +73,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
                   <div className="text-white/60 text-[1.3rem]">{stat.label}</div>
                 </div>
               ))}
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

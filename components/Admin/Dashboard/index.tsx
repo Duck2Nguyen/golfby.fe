@@ -19,7 +19,7 @@ import DashboardChart from './DashboardChart';
 export default function Dashboard() {
   const [period, setPeriod] = useState<DashboardPeriod>('LAST_MONTH');
 
-  const { data: summaryData, isLoading: isLoadingSummary } = useDashboardSummary({ period });
+  const { data: summaryData } = useDashboardSummary({ period });
   const { data: newOrdersData, isLoading: isLoadingOrders } = useDashboardNewOrders({ page: 1, size: 6 });
 
   const summary = summaryData?.data;
@@ -98,9 +98,9 @@ export default function Dashboard() {
           onChange={e => setPeriod(e.target.value as DashboardPeriod)}
           className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-[1.4rem] font-500 text-gray-700 outline-none shadow-sm transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
         >
-          <option value="YESTERDAY">Hôm qua</option>
-          <option value="LAST_WEEK">Tuần qua</option>
-          <option value="LAST_MONTH">Tháng qua</option>
+          <option value="YESTERDAY">Hôm nay</option>
+          <option value="LAST_WEEK">Tuần nay</option>
+          <option value="LAST_MONTH">Tháng nay</option>
         </select>
       </div>
 
@@ -151,7 +151,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* Chart Component */}
-        <DashboardChart period={period} />
+        <DashboardChart initialPeriod={period} />
 
         {/* Recent Orders List */}
         <div className="flex h-[55rem] flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">

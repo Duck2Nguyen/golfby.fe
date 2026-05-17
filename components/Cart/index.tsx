@@ -1,7 +1,7 @@
 'use client';
 
+import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
 import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ShieldCheck, ChevronRight, ShoppingCart, MessageSquare } from 'lucide-react';
 
 import { Link } from '@heroui/link';
 import { Spinner } from '@heroui/spinner';
@@ -369,23 +369,6 @@ export default function Cart() {
                     onRemove={handleRemove}
                   />
                 ))}
-              </div>
-
-              <div className="bg-white rounded-2xl border border-border/50 p-6 space-y-4">
-                <label className="flex items-center gap-2 text-[14px] text-foreground font-600">
-                  <MessageSquare className="w-4.5 h-4.5 text-primary" />Ý Kiến Để Lại
-                </label>
-                <textarea
-                  value={note}
-                  onChange={e => setNote(e.target.value)}
-                  placeholder="Hướng dẫn đặc biệt dành cho người bán..."
-                  rows={3}
-                  className="w-full p-4 rounded-xl border border-border bg-[#fafafa] text-[14px] text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary focus:bg-white resize-none transition-all disabled:opacity-50"
-                />
-                <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
-                  <ShieldCheck className="w-4 h-4 text-primary/60" />
-                  <span>Đảm bảo mua sắm an toàn</span>
-                </div>
               </div>
             </div>
 
