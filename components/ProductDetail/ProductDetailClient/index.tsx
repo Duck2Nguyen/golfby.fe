@@ -113,6 +113,8 @@ interface ApiProductListItem {
 interface ApiProductDetail extends ApiProductListItem {
   category?: ApiProductCategory | null;
   categoryId?: string | null;
+  categories?: ApiProductCategory[];
+  categoryIds?: string[];
   customOptionGroups?: ApiProductCustomOptionGroupLink[];
   description?: string | null;
   options?: ApiProductOption[];
@@ -126,6 +128,7 @@ const PRODUCT_DETAIL_CACHE_MS = 60 * 1000;
 import { toNumber, mapApiProductToCardData } from '@/utils/product';
 
 const mapApiProductToDetailData = (item: ApiProductDetail): ProductDetailViewData => {
+  const primaryCategory = item.categories?.[0] ?? item.category;
   const images =
     (item.images ?? [])
       .map(image => image.url || image.key)
@@ -235,8 +238,8 @@ const mapApiProductToDetailData = (item: ApiProductDetail): ProductDetailViewDat
     variants.find(variant => Boolean(variant.sku))?.sku || `SP-${item.id.slice(0, 8).toUpperCase()}`;
 
   return {
-    category: item.category?.name ?? 'Sản phẩm',
-    categorySlug: item.category?.slug ?? undefined,
+    category: primaryCategory?.name ?? 'Sản phẩm',
+    categorySlug: primaryCategory?.slug ?? undefined,
     descriptionHtml:
       item.description?.trim() ||
       `<p>Sản phẩm chính hãng ${item.brand?.name ?? 'GolfBy'}, thông tin mô tả đang được cập nhật.</p>`,

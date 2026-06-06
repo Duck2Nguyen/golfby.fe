@@ -42,6 +42,7 @@ export interface CollectionTreeNode extends CollectionBase {
 export interface CollectionProduct {
   brandId?: string | null;
   categoryId?: string | null;
+  categoryIds?: string[];
   collectionId?: string | null;
   costPrice?: string | null;
   createdAt?: string | null;

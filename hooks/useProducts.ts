@@ -36,6 +36,12 @@ export interface ProductListBrand {
   name: string;
 }
 
+export interface ProductListCategory {
+  id: string;
+  name: string;
+  slug?: string | null;
+}
+
 export interface ProductListImage {
   id: string;
   isPrimary?: boolean;
@@ -46,7 +52,10 @@ export interface ProductListImage {
 export interface ProductListItem {
   brand?: ProductListBrand | null;
   brandId?: string | null;
+  categories?: ProductListCategory[];
+  category?: ProductListCategory | null;
   categoryId?: string | null;
+  categoryIds?: string[];
   collectionId?: string | null;
   costPrice?: string | null;
   createdAt?: string | null;

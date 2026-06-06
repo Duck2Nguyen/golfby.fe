@@ -31,6 +31,7 @@ export interface AdminProductOptionUpdatePayload {
 
 export interface CreateAdminProductPayload {
   categoryId?: string;
+  categoryIds?: string[];
   brandId?: string;
   costPrice?: string;
   currency?: string;
@@ -48,6 +49,7 @@ export interface CreateAdminProductPayload {
 export interface UpdateAdminProductPayload {
   brandId?: string | null;
   categoryId?: string | null;
+  categoryIds?: string[];
   costPrice?: string;
   currency?: string;
   description?: string;
@@ -199,6 +201,8 @@ export interface AdminProductDetail {
   brandId?: string | null;
   category?: AdminProductDetailCategory | null;
   categoryId?: string | null;
+  categories?: AdminProductDetailCategory[];
+  categoryIds?: string[];
   costPrice?: string | number | null;
   createdAt?: string | null;
   currency?: string | null;
@@ -223,6 +227,8 @@ export interface AdminProductListItem {
   brandId?: string | null;
   category?: AdminProductListCategory | null;
   categoryId?: string | null;
+  categories?: AdminProductListCategory[];
+  categoryIds?: string[];
   costPrice?: string | null;
   createdAt?: string;
   currency?: string;
@@ -317,6 +323,7 @@ export const buildUpdateAdminProductPayload = (
   if (payload.status !== undefined) normalizedPayload.status = payload.status;
   if (payload.brandId !== undefined) normalizedPayload.brandId = payload.brandId;
   if (payload.categoryId !== undefined) normalizedPayload.categoryId = payload.categoryId;
+  if (payload.categoryIds !== undefined) normalizedPayload.categoryIds = payload.categoryIds;
   if (payload.subcategoryId !== undefined) normalizedPayload.subcategoryId = payload.subcategoryId;
   if (payload.productTagIds !== undefined) normalizedPayload.productTagIds = payload.productTagIds;
   if ((payload.productOptionsNew?.length ?? 0) > 0) {

@@ -147,7 +147,7 @@ export default function Products() {
     return apiProducts.map(item => {
       return {
         brand: item.brand?.name || '—',
-        category: item.category?.name || '—',
+        category: item.categories?.map(category => category.name).join(', ') || item.category?.name || '—',
         featured: false,
         id: item.id,
         name: item.name,

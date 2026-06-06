@@ -20,6 +20,7 @@ export interface CartProductImage {
 export interface CartProduct {
   brandId?: string | null;
   categoryId?: string | null;
+  categoryIds?: string[];
   costPrice?: string | null;
   createdAt?: string | null;
   currency?: string | null;

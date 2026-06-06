@@ -409,7 +409,10 @@ export default function ProductForm({ productId }: ProductFormProps) {
       name: detailProduct.name ?? '',
       productOptions: mapDetailOptionsToForm(detailProduct.options),
       selectedBrandIds: detailProduct.brandId ? [detailProduct.brandId] : [],
-      selectedCollections: detailProduct.categoryId ? [detailProduct.categoryId] : [],
+      selectedCollections:
+        detailProduct.categoryIds ??
+        detailProduct.categories?.map(category => category.id) ??
+        (detailProduct.categoryId ? [detailProduct.categoryId] : []),
       selectedTags: (detailProduct.tags ?? []).map(tag => tag.id),
       status: mapStatusToForm(detailProduct.status),
       thumbnail: mappedImages.thumbnail,
@@ -434,7 +437,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
 
           const updatePayload: TriggerUpdateAdminProductPayload = {
             brandId: values.selectedBrandIds[0] ?? null,
-            categoryId: values.selectedCollections[0] ?? null,
+            categoryIds: values.selectedCollections,
             costPrice: detailProduct?.costPrice != null ? String(detailProduct.costPrice) : undefined,
             csrf: true,
             currency: detailProduct?.currency ?? 'VND',
@@ -466,7 +469,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
         } else {
           const productPayload: CreateAdminProductPayload = {
             brandId: values.selectedBrandIds[0],
-            categoryId: values.selectedCollections[0],
+            categoryIds: values.selectedCollections,
             costPrice: '0',
             currency: 'VND',
             description: normalizedDescription || undefined,

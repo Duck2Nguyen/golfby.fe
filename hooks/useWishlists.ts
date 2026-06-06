@@ -22,6 +22,7 @@ export interface WishlistProductImage {
 export interface WishlistProduct {
   brandId?: string | null;
   categoryId?: string | null;
+  categoryIds?: string[];
   costPrice?: string | null;
   createdAt?: string | null;
   currency?: string | null;
