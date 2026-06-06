@@ -34,7 +34,6 @@ interface BrandFormModalProps {
 const validationSchema = yup.object().shape({
   description: yup.string().trim().max(500, 'Mô tả không vượt quá 500 ký tự'),
   name: yup.string().trim().required('Vui lòng nhập tên thương hiệu'),
-  slug: yup.string().trim().required('Vui lòng nhập slug'),
 });
 
 const MAX_IMAGE_FILE_SIZE = 5 * 1024 * 1024;
@@ -164,7 +163,7 @@ export default function BrandFormModal({
           initialValues={initialValues}
           onSubmit={async values => {
             const cleanedName = values.name.trim();
-            const cleanedSlug = values.slug.trim() || toSlug(cleanedName);
+            const cleanedSlug = toSlug(cleanedName);
 
             await onSubmitAction({
               ...values,
@@ -179,11 +178,20 @@ export default function BrandFormModal({
           validateOnMount
           validationSchema={validationSchema}
         >
-          {({ isValid }) => (
+          {({ isValid, values }) => (
             <Form className="space-y-5 p-6">
               <Field.Text label="Tên thương hiệu" name="name" placeholder="Nhập tên thương hiệu" required />
 
-              <Field.Text label="Slug" name="slug" placeholder="thuong-hieu" required />
+              <div className="flex flex-col gap-2">
+                <label className="mb-2 block text-[1.4rem] font-500 text-foreground">Slug</label>
+                <input
+                  className="h-10 w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-3 text-[1.4rem] text-gray-500"
+                  disabled
+                  placeholder="thuong-hieu"
+                  type="text"
+                  value={toSlug(values.name)}
+                />
+              </div>
 
               <div className="space-y-2">
                 <label className="block text-[1.4rem] font-500 text-gray-900">Logo image</label>

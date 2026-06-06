@@ -71,7 +71,6 @@ const validationSchema = yup.object().shape({
         }),
     otherwise: schema => schema.optional(),
   }),
-  slug: yup.string().trim().required('Vui lòng nhập slug'),
 });
 
 export default function CollectionFormModal({
@@ -138,7 +137,7 @@ export default function CollectionFormModal({
           initialValues={initialValues}
           onSubmit={async values => {
             const cleanedName = values.name.trim();
-            const cleanedSlug = values.slug.trim() || toSlug(cleanedName);
+            const cleanedSlug = toSlug(cleanedName);
             const resolvedParentId = canSelectParent ? values.parentId : initialValues.parentId;
 
             await onSubmitAction({
@@ -158,7 +157,16 @@ export default function CollectionFormModal({
             <Form className="space-y-5 p-6">
               <Field.Text label="Tên collection" name="name" placeholder="Nhập tên collection" required />
 
-              <Field.Text label="Slug" name="slug" placeholder="collection-slug" required />
+              <div className="flex flex-col gap-2">
+                <label className="mb-2 block text-[1.4rem] font-500 text-foreground">Slug</label>
+                <input
+                  className="h-10 w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-3 text-[1.4rem] text-gray-500"
+                  disabled
+                  placeholder="collection-slug"
+                  type="text"
+                  value={toSlug(values.name)}
+                />
+              </div>
 
               <div className="space-y-2">
                 <label className="text-[1.3rem] font-600 text-gray-700">Collection cha</label>

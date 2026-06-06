@@ -27,7 +27,6 @@ interface TagFormModalProps {
 
 const validationSchema = yup.object().shape({
   name: yup.string().trim().required('Vui lòng nhập tên tag'),
-  slug: yup.string().trim().required('Vui lòng nhập slug'),
 });
 
 export default function TagFormModal({
@@ -76,7 +75,7 @@ export default function TagFormModal({
           initialValues={initialValues}
           onSubmit={async values => {
             const cleanedName = values.name.trim();
-            const cleanedSlug = values.slug.trim() || toSlug(cleanedName);
+            const cleanedSlug = toSlug(cleanedName);
 
             await onSubmitAction({
               ...values,
@@ -87,11 +86,20 @@ export default function TagFormModal({
           validateOnMount
           validationSchema={validationSchema}
         >
-          {({ isValid }) => (
+          {({ isValid, values }) => (
             <Form className="space-y-5 p-6">
               <Field.Text label="Tên tag" name="name" placeholder="Nhập tên tag" required />
 
-              <Field.Text label="Slug" name="slug" placeholder="ten-tag" required />
+              <div className="flex flex-col gap-2">
+                <label className="mb-2 block text-[1.4rem] font-500 text-foreground">Slug</label>
+                <input
+                  className="h-10 w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-3 text-[1.4rem] text-gray-500"
+                  disabled
+                  placeholder="ten-tag"
+                  type="text"
+                  value={toSlug(values.name)}
+                />
+              </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
