@@ -326,38 +326,53 @@ export default function StructureTab({
 
                       return (
                         <div className="grid grid-cols-12 gap-2" key={choice.id}>
-                          <input
-                            className={`${choiceLabelColSpan} h-9 rounded-md border border-gray-300 px-2 text-[1.2rem]`}
-                            onChange={event => {
-                              const nextLabel = event.target.value;
-                              const prevSlug = toSlug(choice.label ?? '');
-                              const nextSlug = toSlug(nextLabel);
-                              const isDefaultValue = !!(choice.value && /^value-\d+$/.test(choice.value));
-                              const shouldUpdateValue =
-                                !choice.value || choice.value === prevSlug || isDefaultValue;
+                          <div className={`${choiceLabelColSpan} space-y-1`}>
+                            <input
+                              className="h-9 w-full rounded-md border border-gray-300 px-2 text-[1.2rem]"
+                              onChange={event => {
+                                const nextLabel = event.target.value;
+                                const prevSlug = toSlug(choice.label ?? '');
+                                const nextSlug = toSlug(nextLabel);
+                                const isDefaultValue = !!(choice.value && /^value-\d+$/.test(choice.value));
+                                const shouldUpdateValue =
+                                  !choice.value || choice.value === prevSlug || isDefaultValue;
 
-                              onChoicePatch(selectedOption.id, choice.id, {
-                                label: nextLabel,
-                                value: shouldUpdateValue ? nextSlug : choice.value,
-                              });
-                            }}
-                            onBlur={() => {
-                              const nextLabel = choice.label ?? '';
-                              const nextSlug = toSlug(nextLabel);
-                              const prevSlug = toSlug(choice.label ?? '');
-                              const isDefaultValue = !!(choice.value && /^value-\d+$/.test(choice.value));
-                              const shouldUpdateValue =
-                                !choice.value || choice.value === prevSlug || isDefaultValue;
-
-                              if (shouldUpdateValue) {
                                 onChoicePatch(selectedOption.id, choice.id, {
-                                  value: nextSlug,
+                                  label: nextLabel,
+                                  value: shouldUpdateValue ? nextSlug : choice.value,
                                 });
-                              }
-                            }}
-                            placeholder="Nhãn"
-                            value={choice.label}
-                          />
+                              }}
+                              onBlur={() => {
+                                const nextLabel = choice.label ?? '';
+                                const nextSlug = toSlug(nextLabel);
+                                const prevSlug = toSlug(choice.label ?? '');
+                                const isDefaultValue = !!(choice.value && /^value-\d+$/.test(choice.value));
+                                const shouldUpdateValue =
+                                  !choice.value || choice.value === prevSlug || isDefaultValue;
+
+                                if (shouldUpdateValue) {
+                                  onChoicePatch(selectedOption.id, choice.id, {
+                                    value: nextSlug,
+                                  });
+                                }
+                              }}
+                              placeholder="Nhãn"
+                              value={choice.label}
+                            />
+                            <label className="flex cursor-pointer items-center gap-1.5 text-[1.15rem] text-gray-700">
+                              <input
+                                checked={choice.isDefault}
+                                className="h-3.5 w-3.5 accent-primary"
+                                onChange={event =>
+                                  onChoicePatch(selectedOption.id, choice.id, {
+                                    isDefault: event.target.checked,
+                                  })
+                                }
+                                type="checkbox"
+                              />
+                              Tiêu chuẩn
+                            </label>
+                          </div>
                           <input
                             className="col-span-2 h-9 rounded-md border border-gray-300 px-2 text-[1.2rem]"
                             onChange={event =>

@@ -154,6 +154,7 @@ const mapApiChoiceToUiChoice = (choice: AdminCustomOptionChoice, index: number):
     id: choice.id,
     imageFile: null,
     imageUrl: choice.imageUrl ?? undefined,
+    isDefault: Boolean(choice.isDefault),
     presignedImageUrl: choice.presignedImageUrl ?? undefined,
     label: choice.label,
     priceModifierType: toCustomPriceModifierType(choice.priceModifierType),
@@ -721,6 +722,7 @@ export default function CustomOptions() {
     const newChoice: CustomOptionChoice = {
       id: createTempId('CHOICE'),
       imageFile: null,
+      isDefault: false,
       label: 'Lựa chọn mới',
       priceModifierType: 'NONE',
       priceModifierValue: 0,
@@ -1001,6 +1003,7 @@ export default function CustomOptions() {
             csrf: true,
             items: choicesToCreate.map(({ choice, resolvedImageUrl }) => ({
               imageUrl: resolvedImageUrl,
+              isDefault: choice.isDefault,
               label: choice.label,
               optionId: targetOption.id,
               priceModifierType: choice.priceModifierType as AdminPriceModifierType,
@@ -1023,6 +1026,7 @@ export default function CustomOptions() {
               imageUrl: resolvedImageUrl,
               id: choice.id,
               label: choice.label,
+              isDefault: choice.isDefault,
               priceModifierType: choice.priceModifierType as AdminPriceModifierType,
               priceModifierValue: choice.priceModifierType === 'NONE' ? 0 : (choice.priceModifierValue ?? 0),
               sortOrder: choice.sortOrder,

@@ -18,6 +18,7 @@ export interface CustomOptionChoice {
   id: string;
   imageFile?: File | null;
   imageUrl?: string;
+  isDefault: boolean;
   presignedImageUrl?: string;
   label: string;
   priceModifierType: PriceModifierType;

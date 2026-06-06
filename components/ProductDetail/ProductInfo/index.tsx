@@ -36,8 +36,8 @@ import {
   CHECKOUT_SELECTED_CART_ITEM_IDS_KEY,
 } from '@/utils/checkoutSelection';
 
-import { useCarts } from '@/hooks/useCarts';
 import { useWishlistToggle } from '@/hooks/useWishlistToggle';
+import { useCarts, type AddToCartCustomValuePayload } from '@/hooks/useCarts';
 
 import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
 import TermsConditionsModal from '@/components/ProductDetail/TermsConditionsModal';
@@ -86,7 +86,21 @@ interface ProductInfoProps {
   inStock: boolean;
 }
 
+type SelectedCustomOption = {
+  choiceId?: string;
+  textValue?: string;
+  value?: string;
+};
+
+type PurchaseMode = 'standard' | 'custom';
+
 const PRODUCT_IMAGE_FALLBACK = 'https://placehold.co/600x600?text=GolfBy';
+const CUSTOM_CHOICE_OPTION_TYPES = new Set<ProductDetailCustomOption['type']>([
+  'CHECKBOX',
+  'DROPDOWN',
+  'IMAGE_SWATCH',
+  'RADIO',
+]);
 
 export default function ProductInfo({
   productId,
@@ -96,7 +110,6 @@ export default function ProductInfo({
   sku,
   price,
   originalPrice,
-  discount,
   rating,
   reviews,
   options,
@@ -112,9 +125,10 @@ export default function ProductInfo({
   const [selectedOptions, setSelectedOptions] = useState<Record<string, { value: string; valueId?: string }>>(
     {},
   );
-  const [selectedCustomOptions, setSelectedCustomOptions] = useState<
-    Record<string, { choiceId: string; value: string }>
-  >({});
+  const [selectedCustomOptions, setSelectedCustomOptions] = useState<Record<string, SelectedCustomOption>>(
+    {},
+  );
+  const [purchaseMode, setPurchaseMode] = useState<PurchaseMode>('standard');
   const [openImageDropdownOptionId, setOpenImageDropdownOptionId] = useState<string | null>(null);
   const showRating = typeof rating === 'number' && typeof reviews === 'number' && reviews > 0;
 
@@ -127,7 +141,7 @@ export default function ProductInfo({
 
   const isCustomOptionVisible = (
     option: ProductDetailCustomOption,
-    selections: Record<string, { choiceId: string; value: string }>,
+    selections: Record<string, SelectedCustomOption>,
   ) => {
     if (!option.conditionsAsTarget || option.conditionsAsTarget.length === 0) {
       return true;
@@ -165,6 +179,43 @@ export default function ProductInfo({
 
     return `+${new Intl.NumberFormat('vi-VN').format(choice.priceModifierValue)}đ`;
   };
+
+  const modeCustomOptions = useMemo(() => {
+    if (purchaseMode === 'custom') {
+      return customOptions;
+    }
+
+    return customOptions.flatMap(option => {
+      if (!CUSTOM_CHOICE_OPTION_TYPES.has(option.type)) {
+        return [];
+      }
+
+      const standardChoices = option.choices.filter(choice => choice.isDefault);
+      return standardChoices.length > 0 ? [{ ...option, choices: standardChoices }] : [];
+    });
+  }, [customOptions, purchaseMode]);
+
+  const visibleCustomOptions = useMemo(() => {
+    return modeCustomOptions.filter(option => isCustomOptionVisible(option, selectedCustomOptions));
+  }, [modeCustomOptions, selectedCustomOptions]);
+
+  const standardConfigurationIssue = useMemo(() => {
+    if (purchaseMode !== 'standard') {
+      return undefined;
+    }
+
+    return customOptions.find(option => {
+      if (!isCustomOptionVisible(option, selectedCustomOptions)) {
+        return false;
+      }
+
+      if (CUSTOM_CHOICE_OPTION_TYPES.has(option.type)) {
+        return !option.choices.some(choice => choice.isDefault);
+      }
+
+      return option.isRequired;
+    });
+  }, [customOptions, purchaseMode, selectedCustomOptions]);
 
   useEffect(() => {
     if (options.length === 0 || variants.length === 0) {
@@ -228,56 +279,53 @@ export default function ProductInfo({
   }, [options, variants.length]);
 
   useEffect(() => {
-    if (customOptions.length === 0) {
-      return;
-    }
+    setPurchaseMode('standard');
+    setSelectedCustomOptions({});
+  }, [productId]);
 
+  useEffect(() => {
     setSelectedCustomOptions(current => {
-      const next: Record<string, { choiceId: string; value: string }> = {};
+      const next: Record<string, SelectedCustomOption> = {};
 
-      customOptions.forEach(option => {
-        const optionChoices = option.choices ?? [];
-        if (optionChoices.length === 0) {
-          return;
-        }
-
-        if (!isCustomOptionVisible(option, current)) {
-          return;
-        }
-
+      visibleCustomOptions.forEach(option => {
         const currentSelection = current[option.id];
-        const currentStillValid = currentSelection
-          ? optionChoices.some(choice => choice.id === currentSelection.choiceId)
-          : false;
 
-        if (currentStillValid && currentSelection) {
-          next[option.id] = currentSelection;
+        if (CUSTOM_CHOICE_OPTION_TYPES.has(option.type)) {
+          const selectedChoice = option.choices.find(choice => choice.id === currentSelection?.choiceId);
+          const choice = selectedChoice ?? (option.choices.length === 1 ? option.choices[0] : undefined);
+
+          if (choice) {
+            next[option.id] = {
+              choiceId: choice.id,
+              value: choice.value,
+            };
+          }
           return;
         }
 
-        next[option.id] = {
-          choiceId: optionChoices[0].id,
-          value: optionChoices[0].value,
-        };
+        if (currentSelection?.textValue?.trim()) {
+          next[option.id] = currentSelection;
+        }
       });
 
       const currentKeys = Object.keys(current);
       const nextKeys = Object.keys(next);
-      const sameState =
+      const hasSameSelection =
         currentKeys.length === nextKeys.length &&
-        nextKeys.every(key => {
-          const currentSelection = current[key];
-          const nextSelection = next[key];
+        nextKeys.every(optionId => {
+          const currentSelection = current[optionId];
+          const nextSelection = next[optionId];
 
           return (
-            currentSelection?.choiceId === nextSelection?.choiceId &&
-            currentSelection?.value === nextSelection?.value
+            currentSelection?.choiceId === nextSelection.choiceId &&
+            currentSelection?.textValue === nextSelection.textValue &&
+            currentSelection?.value === nextSelection.value
           );
         });
 
-      return sameState ? current : next;
+      return hasSameSelection ? current : next;
     });
-  }, [customOptions]);
+  }, [visibleCustomOptions]);
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -361,11 +409,6 @@ export default function ProductInfo({
       : undefined
     : originalPrice;
 
-  const displayDiscount =
-    displayPrice > 0 && displayOriginalPrice && displayOriginalPrice > displayPrice
-      ? Math.round(((displayOriginalPrice - displayPrice) / displayOriginalPrice) * 100)
-      : discount;
-
   const displaySku = selectedVariant?.sku || sku;
   const displayInStock =
     variants.length > 0
@@ -379,6 +422,10 @@ export default function ProductInfo({
   const isActionLoading = addToCartMutation.isMutating;
   const wishlisted = isWishlisted(productId);
   const isWishlistLoading = togglingProductId === productId;
+  const hasSelectedCustomOptions = visibleCustomOptions.some(option => {
+    const selection = selectedCustomOptions[option.id];
+    return Boolean(selection?.choiceId) || Boolean(selection?.textValue?.trim());
+  });
 
   const validatePurchaseState = () => {
     if (!displayInStock) {
@@ -393,6 +440,32 @@ export default function ProductInfo({
       addToast({
         color: 'warning',
         description: 'Vui lòng chọn đầy đủ thuộc tính sản phẩm.',
+      });
+      return false;
+    }
+
+    if (standardConfigurationIssue) {
+      addToast({
+        color: 'warning',
+        description: CUSTOM_CHOICE_OPTION_TYPES.has(standardConfigurationIssue.type)
+          ? `Chưa cấu hình lựa chọn Tiêu chuẩn cho ${standardConfigurationIssue.label}.`
+          : `${standardConfigurationIssue.label} chỉ có ở tab Custom.`,
+      });
+      return false;
+    }
+
+    const missingRequiredCustomOption = visibleCustomOptions.find(option => {
+      const selection = selectedCustomOptions[option.id];
+      if (CUSTOM_CHOICE_OPTION_TYPES.has(option.type)) {
+        return !selection?.choiceId;
+      }
+
+      return option.isRequired && !selection?.textValue?.trim();
+    });
+    if (missingRequiredCustomOption) {
+      addToast({
+        color: 'warning',
+        description: `Vui lòng chọn ${missingRequiredCustomOption.label}.`,
       });
       return false;
     }
@@ -415,26 +488,27 @@ export default function ProductInfo({
       return false;
     }
 
-    const customValuesPayload = visibleCustomOptions
-      .map(option => {
-        const selected = selectedCustomOptions[option.id];
-        if (!selected?.choiceId) {
-          return null;
-        }
+    const customValuesPayload = visibleCustomOptions.flatMap<AddToCartCustomValuePayload>(option => {
+      const selected = selectedCustomOptions[option.id];
+      if (selected?.choiceId) {
+        return [
+          {
+            choiceId: selected.choiceId,
+            customOptionId: option.id,
+          },
+        ];
+      }
 
-        return {
-          choiceId: selected.choiceId,
-          customOptionId: option.id,
-        };
-      })
-      .filter(
-        (
-          value,
-        ): value is {
-          choiceId: string;
-          customOptionId: string;
-        } => Boolean(value),
-      );
+      const textValue = selected?.textValue?.trim();
+      return textValue
+        ? [
+            {
+              customOptionId: option.id,
+              textValue,
+            },
+          ]
+        : [];
+    });
 
     try {
       await addToCartMutation.trigger({
@@ -467,8 +541,16 @@ export default function ProductInfo({
     await addCurrentSelectionToCart();
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (!validatePurchaseState()) {
+      return;
+    }
+
+    if (hasSelectedCustomOptions) {
+      const added = await addCurrentSelectionToCart();
+      if (added) {
+        router.push('/cart');
+      }
       return;
     }
 
@@ -517,9 +599,6 @@ export default function ProductInfo({
 
   const formatPrice = (v: number) => new Intl.NumberFormat('vi-VN').format(v) + ' VNĐ';
 
-  const visibleCustomOptions = useMemo(() => {
-    return customOptions.filter(option => isCustomOptionVisible(option, selectedCustomOptions));
-  }, [customOptions, selectedCustomOptions]);
   const hasVisibleCustomOptions = visibleCustomOptions.length > 0;
 
   const customOptionSurcharge = useMemo(() => {
@@ -599,20 +678,58 @@ export default function ProductInfo({
       </div>
 
       {/* Price */}
-      <div className="flex items-end gap-3">
-        {displayPrice > 0 && displayOriginalPrice && displayOriginalPrice > displayPrice && (
-          <span className="text-[28px] text-foreground-600 line-through font-600">
-            {formatPrice(displayOriginalPrice)}
-          </span>
-        )}
-        {displayPrice > 0 ? (
-          <span className="text-[28px] text-[#FF0000] font-700">{formatPrice(displayPrice)}</span>
-        ) : (
-          <span className="text-[28px] text-foreground font-700">Giá: Liên hệ</span>
-        )}
+      <div>
+        <p className="mb-1 text-[13px] text-muted-foreground">Giá sản phẩm</p>
+        <div className="flex items-end gap-3">
+          {displayPrice > 0 && displayOriginalPrice && displayOriginalPrice > displayPrice && (
+            <span className="text-[18px] text-foreground-600 line-through font-600">
+              {formatPrice(displayOriginalPrice)}
+            </span>
+          )}
+          {displayPrice > 0 ? (
+            <span className="text-[24px] text-[#FF0000] font-700">{formatPrice(displayPrice)}</span>
+          ) : (
+            <span className="text-[24px] text-foreground font-700">Liên hệ</span>
+          )}
+        </div>
       </div>
 
       <div className="h-px bg-border/60" />
+
+      {customOptions.length > 0 ? (
+        <div className="border-b border-border">
+          <div className="flex gap-7" role="tablist" aria-label="Loại cấu hình sản phẩm">
+            {(
+              [
+                { label: 'Tiêu chuẩn', value: 'standard' },
+                { label: 'Custom', value: 'custom' },
+              ] as const
+            ).map(mode => {
+              const active = purchaseMode === mode.value;
+
+              return (
+                <button
+                  aria-selected={active}
+                  className={`relative -mb-px pb-3 text-[17px] transition-colors font-700 ${
+                    active
+                      ? 'text-primary after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-primary'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  key={mode.value}
+                  onClick={() => {
+                    setPurchaseMode(mode.value);
+                    setOpenImageDropdownOptionId(null);
+                  }}
+                  role="tab"
+                  type="button"
+                >
+                  {mode.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {/* Options */}
       <div className="space-y-4">
@@ -693,11 +810,25 @@ export default function ProductInfo({
         </span>
       </div>
 
+      {purchaseMode === 'standard' && standardConfigurationIssue ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
+          {CUSTOM_CHOICE_OPTION_TYPES.has(standardConfigurationIssue.type)
+            ? `Chưa có lựa chọn Tiêu chuẩn cho “${standardConfigurationIssue.label}”. Vui lòng chuyển sang tab Custom hoặc liên hệ quản trị viên.`
+            : `“${standardConfigurationIssue.label}” là thông tin bắt buộc và chỉ nhập được ở tab Custom.`}
+        </p>
+      ) : customOptions.length > 0 && purchaseMode === 'standard' && !hasVisibleCustomOptions ? (
+        <p className="rounded-lg border border-dashed border-border px-4 py-3 text-[13px] text-muted-foreground">
+          Sản phẩm này không có lựa chọn bổ sung ở cấu hình Tiêu chuẩn.
+        </p>
+      ) : null}
+
       {hasVisibleCustomOptions && (
         <div className="space-y-4">
           {visibleCustomOptions.map(option => {
             const selectedChoiceId = selectedCustomOptions[option.id]?.choiceId;
-            const choiceLabel = option.label + (option.isRequired ? '*' : '');
+            const selectedTextValue = selectedCustomOptions[option.id]?.textValue ?? '';
+            const choiceLabel =
+              option.label + (CUSTOM_CHOICE_OPTION_TYPES.has(option.type) || option.isRequired ? ' *' : '');
 
             if (option.type === 'RADIO') {
               return (
@@ -754,6 +885,9 @@ export default function ProductInfo({
                     }}
                     value={selectedChoiceId ?? ''}
                   >
+                    <option disabled value="">
+                      Chọn...
+                    </option>
                     {option.choices.map(choice => (
                       <option key={choice.id} value={choice.id}>
                         {choice.label}
@@ -852,6 +986,41 @@ export default function ProductInfo({
                       })}
                     </div>
                   ) : null}
+                </div>
+              );
+            }
+
+            if (option.type === 'TEXT' || option.type === 'TEXTAREA' || option.type === 'NUMBER') {
+              const commonProps = {
+                className:
+                  'min-h-12 w-full rounded-md border border-border bg-white px-4 py-3 text-[14px] text-foreground',
+                onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+                  const textValue = event.target.value;
+                  setSelectedCustomOptions(prev => {
+                    if (!textValue) {
+                      const next = { ...prev };
+                      delete next[option.id];
+                      return next;
+                    }
+
+                    return {
+                      ...prev,
+                      [option.id]: { textValue },
+                    };
+                  });
+                },
+                placeholder: option.placeholder,
+                value: selectedTextValue,
+              };
+
+              return (
+                <div key={option.id} className="space-y-2">
+                  <label className="block text-[13px] text-foreground font-600">{choiceLabel}</label>
+                  {option.type === 'TEXTAREA' ? (
+                    <textarea {...commonProps} rows={3} />
+                  ) : (
+                    <input {...commonProps} type={option.type === 'NUMBER' ? 'number' : 'text'} />
+                  )}
                 </div>
               );
             }

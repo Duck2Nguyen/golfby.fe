@@ -70,6 +70,7 @@ interface ApiCustomOptionCondition {
 interface ApiCustomOptionChoice {
   id: string;
   imageUrl?: string | null;
+  isDefault?: boolean | null;
   label: string;
   presignedImageUrl?: string | null;
   priceModifierType?: 'NONE' | 'FIXED' | 'PERCENT' | null;
@@ -209,6 +210,7 @@ const mapApiProductToDetailData = (item: ApiProductDetail): ProductDetailViewDat
             choices: (option.choices ?? []).map(choice => ({
               id: choice.id,
               imageUrl: choice.presignedImageUrl || choice.imageUrl || undefined,
+              isDefault: Boolean(choice.isDefault),
               label: choice.label,
               priceModifierType: choice.priceModifierType ?? 'NONE',
               priceModifierValue: toNumber(choice.priceModifierValue),
@@ -288,6 +290,7 @@ export interface ProductDetailCustomOptionCondition {
 export interface ProductDetailCustomOptionChoice {
   id: string;
   imageUrl?: string;
+  isDefault: boolean;
   label: string;
   priceModifierType: 'NONE' | 'FIXED' | 'PERCENT';
   priceModifierValue: number;
