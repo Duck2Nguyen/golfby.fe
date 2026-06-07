@@ -5,7 +5,17 @@ import { useMutation, useSWRWrapper } from '@/hooks/swr';
 import { METHOD } from '@/global/common';
 
 export type CheckoutPaymentMethod = 'CASH_ON_DELIVERY' | 'BANK_TRANSFER' | 'ONLINE_GATEWAY';
-export type OrderStatus = 'PENDING' | 'PAID' | 'SHIPPED' | 'COMPLETED' | 'CANCELED' | 'REFUNDED';
+export type OrderStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'SHIPPED'
+  | 'COMPLETED'
+  | 'RETURNING'
+  | 'RETURNED'
+  | 'CANCELED'
+  | 'PAID'
+  | 'REFUNDED';
+export type OrderWorkflowStatus = Exclude<OrderStatus, 'PAID' | 'REFUNDED'>;
 export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED' | 'FAILED';
 
 export interface CheckoutOrderLineCustomValue {

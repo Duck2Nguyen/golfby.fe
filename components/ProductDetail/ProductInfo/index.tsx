@@ -410,12 +410,13 @@ export default function ProductInfo({
     : originalPrice;
 
   const displaySku = selectedVariant?.sku || sku;
-  const displayInStock =
+  const availableStock = selectedVariant ? Math.max(Number(selectedVariant.stock ?? 0), 0) : null;
+  const requiresBackorder =
     variants.length > 0
       ? selectedVariant
-        ? (selectedVariant.stock ?? 0) > 0
-        : variants.some(variant => (variant.stock ?? 0) > 0)
-      : inStock;
+        ? quantity > (availableStock ?? 0)
+        : !variants.some(variant => (variant.stock ?? 0) > 0)
+      : !inStock;
 
   const hasVariants = variants.length > 0;
   const selectedVariantId = selectedVariant?.id;
@@ -428,14 +429,6 @@ export default function ProductInfo({
   });
 
   const validatePurchaseState = () => {
-    if (!displayInStock) {
-      addToast({
-        color: 'warning',
-        description: 'Biến thể đã chọn đang hết hàng.',
-      });
-      return false;
-    }
-
     if (hasVariants && !selectedVariantId) {
       addToast({
         color: 'warning',
@@ -468,16 +461,6 @@ export default function ProductInfo({
         description: `Vui lòng chọn ${missingRequiredCustomOption.label}.`,
       });
       return false;
-    }
-
-    if (selectedVariant && typeof selectedVariant.stock === 'number' && selectedVariant.stock >= 0) {
-      if (quantity > selectedVariant.stock) {
-        addToast({
-          color: 'warning',
-          description: `Số lượng tồn không đủ. Chỉ còn ${selectedVariant.stock} sản phẩm.`,
-        });
-        return false;
-      }
     }
 
     return true;
@@ -663,8 +646,12 @@ export default function ProductInfo({
             <span className="w-px h-3.5 bg-border" />
           </>
         )}
-        <span className={`text-[13px] font-500 ${displayInStock ? 'text-primary' : 'text-destructive'}`}>
-          {displayInStock ? 'Còn hàng' : 'Hết hàng'}
+        <span className={`text-[13px] font-500 ${requiresBackorder ? 'text-amber-600' : 'text-primary'}`}>
+          {requiresBackorder
+            ? availableStock && availableStock > 0
+              ? `Có sẵn ${availableStock}, phần còn lại đặt trước`
+              : 'Hàng đặt trước'
+            : 'Còn hàng'}
         </span>
       </div>
 
@@ -1044,7 +1031,7 @@ export default function ProductInfo({
             onClick={() => {
               void handleAddToCart();
             }}
-            disabled={isActionLoading || !displayInStock}
+            disabled={isActionLoading}
             className="flex-1 h-13 bg-primary hover:bg-primary-dark text-white rounded-xl text-[15px] flex items-center justify-center gap-2.5 transition-all duration-200 shadow-sm hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98] font-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <ShoppingCart className="w-5 h-5" />
@@ -1094,7 +1081,7 @@ export default function ProductInfo({
           onClick={() => {
             void handleBuyNow();
           }}
-          disabled={isActionLoading || !displayInStock}
+          disabled={isActionLoading}
           className="w-full h-13 border-2 border-foreground bg-foreground hover:bg-foreground/90 text-white rounded-xl text-[15px] flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] font-600 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Mua Ngay

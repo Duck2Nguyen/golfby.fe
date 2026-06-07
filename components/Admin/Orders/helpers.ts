@@ -29,12 +29,18 @@ export const getOrderStatusLabel = (status?: OrderStatus | string | null) => {
   switch (status) {
     case 'PENDING':
       return 'Chờ xử lý';
-    case 'PAID':
+    case 'CONFIRMED':
       return 'Đã xác nhận';
+    case 'PAID':
+      return 'Đã thanh toán (cũ)';
     case 'SHIPPED':
       return 'Đang giao';
     case 'COMPLETED':
       return 'Hoàn tất';
+    case 'RETURNING':
+      return 'Đang hoàn hàng';
+    case 'RETURNED':
+      return 'Đã hoàn hàng';
     case 'CANCELED':
       return 'Đã hủy';
     case 'REFUNDED':
@@ -48,12 +54,18 @@ export const getOrderStatusClassName = (status?: OrderStatus | string | null) =>
   switch (status) {
     case 'PENDING':
       return 'bg-warning-100 text-warning-700 border-warning-200';
+    case 'CONFIRMED':
+      return 'bg-primary-light text-primary border-primary/20';
     case 'PAID':
       return 'bg-primary-light text-primary border-primary/20';
     case 'SHIPPED':
       return 'bg-secondary-100 text-secondary-700 border-secondary-200';
     case 'COMPLETED':
       return 'bg-success-100 text-success-700 border-success-200';
+    case 'RETURNING':
+      return 'bg-orange-100 text-orange-700 border-orange-200';
+    case 'RETURNED':
+      return 'bg-slate-100 text-slate-700 border-slate-200';
     case 'CANCELED':
       return 'bg-danger-100 text-danger border-danger/30';
     case 'REFUNDED':

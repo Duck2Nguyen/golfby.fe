@@ -182,12 +182,14 @@ export interface AdminProductDetailVariant {
   deletedAt?: string | null;
   id: string;
   listPrice?: string | number | null;
+  pendingQuantity?: number;
   productId: string;
   salePrice?: string | number | null;
   selectedOptionValues?: AdminProductVariantSelectedOptionValue[];
   sku?: string | null;
   status?: AdminProductStatus;
   stock?: number | null;
+  shortage?: number;
   updatedAt?: string | null;
 }
 

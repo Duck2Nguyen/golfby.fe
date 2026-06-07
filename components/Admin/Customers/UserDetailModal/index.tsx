@@ -58,12 +58,18 @@ const getOrderStatusLabel = (status?: string | null) => {
   switch (status) {
     case 'PENDING':
       return 'Chờ xử lý';
+    case 'CONFIRMED':
+      return 'Đã xác nhận';
     case 'PAID':
       return 'Đã thanh toán';
     case 'SHIPPED':
       return 'Đang giao';
     case 'COMPLETED':
       return 'Hoàn tất';
+    case 'RETURNING':
+      return 'Đang hoàn hàng';
+    case 'RETURNED':
+      return 'Đã hoàn hàng';
     case 'CANCELED':
       return 'Đã hủy';
     case 'REFUNDED':

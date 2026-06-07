@@ -12,10 +12,12 @@ export interface ProductVariantItem {
   barcode: string;
   costPrice: number;
   listPrice: number;
+  pendingQuantity?: number;
   salePrice: number;
   sku: string;
   status?: ProductVariantStatus;
   stock: number;
+  shortage?: number;
   variantId?: string;
 }
 

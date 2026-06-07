@@ -298,6 +298,9 @@ export default function Orders() {
           setViewingOrderId(null);
           void mutate();
         }}
+        onUpdatedAction={() => {
+          void mutate();
+        }}
         orderId={viewingOrderId}
       />
     </div>

@@ -1,11 +1,25 @@
 'use client';
 
-import { useMemo } from 'react';
-import { X, RefreshCcw } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import {
+  X,
+  Ban,
+  Check,
+  Truck,
+  RotateCcw,
+  RefreshCcw,
+  PackageCheck,
+  AlertTriangle,
+} from 'lucide-react';
 
 import { Spinner } from '@heroui/spinner';
 
-import { useAdminOrderDetail } from '@/hooks/admin/useAdminOrders';
+import type { OrderStatus, OrderWorkflowStatus } from '@/hooks/useOrders';
+
+import {
+  useAdminOrderDetail,
+  useUpdateAdminOrderStatus,
+} from '@/hooks/admin/useAdminOrders';
 
 import {
   formatCurrency,
@@ -19,17 +33,137 @@ import {
 interface OrderDetailModalProps {
   isOpen: boolean;
   onCloseAction: () => void;
+  onUpdatedAction?: () => void;
   orderId?: string | null;
 }
 
-export default function OrderDetailModal({ isOpen, onCloseAction, orderId }: OrderDetailModalProps) {
+const getActionLabel = (status: OrderWorkflowStatus) => {
+  switch (status) {
+    case 'CONFIRMED':
+      return 'Xác nhận đơn';
+    case 'SHIPPED':
+      return 'Bàn giao vận chuyển';
+    case 'COMPLETED':
+      return 'Giao thành công';
+    case 'RETURNING':
+      return 'Xử lý hoàn hàng';
+    case 'RETURNED':
+      return 'Đã nhận đủ và hoàn kho';
+    case 'CANCELED':
+      return 'Hủy đơn';
+    default:
+      return getOrderStatusLabel(status);
+  }
+};
+
+const getConfirmDescription = (from: OrderStatus | null | undefined, to: OrderWorkflowStatus) => {
+  if (to === 'CONFIRMED') {
+    return 'Hệ thống sẽ kiểm tra và trừ tồn kho của toàn bộ sản phẩm trong đơn.';
+  }
+  if (to === 'CANCELED' && from === 'CONFIRMED') {
+    return 'Đơn sẽ bị hủy và toàn bộ số lượng đã giữ sẽ được hoàn lại kho.';
+  }
+  if (to === 'CANCELED') {
+    return 'Đơn sẽ bị hủy và không thể chuyển lại trạng thái trước đó.';
+  }
+  if (to === 'RETURNING') {
+    return 'Đơn sẽ chuyển sang trạng thái đang hoàn hàng. Kho chưa được cộng lại ở bước này.';
+  }
+  if (to === 'RETURNED') {
+    return 'Chỉ xác nhận khi nhân viên đã nhận và kiểm tra đủ toàn bộ sản phẩm. Hệ thống sẽ hoàn toàn bộ số lượng vào kho.';
+  }
+
+  return `Đơn sẽ chuyển sang trạng thái “${getOrderStatusLabel(to)}” và không thể quay lại trạng thái trước.`;
+};
+
+const getActionIcon = (status: OrderWorkflowStatus) => {
+  switch (status) {
+    case 'CONFIRMED':
+      return PackageCheck;
+    case 'SHIPPED':
+      return Truck;
+    case 'COMPLETED':
+      return Check;
+    case 'RETURNING':
+    case 'RETURNED':
+      return RotateCcw;
+    case 'CANCELED':
+      return Ban;
+    default:
+      return Check;
+  }
+};
+
+const buildTimeline = (
+  currentStatus: OrderStatus | null | undefined,
+  historyStatuses: OrderStatus[],
+): OrderStatus[] => {
+  if (currentStatus === 'CANCELED') {
+    return Array.from(
+      new Set<OrderStatus>([...historyStatuses.filter(status => status !== 'CANCELED'), 'CANCELED']),
+    );
+  }
+
+  if (currentStatus === 'RETURNING' || currentStatus === 'RETURNED') {
+    return [
+      'PENDING',
+      'CONFIRMED',
+      'SHIPPED',
+      ...(historyStatuses.includes('COMPLETED') ? (['COMPLETED'] as const) : []),
+      'RETURNING',
+      'RETURNED',
+    ];
+  }
+
+  return ['PENDING', 'CONFIRMED', 'SHIPPED', 'COMPLETED'];
+};
+
+export default function OrderDetailModal({
+  isOpen,
+  onCloseAction,
+  onUpdatedAction,
+  orderId,
+}: OrderDetailModalProps) {
+  const [pendingStatus, setPendingStatus] = useState<OrderWorkflowStatus | null>(null);
   const { data, error, isLoading, isValidating, mutate } = useAdminOrderDetail(orderId || undefined, isOpen);
+  const updateStatusMutation = useUpdateAdminOrderStatus();
 
   const order = data?.data;
 
   const shippingAddress = useMemo(() => {
     return [order?.address, order?.commune, order?.province].filter(Boolean).join(', ');
   }, [order?.address, order?.commune, order?.province]);
+
+  const historyStatuses = useMemo(
+    () => (order?.statusHistory ?? []).map(item => item.toStatus),
+    [order?.statusHistory],
+  );
+  const timeline = useMemo(
+    () => buildTimeline(order?.status, historyStatuses),
+    [historyStatuses, order?.status],
+  );
+  const visitedStatuses = useMemo(
+    () => new Set<OrderStatus>([...historyStatuses, ...(order?.status ? [order.status] : [])]),
+    [historyStatuses, order?.status],
+  );
+
+  const handleConfirmStatus = async () => {
+    if (!orderId || !pendingStatus) return;
+
+    try {
+      await updateStatusMutation.trigger({
+        csrf: true,
+        orderId,
+        status: pendingStatus,
+      });
+      setPendingStatus(null);
+      await mutate();
+      onUpdatedAction?.();
+    } catch {
+      setPendingStatus(null);
+      await mutate();
+    }
+  };
 
   if (!isOpen) {
     return null;
@@ -43,7 +177,7 @@ export default function OrderDetailModal({ isOpen, onCloseAction, orderId }: Ord
         type="button"
       />
 
-      <div className="relative flex max-h-[92vh] w-full max-w-[96rem] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+      <div className="relative flex max-h-[92vh] w-full max-w-[104rem] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
           <div>
             <h2 className="text-[2.0rem] font-700 text-gray-900">Chi tiết đơn hàng</h2>
@@ -83,6 +217,121 @@ export default function OrderDetailModal({ isOpen, onCloseAction, orderId }: Ord
             </div>
           ) : (
             <>
+              <section className="rounded-xl border border-gray-200 bg-white px-5 py-4">
+                <div className="mb-4 flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-[1.6rem] font-700 text-gray-900">Tiến trình đơn hàng</h3>
+                    <p className="text-[1.2rem] text-gray-500">
+                      Trạng thái chỉ được chuyển tiếp theo đúng quy trình.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-primary/20 bg-primary-light px-3 py-1 text-[1.2rem] font-600 text-primary">
+                    {getOrderStatusLabel(order.status)}
+                  </span>
+                </div>
+
+                <div className="flex min-w-[64rem] items-start overflow-x-auto pb-2">
+                  {timeline.map((status, index) => {
+                    const visited = visitedStatuses.has(status);
+                    const current = order.status === status;
+
+                    return (
+                      <div className="flex flex-1 items-start" key={`${status}-${index}`}>
+                        <div className="flex min-w-[10rem] flex-col items-center text-center">
+                          <div
+                            className={`flex h-8 w-8 items-center justify-center rounded-full border-2 ${
+                              visited
+                                ? 'border-primary bg-primary text-white'
+                                : 'border-gray-200 bg-white text-gray-400'
+                            } ${current ? 'ring-4 ring-primary/15' : ''}`}
+                          >
+                            {visited ? <Check className="h-4 w-4" /> : <span>{index + 1}</span>}
+                          </div>
+                          <p
+                            className={`mt-2 text-[1.2rem] font-600 ${
+                              visited ? 'text-gray-900' : 'text-gray-400'
+                            }`}
+                          >
+                            {getOrderStatusLabel(status)}
+                          </p>
+                        </div>
+                        {index < timeline.length - 1 ? (
+                          <div
+                            className={`mt-4 h-0.5 flex-1 ${
+                              visitedStatuses.has(timeline[index + 1]) ? 'bg-primary' : 'bg-gray-200'
+                            }`}
+                          />
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {(order.allowedTransitions ?? []).length > 0 ? (
+                  <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4">
+                    {(order.allowedTransitions ?? []).map(status => {
+                      const Icon = getActionIcon(status);
+                      const cannotConfirm = status === 'CONFIRMED' && !order.inventory?.canConfirm;
+                      const destructive = status === 'CANCELED';
+
+                      return (
+                        <button
+                          className={`flex h-10 items-center gap-2 rounded-lg px-4 text-[1.3rem] font-600 text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                            destructive
+                              ? 'bg-danger hover:bg-danger/90'
+                              : 'bg-primary hover:bg-primary-dark'
+                          }`}
+                          disabled={cannotConfirm || updateStatusMutation.isMutating}
+                          key={status}
+                          onClick={() => setPendingStatus(status)}
+                          title={cannotConfirm ? 'Cần nhập đủ tồn kho trước khi xác nhận đơn' : undefined}
+                          type="button"
+                        >
+                          <Icon className="h-4 w-4" />
+                          {getActionLabel(status)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </section>
+
+              {order.status === 'PENDING' && order.inventory && !order.inventory.canConfirm ? (
+                <section className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="mb-3 flex items-start gap-3">
+                    <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                    <div>
+                      <h3 className="text-[1.5rem] font-700 text-amber-900">Chưa đủ tồn kho để xác nhận</h3>
+                      <p className="text-[1.3rem] text-amber-800">
+                        Nhập thêm sản phẩm trong trang quản lý sản phẩm, sau đó tải lại đơn hàng.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto rounded-lg border border-amber-200 bg-white">
+                    <table className="w-full min-w-[56rem]">
+                      <thead>
+                        <tr className="text-left text-[1.2rem] text-gray-500">
+                          <th className="px-3 py-2">SKU</th>
+                          <th className="px-3 py-2">Đơn cần</th>
+                          <th className="px-3 py-2">Tồn hiện tại</th>
+                          <th className="px-3 py-2">Còn thiếu</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {order.inventory.items.map(item => (
+                          <tr className="border-t border-gray-100 text-[1.3rem]" key={item.variantId}>
+                            <td className="px-3 py-2 font-600 text-gray-900">{item.sku || item.variantId}</td>
+                            <td className="px-3 py-2">{item.requiredQuantity}</td>
+                            <td className="px-3 py-2">{item.availableStock}</td>
+                            <td className="px-3 py-2 font-700 text-danger">{item.shortage}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              ) : null}
+
               <section className="grid gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 md:grid-cols-2">
                 <div>
                   <p className="text-[1.2rem] text-gray-500">Mã đơn hàng</p>
@@ -170,6 +419,56 @@ export default function OrderDetailModal({ isOpen, onCloseAction, orderId }: Ord
           )}
         </div>
       </div>
+
+      {pendingStatus ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+          <button
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setPendingStatus(null)}
+            type="button"
+          />
+          <div className="relative w-full max-w-[46rem] rounded-2xl bg-white p-6 shadow-2xl">
+            <button
+              className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-lg hover:bg-gray-100"
+              onClick={() => setPendingStatus(null)}
+              type="button"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-50">
+              <AlertTriangle className="h-6 w-6 text-amber-600" />
+            </div>
+            <h3 className="text-[1.8rem] font-700 text-gray-900">
+              Xác nhận {getActionLabel(pendingStatus).toLowerCase()}?
+            </h3>
+            <p className="mt-2 text-[1.4rem] leading-relaxed text-gray-600">
+              {getConfirmDescription(order?.status, pendingStatus)}
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                className="h-10 flex-1 rounded-lg border border-gray-200 text-[1.4rem] text-gray-700 hover:bg-gray-50"
+                disabled={updateStatusMutation.isMutating}
+                onClick={() => setPendingStatus(null)}
+                type="button"
+              >
+                Quay lại
+              </button>
+              <button
+                className={`h-10 flex-1 rounded-lg text-[1.4rem] font-600 text-white disabled:opacity-60 ${
+                  pendingStatus === 'CANCELED' ? 'bg-danger hover:bg-danger/90' : 'bg-primary hover:bg-primary-dark'
+                }`}
+                disabled={updateStatusMutation.isMutating}
+                onClick={() => {
+                  void handleConfirmStatus();
+                }}
+                type="button"
+              >
+                {updateStatusMutation.isMutating ? 'Đang cập nhật...' : 'Xác nhận'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

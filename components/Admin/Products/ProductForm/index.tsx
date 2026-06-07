@@ -313,9 +313,11 @@ const mapDetailVariantsToTableRows = (variants?: AdminProductDetail['variants'])
     costPrice: toNumberOrZero(variant.costPrice),
     id: variant.id,
     listPrice: toNumberOrZero(variant.listPrice),
+    pendingQuantity: variant.pendingQuantity ?? 0,
     salePrice: toNumberOrZero(variant.salePrice),
     sku: variant.sku ?? '',
     stock: toNumberOrZero(variant.stock),
+    shortage: variant.shortage ?? 0,
     variantId: variant.id,
   }));
 };

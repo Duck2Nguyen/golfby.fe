@@ -4,6 +4,7 @@ import type {
   OrderStatus,
   PaymentStatus,
   CheckoutOrderLine,
+  OrderWorkflowStatus,
   OrderShippingMethod,
   CheckoutPaymentMethod,
 } from '@/hooks/useOrders';
@@ -12,13 +13,14 @@ import { useMutation, useSWRWrapper } from '@/hooks/swr';
 
 import { METHOD } from '@/global/common';
 
-export const ADMIN_ORDER_STATUSES: OrderStatus[] = [
+export const ADMIN_ORDER_STATUSES: OrderWorkflowStatus[] = [
   'PENDING',
-  'PAID',
+  'CONFIRMED',
   'SHIPPED',
   'COMPLETED',
+  'RETURNING',
+  'RETURNED',
   'CANCELED',
-  'REFUNDED',
 ];
 
 export const ADMIN_PAYMENT_STATUSES: PaymentStatus[] = ['PENDING', 'PAID', 'REFUNDED', 'FAILED'];
@@ -34,6 +36,24 @@ export interface AdminOrdersQueryParams {
 
 export interface AdminOrderLine extends CheckoutOrderLine {
   createdAt?: string;
+}
+
+export interface AdminOrderInventoryItem {
+  availableStock: number;
+  requiredQuantity: number;
+  shortage: number;
+  sku?: string | null;
+  variantId: string;
+  variantStatus: string;
+}
+
+export interface AdminOrderStatusHistoryItem {
+  changedBy?: string | null;
+  createdAt?: string | null;
+  fromStatus?: OrderStatus | null;
+  id: string;
+  toStatus: OrderStatus;
+  user?: UserInfo | null;
 }
 
 export interface AdminOrderListItem {
@@ -63,14 +83,21 @@ export interface AdminOrderListItem {
 }
 
 export interface AdminOrderDetail extends AdminOrderListItem {
+  allowedTransitions?: OrderWorkflowStatus[];
   discount?: Record<string, unknown> | null;
+  inventory?: {
+    canConfirm: boolean;
+    items: AdminOrderInventoryItem[];
+    totalShortage: number;
+  };
+  statusHistory?: AdminOrderStatusHistoryItem[];
   transactions?: Record<string, unknown>[];
 }
 
 export interface UpdateAdminOrderStatusPayload {
   csrf?: boolean;
   orderId: string;
-  status: OrderStatus;
+  status: OrderWorkflowStatus;
 }
 
 const normalizeListParams = (

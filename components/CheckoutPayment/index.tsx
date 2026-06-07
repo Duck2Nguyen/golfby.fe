@@ -37,6 +37,11 @@ const getOrderStatusMeta = (status?: string) => {
         badgeClassName: 'bg-warning-100 text-warning-700',
         label: 'Chờ xử lý',
       };
+    case 'CONFIRMED':
+      return {
+        badgeClassName: 'bg-primary/10 text-primary',
+        label: 'Đã xác nhận',
+      };
     case 'PAID':
       return {
         badgeClassName: 'bg-success-100 text-success-700',
@@ -51,6 +56,16 @@ const getOrderStatusMeta = (status?: string) => {
       return {
         badgeClassName: 'bg-success-100 text-success-700',
         label: 'Hoàn tất',
+      };
+    case 'RETURNING':
+      return {
+        badgeClassName: 'bg-warning-100 text-warning-700',
+        label: 'Đang hoàn hàng',
+      };
+    case 'RETURNED':
+      return {
+        badgeClassName: 'bg-default-100 text-default-700',
+        label: 'Đã hoàn hàng',
       };
     case 'CANCELED':
       return {

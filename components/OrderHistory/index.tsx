@@ -24,6 +24,11 @@ const getOrderStatusMeta = (status?: OrderStatus) => {
         badgeClassName: 'bg-warning-100 text-warning-700',
         label: 'Chờ xử lý',
       };
+    case 'CONFIRMED':
+      return {
+        badgeClassName: 'bg-primary/10 text-primary',
+        label: 'Đã xác nhận',
+      };
     case 'PAID':
       return {
         badgeClassName: 'bg-success-100 text-success-700',
@@ -38,6 +43,16 @@ const getOrderStatusMeta = (status?: OrderStatus) => {
       return {
         badgeClassName: 'bg-success-100 text-success-700',
         label: 'Hoàn tất',
+      };
+    case 'RETURNING':
+      return {
+        badgeClassName: 'bg-warning-100 text-warning-700',
+        label: 'Đang hoàn hàng',
+      };
+    case 'RETURNED':
+      return {
+        badgeClassName: 'bg-default-100 text-default-700',
+        label: 'Đã hoàn hàng',
       };
     case 'CANCELED':
       return {
@@ -105,11 +120,12 @@ type OrderStatusFilter = 'ALL' | OrderStatus;
 const ORDER_STATUS_FILTERS: Array<{ label: string; value: OrderStatusFilter }> = [
   { label: 'Tất cả', value: 'ALL' },
   { label: 'Chờ xử lý', value: 'PENDING' },
-  { label: 'Đã thanh toán', value: 'PAID' },
+  { label: 'Đã xác nhận', value: 'CONFIRMED' },
   { label: 'Đang giao', value: 'SHIPPED' },
   { label: 'Hoàn tất', value: 'COMPLETED' },
+  { label: 'Đang hoàn hàng', value: 'RETURNING' },
+  { label: 'Đã hoàn hàng', value: 'RETURNED' },
   { label: 'Đã hủy', value: 'CANCELED' },
-  { label: 'Đã hoàn tiền', value: 'REFUNDED' },
 ];
 
 export default function OrderHistory() {

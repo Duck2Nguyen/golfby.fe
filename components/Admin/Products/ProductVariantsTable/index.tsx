@@ -44,11 +44,13 @@ const toEditableRows = (items: ProductVariantItem[]): EditableVariantRow[] => {
     costPrice: toNumber(item.costPrice),
     id: item.id,
     listPrice: toNumber(item.listPrice),
+    pendingQuantity: item.pendingQuantity ?? 0,
     rowKey: item.variantId ?? item.id ?? `${item.sku || 'variant'}-${index}`,
     salePrice: toNumber(item.salePrice),
     sku: item.sku ?? '',
     status: item.status ?? ProductVariantStatus.ACTIVE,
     stock: toNumber(item.stock),
+    shortage: item.shortage ?? 0,
     variantId: item.variantId ?? item.id,
   }));
 };
@@ -126,9 +128,24 @@ export default function ProductVariantsTable({
       {
         editable: true,
         field: 'stock',
-        headerName: 'Stock',
+        headerName: 'Tồn kho',
         minWidth: 120,
         valueParser: params => toNumber(params.newValue),
+      },
+      {
+        editable: false,
+        field: 'pendingQuantity',
+        headerName: 'Khách đang đặt',
+        minWidth: 150,
+      },
+      {
+        cellClassRules: {
+          'font-700 text-danger': params => Number(params.value ?? 0) > 0,
+        },
+        editable: false,
+        field: 'shortage',
+        headerName: 'Cần nhập thêm',
+        minWidth: 150,
       },
     ],
     [],
