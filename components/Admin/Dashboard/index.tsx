@@ -25,36 +25,42 @@ export default function Dashboard() {
   const summary = summaryData?.data;
   const newOrders = newOrdersData?.data?.items || [];
 
+  const formatGrowth = (percentage?: number) => {
+    if (percentage === undefined) return '...';
+
+    return `${percentage > 0 ? '+' : ''}${percentage.toLocaleString('vi-VN')}%`;
+  };
+
   const STAT_CARDS = [
     {
       title: 'Tổng doanh thu',
       value: summary ? `${summary.revenue.toLocaleString('vi-VN')}đ` : '...',
-      growth: '+12.5%', // Fake data cho đẹp
-      positive: true,
+      growth: formatGrowth(summary?.growth.revenue.percentage),
+      positive: (summary?.growth.revenue.percentage ?? 0) >= 0,
       icon: DollarSign,
       color: 'green',
     },
     {
       title: 'Đơn hàng mới',
       value: summary ? summary.newOrders.toLocaleString('vi-VN') : '...',
-      growth: '+5.2%',
-      positive: true,
+      growth: formatGrowth(summary?.growth.newOrders.percentage),
+      positive: (summary?.growth.newOrders.percentage ?? 0) >= 0,
       icon: ShoppingCart,
       color: 'blue',
     },
     {
       title: 'Sản phẩm mới',
       value: summary ? summary.newProducts.toLocaleString('vi-VN') : '...',
-      growth: '-2.4%',
-      positive: false,
+      growth: formatGrowth(summary?.growth.newProducts.percentage),
+      positive: (summary?.growth.newProducts.percentage ?? 0) >= 0,
       icon: Package,
       color: 'violet',
     },
     {
       title: 'Người dùng mới',
       value: summary ? summary.newUsers.toLocaleString('vi-VN') : '...',
-      growth: '+18.2%',
-      positive: true,
+      growth: formatGrowth(summary?.growth.newUsers.percentage),
+      positive: (summary?.growth.newUsers.percentage ?? 0) >= 0,
       icon: Users,
       color: 'orange',
     },

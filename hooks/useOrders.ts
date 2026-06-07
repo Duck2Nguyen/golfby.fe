@@ -45,6 +45,14 @@ export interface CheckoutOrderLine {
   unitPrice?: number;
   variant?: {
     id?: string;
+    selectedOptionValues?: {
+      optionValue?: {
+        option?: {
+          name?: string;
+        } | null;
+        value?: string;
+      } | null;
+    }[];
     sku?: string;
   } | null;
   variantId?: string | null;

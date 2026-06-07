@@ -1,25 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import {
-  X,
-  Ban,
-  Check,
-  Truck,
-  RotateCcw,
-  RefreshCcw,
-  PackageCheck,
-  AlertTriangle,
-} from 'lucide-react';
+import { X, Ban, Check, Truck, RotateCcw, RefreshCcw, PackageCheck, AlertTriangle } from 'lucide-react';
 
 import { Spinner } from '@heroui/spinner';
 
 import type { OrderStatus, OrderWorkflowStatus } from '@/hooks/useOrders';
 
-import {
-  useAdminOrderDetail,
-  useUpdateAdminOrderStatus,
-} from '@/hooks/admin/useAdminOrders';
+import { useAdminOrderDetail, useUpdateAdminOrderStatus } from '@/hooks/admin/useAdminOrders';
 
 import {
   formatCurrency,
@@ -277,9 +265,7 @@ export default function OrderDetailModal({
                       return (
                         <button
                           className={`flex h-10 items-center gap-2 rounded-lg px-4 text-[1.3rem] font-600 text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                            destructive
-                              ? 'bg-danger hover:bg-danger/90'
-                              : 'bg-primary hover:bg-primary-dark'
+                            destructive ? 'bg-danger hover:bg-danger/90' : 'bg-primary hover:bg-primary-dark'
                           }`}
                           disabled={cannotConfirm || updateStatusMutation.isMutating}
                           key={status}
@@ -370,48 +356,127 @@ export default function OrderDetailModal({
               </section>
 
               <section className="rounded-xl border border-gray-200 bg-white p-4">
-                <h3 className="mb-3 text-[1.7rem] font-600 text-gray-900">Sản phẩm trong đơn</h3>
+                <div className="mb-4">
+                  <h3 className="text-[1.7rem] font-700 text-gray-900">Sản phẩm cần chuẩn bị</h3>
+                  <p className="mt-0.5 text-[1.2rem] text-gray-500">
+                    Kiểm tra đúng phân loại và các lựa chọn Custom trước khi đóng gói.
+                  </p>
+                </div>
 
                 {(order.lines ?? []).length === 0 ? (
                   <p className="text-[1.3rem] text-gray-500">Đơn hàng chưa có sản phẩm.</p>
                 ) : (
-                  <div className="max-h-[36rem] overflow-y-auto">
-                    <table className="w-full min-w-[68rem] border-separate border-spacing-0">
-                      <thead>
-                        <tr>
-                          <th className="sticky top-0 bg-white px-3 py-2 text-left text-[1.2rem] font-600 text-gray-500">
-                            Sản phẩm
-                          </th>
-                          <th className="sticky top-0 bg-white px-3 py-2 text-left text-[1.2rem] font-600 text-gray-500">
-                            SKU
-                          </th>
-                          <th className="sticky top-0 bg-white px-3 py-2 text-left text-[1.2rem] font-600 text-gray-500">
-                            SL
-                          </th>
-                          <th className="sticky top-0 bg-white px-3 py-2 text-left text-[1.2rem] font-600 text-gray-500">
-                            Thành tiền
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(order.lines ?? []).map(line => (
-                          <tr key={line.id}>
-                            <td className="border-t border-gray-100 px-3 py-2 text-[1.3rem] text-gray-900">
-                              {line.productName || '--'}
-                            </td>
-                            <td className="border-t border-gray-100 px-3 py-2 text-[1.3rem] text-gray-700">
-                              {line.sku || '--'}
-                            </td>
-                            <td className="border-t border-gray-100 px-3 py-2 text-[1.3rem] text-gray-700">
-                              {line.quantity ?? 0}
-                            </td>
-                            <td className="border-t border-gray-100 px-3 py-2 text-[1.3rem] font-600 text-primary">
-                              {formatCurrency(line.lineTotal)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="max-h-[48rem] space-y-3 overflow-y-auto pr-1">
+                    {(order.lines ?? []).map((line, index) => {
+                      const variantOptions = (line.variant?.selectedOptionValues ?? [])
+                        .map(item => ({
+                          name: item.optionValue?.option?.name?.trim(),
+                          value: item.optionValue?.value?.trim(),
+                        }))
+                        .filter(item => item.name && item.value);
+                      const customValues = (line.customValues ?? []).filter(
+                        item => item.optionLabel?.trim() && item.valueLabel?.trim(),
+                      );
+
+                      return (
+                        <article
+                          className="overflow-hidden rounded-xl border border-gray-200 bg-white"
+                          key={line.id}
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 bg-gray-50 px-4 py-3">
+                            <div className="flex min-w-0 items-start gap-3">
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[1.3rem] font-700 text-primary">
+                                {index + 1}
+                              </span>
+                              <div className="min-w-0">
+                                <h4 className="text-[1.5rem] font-700 text-gray-900">
+                                  {line.productName || '--'}
+                                </h4>
+                                <p className="mt-0.5 text-[1.2rem] text-gray-500">
+                                  Đơn giá: {formatCurrency(line.unitPrice)}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-5">
+                              <div className="text-right">
+                                <p className="text-[1.1rem] uppercase tracking-wide text-gray-500">
+                                  Số lượng
+                                </p>
+                                <p className="text-[1.8rem] font-800 text-gray-900">{line.quantity ?? 0}</p>
+                              </div>
+                              <div className="min-w-[12rem] text-right">
+                                <p className="text-[1.1rem] uppercase tracking-wide text-gray-500">
+                                  Thành tiền
+                                </p>
+                                <p className="text-[1.5rem] font-700 text-primary">
+                                  {formatCurrency(line.lineTotal)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid gap-3 p-4 md:grid-cols-2">
+                            <div className="rounded-lg border border-gray-200 p-3">
+                              <p className="mb-2 text-[1.2rem] font-700 uppercase tracking-wide text-gray-500">
+                                Phân loại sản phẩm
+                              </p>
+                              {variantOptions.length > 0 ? (
+                                <dl className="space-y-1.5">
+                                  {variantOptions.map(option => (
+                                    <div
+                                      className="flex items-start justify-between gap-4 text-[1.3rem]"
+                                      key={`${option.name}-${option.value}`}
+                                    >
+                                      <dt className="text-gray-500">{option.name}</dt>
+                                      <dd className="text-right font-700 text-gray-900">{option.value}</dd>
+                                    </div>
+                                  ))}
+                                </dl>
+                              ) : (
+                                <p className="text-[1.3rem] text-gray-500">Sản phẩm không có phân loại.</p>
+                              )}
+                            </div>
+
+                            <div
+                              className={`rounded-lg border p-3 ${
+                                customValues.length > 0 ? 'border-amber-200 bg-amber-50' : 'border-gray-200'
+                              }`}
+                            >
+                              <p
+                                className={`mb-2 text-[1.2rem] font-700 uppercase tracking-wide ${
+                                  customValues.length > 0 ? 'text-amber-700' : 'text-gray-500'
+                                }`}
+                              >
+                                Lựa chọn Custom
+                              </p>
+                              {customValues.length > 0 ? (
+                                <dl className="space-y-2">
+                                  {customValues.map(customValue => (
+                                    <div
+                                      className="flex items-start justify-between gap-4 text-[1.3rem]"
+                                      key={customValue.id}
+                                    >
+                                      <dt className="text-amber-800">{customValue.optionLabel?.trim()}</dt>
+                                      <dd className="text-right font-700 text-gray-900">
+                                        {customValue.valueLabel?.trim()}
+                                        {(customValue.priceModifier ?? 0) > 0 ? (
+                                          <span className="ml-1 whitespace-nowrap text-[1.1rem] font-500 text-amber-700">
+                                            (+{formatCurrency(customValue.priceModifier)})
+                                          </span>
+                                        ) : null}
+                                      </dd>
+                                    </div>
+                                  ))}
+                                </dl>
+                              ) : (
+                                <p className="text-[1.3rem] text-gray-500">Không có lựa chọn Custom.</p>
+                              )}
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
                 )}
               </section>
@@ -455,7 +520,9 @@ export default function OrderDetailModal({
               </button>
               <button
                 className={`h-10 flex-1 rounded-lg text-[1.4rem] font-600 text-white disabled:opacity-60 ${
-                  pendingStatus === 'CANCELED' ? 'bg-danger hover:bg-danger/90' : 'bg-primary hover:bg-primary-dark'
+                  pendingStatus === 'CANCELED'
+                    ? 'bg-danger hover:bg-danger/90'
+                    : 'bg-primary hover:bg-primary-dark'
                 }`}
                 disabled={updateStatusMutation.isMutating}
                 onClick={() => {

@@ -28,7 +28,23 @@ export interface DashboardStatisticsDto {
   period?: DashboardPeriod;
 }
 
+export interface DashboardGrowthMetric {
+  current: number;
+  percentage: number;
+  previous: number;
+}
+
 export interface DashboardSummaryResponse {
+  growth: {
+    newOrders: DashboardGrowthMetric;
+    newProducts: DashboardGrowthMetric;
+    newUsers: DashboardGrowthMetric;
+    range: {
+      current: { end: string; start: string };
+      previous: { end: string; start: string };
+    };
+    revenue: DashboardGrowthMetric;
+  };
   newOrders: number;
   newProducts: number;
   newUsers: number;
