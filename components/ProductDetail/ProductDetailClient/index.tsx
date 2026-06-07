@@ -424,7 +424,7 @@ export default function ProductDetailPageClient({ productId }: ProductDetailClie
     {
       label: 'Thông tin chung',
       content: (
-        <div className="max-w-3xl text-[1.6rem] leading-[2.8rem] text-muted-foreground [&_a]:text-primary [&_figure]:my-4 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-xl [&_li]:mb-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-4 [&_strong]:text-foreground [&_strong]:font-700 [&_ul]:list-disc [&_ul]:pl-6">
+        <div className="product-rich-content max-w-3xl text-[1.6rem] leading-[2.8rem] text-muted-foreground">
           <div dangerouslySetInnerHTML={{ __html: descriptionMarkup }} />
         </div>
       ),

@@ -7,6 +7,7 @@ import { fontSans, fontNunito } from '@/config/fonts';
 
 import { Providers } from './providers';
 import '@/styles/globals.css';
+import 'ckeditor5/ckeditor5.css';
 import 'keen-slider/keen-slider.min.css';
 
 import '@/styles/toastify.scss';

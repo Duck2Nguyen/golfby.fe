@@ -255,6 +255,10 @@ export type UploadProductImagePayload = {
   isPrimary?: boolean;
 };
 
+export type UploadProductDescriptionImageResponse = {
+  path: string;
+};
+
 export type RemoveProductImagePayload = {
   id: string;
   imageId: string;
@@ -305,6 +309,30 @@ export const buildCreateProductMultipartPayload = (product: CreateAdminProductPa
   });
 
   return formData;
+};
+
+export const buildUploadProductDescriptionImagePayload = (image: File) => {
+  const formData = new FormData();
+  formData.append('image', image);
+  return formData;
+};
+
+export const useUploadProductDescriptionImage = () => {
+  const mutation = useMutation<UploadProductDescriptionImageResponse>(
+    '/api/v1/admin/products/description-images',
+    {
+      method: METHOD.POST,
+      notification: {
+        ignoreSuccess: true,
+      },
+      url: '/api/v1/admin/products/description-images',
+    },
+  );
+
+  return {
+    ...mutation,
+    trigger: (image: File) => mutation.trigger(buildUploadProductDescriptionImagePayload(image)),
+  };
 };
 
 export const buildUpdateAdminProductPayload = (

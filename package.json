@@ -13,7 +13,6 @@
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\""
   },
   "dependencies": {
-    "@ckeditor/ckeditor5-build-classic": "^44.3.0",
     "@ckeditor/ckeditor5-react": "^11.1.0",
     "@heroui/accordion": "2.2.24",
     "@heroui/alert": "2.2.27",
@@ -60,6 +59,7 @@
     "@react-aria/visually-hidden": "3.8.28",
     "ag-grid-community": "^35.1.0",
     "ag-grid-react": "^35.1.0",
+    "ckeditor5": "^46.0.0",
     "clsx": "2.1.1",
     "firebase": "^12.10.0",
     "formik": "2.4.5",

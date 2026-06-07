@@ -2,6 +2,118 @@
 @import 'tw-animate-css';
 @import './theme.css';
 
+.product-rich-content p {
+  margin-bottom: 1rem;
+}
+
+.product-rich-content h2,
+.product-rich-content h3,
+.product-rich-content h4 {
+  margin: 1.5rem 0 0.75rem;
+  color: var(--foreground);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.product-rich-content h2 {
+  font-size: 2.4rem;
+}
+
+.product-rich-content h3 {
+  font-size: 2rem;
+}
+
+.product-rich-content h4 {
+  font-size: 1.8rem;
+}
+
+.product-rich-content a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.product-rich-content strong {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.product-rich-content ul,
+.product-rich-content ol {
+  margin-bottom: 1rem;
+  padding-left: 2.4rem;
+}
+
+.product-rich-content ul {
+  list-style: disc;
+}
+
+.product-rich-content ol {
+  list-style: decimal;
+}
+
+.product-rich-content li {
+  margin-bottom: 0.5rem;
+}
+
+.product-rich-content blockquote {
+  margin: 1.5rem 0;
+  border-left: 4px solid var(--primary);
+  padding-left: 1.5rem;
+  font-style: italic;
+}
+
+.product-rich-content figure.image {
+  margin: 1.5rem auto;
+  max-width: 100%;
+}
+
+.product-rich-content figure.image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+}
+
+.product-rich-content figure.image-style-align-left {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.product-rich-content figure.image-style-align-right,
+.product-rich-content figure.image-style-side {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.product-rich-content figure.image-style-align-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.product-rich-content figcaption {
+  margin-top: 0.5rem;
+  color: var(--muted-foreground);
+  font-size: 1.3rem;
+  text-align: center;
+}
+
+.product-rich-content figure.table {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+}
+
+.product-rich-content table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.product-rich-content th,
+.product-rich-content td {
+  border: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+
 @config "../tailwind.config.js";
 
 @theme {

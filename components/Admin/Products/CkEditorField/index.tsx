@@ -2,36 +2,30 @@
 
 import { useState, useEffect } from 'react';
 
+import { useUploadProductDescriptionImage } from '@/hooks/admin/useAdminProduct';
+
 interface CkEditorFieldProps {
   onChangeAction: (value: string) => void;
   placeholder?: string;
   value: string;
 }
 
-class Base64UploadAdapter {
-  private loader: any;
+type UploadDescriptionImage = (file: File) => Promise<string>;
 
-  constructor(loader: any) {
+class ProductDescriptionUploadAdapter {
+  private loader: any;
+  private uploadImage: UploadDescriptionImage;
+
+  constructor(loader: any, uploadImage: UploadDescriptionImage) {
     this.loader = loader;
+    this.uploadImage = uploadImage;
   }
 
-  public upload() {
-    return this.loader.file.then(
-      (file: File) =>
-        new Promise<{ default: string }>((resolve, reject) => {
-          const reader = new FileReader();
+  public async upload() {
+    const file = await this.loader.file;
+    const url = await this.uploadImage(file);
 
-          reader.onload = () => {
-            resolve({ default: reader.result as string });
-          };
-
-          reader.onerror = () => {
-            reject(new Error('Không thể tải ảnh lên.'));
-          };
-
-          reader.readAsDataURL(file);
-        }),
-    );
+    return { default: url };
   }
 
   public abort() {
@@ -39,9 +33,11 @@ class Base64UploadAdapter {
   }
 }
 
-function CustomUploadAdapterPlugin(editor: any) {
-  editor.plugins.get('FileRepository').createUploadAdapter = (loader: any) => {
-    return new Base64UploadAdapter(loader);
+function createUploadAdapterPlugin(uploadImage: UploadDescriptionImage) {
+  return function ProductDescriptionUploadAdapterPlugin(editor: any) {
+    editor.plugins.get('FileRepository').createUploadAdapter = (loader: any) => {
+      return new ProductDescriptionUploadAdapter(loader, uploadImage);
+    };
   };
 }
 
@@ -52,14 +48,16 @@ export default function CkEditorField({
 }: CkEditorFieldProps) {
   const [EditorComponent, setEditorComponent] = useState<any>(null);
   const [EditorBuild, setEditorBuild] = useState<any>(null);
+  const [EditorPlugins, setEditorPlugins] = useState<any[]>([]);
+  const uploadProductDescriptionImage = useUploadProductDescriptionImage();
 
   useEffect(() => {
     let isMounted = true;
 
     const loadEditor = async () => {
-      const [{ CKEditor }, classicEditorModule] = await Promise.all([
+      const [{ CKEditor }, editorModule] = await Promise.all([
         import('@ckeditor/ckeditor5-react'),
-        import('@ckeditor/ckeditor5-build-classic'),
+        import('ckeditor5'),
       ]);
 
       if (!isMounted) {
@@ -67,7 +65,29 @@ export default function CkEditorField({
       }
 
       setEditorComponent(() => CKEditor);
-      setEditorBuild(() => (classicEditorModule as any).default);
+      setEditorBuild(() => editorModule.ClassicEditor);
+      setEditorPlugins([
+        editorModule.Alignment,
+        editorModule.Autoformat,
+        editorModule.BlockQuote,
+        editorModule.Bold,
+        editorModule.Essentials,
+        editorModule.Heading,
+        editorModule.Image,
+        editorModule.ImageCaption,
+        editorModule.ImageResize,
+        editorModule.ImageStyle,
+        editorModule.ImageToolbar,
+        editorModule.ImageUpload,
+        editorModule.Italic,
+        editorModule.Link,
+        editorModule.List,
+        editorModule.Paragraph,
+        editorModule.PasteFromOffice,
+        editorModule.Table,
+        editorModule.TableToolbar,
+        editorModule.Underline,
+      ]);
     };
 
     loadEditor();
@@ -77,7 +97,7 @@ export default function CkEditorField({
     };
   }, []);
 
-  if (!EditorComponent || !EditorBuild) {
+  if (!EditorComponent || !EditorBuild || EditorPlugins.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-white p-4">
         <div className="h-[16rem] w-full rounded-md bg-muted" />
@@ -85,23 +105,80 @@ export default function CkEditorField({
     );
   }
 
+  const uploadImage = async (file: File) => {
+    const response = await uploadProductDescriptionImage.trigger(file);
+    const path = response?.data?.path;
+    const apiBaseUrl = process.env.BASE_API_URL?.replace(/\/+$/, '');
+
+    if (!path || !apiBaseUrl) {
+      throw new Error('Không thể xác định URL ảnh đã tải lên.');
+    }
+
+    return `${apiBaseUrl}${path}`;
+  };
+
   return (
     <div className="ck-editor-product rounded-lg border border-border bg-white">
       <EditorComponent
         config={{
-          extraPlugins: [CustomUploadAdapterPlugin],
+          extraPlugins: [createUploadAdapterPlugin(uploadImage)],
           image: {
+            resizeOptions: [
+              {
+                label: 'Kích thước gốc',
+                name: 'resizeImage:original',
+                value: null,
+              },
+              {
+                label: '75%',
+                name: 'resizeImage:75',
+                value: '75',
+              },
+              {
+                label: '50%',
+                name: 'resizeImage:50',
+                value: '50',
+              },
+            ],
             toolbar: [
               'imageTextAlternative',
+              'toggleImageCaption',
               '|',
-              'imageStyle:inline',
-              'imageStyle:block',
+              'imageStyle:alignLeft',
+              'imageStyle:alignCenter',
+              'imageStyle:alignRight',
               'imageStyle:side',
+              '|',
+              'resizeImage',
             ],
           },
           licenseKey: 'GPL',
           placeholder,
+          plugins: EditorPlugins,
+          table: {
+            contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells'],
+          },
           toolbar: {
+            items: [
+              'undo',
+              'redo',
+              '|',
+              'heading',
+              '|',
+              'bold',
+              'italic',
+              'underline',
+              'link',
+              '|',
+              'alignment',
+              '|',
+              'bulletedList',
+              'numberedList',
+              '|',
+              'blockQuote',
+              'insertTable',
+              'uploadImage',
+            ],
             shouldNotGroupWhenFull: true,
           },
         }}
