@@ -11,13 +11,14 @@ import {
   LogOut,
   ReceiptText,
   ChevronDown,
+  ChevronRight,
   ShoppingCart,
 } from 'lucide-react';
 
 import * as Yup from 'yup';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Form, Field, Formik } from 'formik';
+import { useRouter, usePathname } from 'next/navigation';
 
 import { getKey, setKey } from '@/utils/localStorage';
 
@@ -40,6 +41,7 @@ const MAX_SEARCH_HISTORY_ITEMS = 8;
 
 interface DropdownColumn {
   title: string;
+  href?: string;
   items: { label: string; href: string }[];
 }
 
@@ -199,6 +201,7 @@ const buildBrandNavItem = (brands: Brand[]): NavItem => {
     ...(items.length > 0 && {
       dropdown: [
         {
+          href: BRAND_NAV_ITEM_HREF,
           items,
           title: '',
         },
@@ -250,6 +253,7 @@ const buildNavItemsFromCollections = (collections: CollectionTreeNode[]): NavIte
 
       const dropdown = dropdownCollections
         .map(item => ({
+          href: buildCollectionHref(...item.pathSlugs),
           items: buildDropdownItems(item.collection, item.pathSlugs),
           title: item.collection.name,
         }))
@@ -259,6 +263,7 @@ const buildNavItemsFromCollections = (collections: CollectionTreeNode[]): NavIte
 
       if (brandDropdownItems.length > 0) {
         dropdown.push({
+          href: rootHref,
           items: brandDropdownItems,
           title: 'Theo Hãng',
         });
@@ -274,9 +279,12 @@ const buildNavItemsFromCollections = (collections: CollectionTreeNode[]): NavIte
 
 export function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [expandedMobileNav, setExpandedMobileNav] = useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const mobileUserMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const { logout, data } = useSession();
@@ -305,16 +313,52 @@ export function Header() {
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const isInsideDesktopUserMenu = userMenuRef.current?.contains(target);
+      const isInsideMobileUserMenu = mobileUserMenuRef.current?.contains(target);
+
+      if (!isInsideDesktopUserMenu && !isInsideMobileUserMenu) {
         setUserMenuOpen(false);
       }
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+      if (searchRef.current && !searchRef.current.contains(target)) {
         setSearchOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setExpandedMobileNav(null);
+    setUserMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+    setExpandedMobileNav(null);
+  };
 
   const submitSearch = (query: string) => {
     const trimmedQuery = query.trim();
@@ -481,10 +525,82 @@ export function Header() {
                   </span>
                 )}
               </div>
-              <span className="text-[1.1rem] text-muted-foreground group-hover:text-primary transition-colors">
+              <span className="hidden text-[1.1rem] text-muted-foreground transition-colors group-hover:text-primary sm:block">
                 Giỏ hàng
               </span>
             </Link>
+
+            {data?.isAuthenticated ? (
+              <div className="relative sm:hidden" ref={mobileUserMenuRef}>
+                <button
+                  type="button"
+                  aria-label="Tài khoản"
+                  aria-expanded={userMenuOpen}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setUserMenuOpen(current => !current);
+                  }}
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
+                    userMenuOpen
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:bg-muted hover:text-primary'
+                  }`}
+                >
+                  <User className="h-5 w-5" />
+                </button>
+
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-[calc(100%+0.7rem)] z-50 w-[22rem] overflow-hidden rounded-xl border border-border/80 bg-white p-1.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)]">
+                    <div className="px-2.5 pb-1.5 pt-1">
+                      <p className="text-[1.3rem] font-700 text-foreground">Tài khoản của bạn</p>
+                      <p className="text-[1.1rem] text-muted-foreground">Quản lý thông tin và đơn hàng</p>
+                    </div>
+                    <Link
+                      href="/address"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[1.3rem] font-500 text-foreground transition-colors hover:bg-primary/5 hover:text-primary"
+                    >
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <MapPin className="h-3.5 w-3.5" />
+                      </span>
+                      Địa chỉ
+                    </Link>
+                    <Link
+                      href="/orders"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[1.3rem] font-500 text-foreground transition-colors hover:bg-primary/5 hover:text-primary"
+                    >
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <ReceiptText className="h-3.5 w-3.5" />
+                      </span>
+                      Lịch sử đơn hàng
+                    </Link>
+                    <div className="my-1 border-t border-border/70" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        logout();
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[1.3rem] font-500 text-foreground transition-colors hover:bg-destructive/5 hover:text-destructive"
+                    >
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+                        <LogOut className="h-3.5 w-3.5" />
+                      </span>
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                aria-label="Đăng nhập"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-primary sm:hidden"
+              >
+                <User className="h-5 w-5" />
+              </Link>
+            )}
 
             {/* User Dropdown */}
             {data?.isAuthenticated ? (
@@ -543,8 +659,13 @@ export function Header() {
 
             {/* Mobile Menu Toggle */}
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden ml-2 p-2 rounded-lg hover:bg-muted transition-colors"
+              onClick={() => {
+                setUserMenuOpen(false);
+                setMobileMenuOpen(current => !current);
+              }}
+              aria-expanded={mobileMenuOpen}
+              aria-label={mobileMenuOpen ? 'Đóng menu' : 'Mở menu'}
+              className="ml-0 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors hover:bg-muted lg:hidden"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -670,50 +791,180 @@ export function Header() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-border shadow-lg">
-          <div className="px-4 py-3">
-            <Formik
-              initialValues={{ query: '' }}
-              validationSchema={searchSchema}
-              onSubmit={values => {
-                submitSearch(values.query);
-                setMobileMenuOpen(false);
-              }}
-            >
-              <Form autoComplete="off" className="relative mb-3">
-                <Field
-                  name="query"
-                  placeholder="Tìm kiếm..."
-                  component={InputField}
-                  autoComplete="new-password"
-                  spellCheck={false}
-                  classNames={{
-                    inputWrapper: '!bg-muted !border-none !h-10 !pr-10 !rounded-lg',
-                    input: '!text-[1.4rem]',
-                  }}
-                />
-                <button type="submit" className="absolute right-3 top-1/2 z-10 -translate-y-1/2">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                </button>
-              </Form>
-            </Formik>
-            <ul className="space-y-1">
-              {navItems.map(item => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`block px-3 py-2.5 rounded-lg text-[1.5rem] ${
-                      item.highlight
-                        ? 'text-destructive'
-                        : 'text-foreground hover:bg-muted hover:text-primary'
-                    } transition-colors`}
-                    style={{ fontWeight: 500 }}
+        <div className="fixed inset-x-0 bottom-0 top-[7.2rem] z-40 lg:hidden">
+          <button
+            type="button"
+            aria-label="Đóng menu"
+            onClick={closeMobileMenu}
+            className="absolute inset-0 bg-slate-950/35 backdrop-blur-[2px]"
+          />
+          <div className="relative flex h-full w-full flex-col overflow-hidden border-t border-border/70 bg-[#f7f8f6] shadow-2xl sm:max-w-[42rem]">
+            <div className="border-b border-border/70 bg-white px-4 pb-4 pt-3">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <p className="text-[1.7rem] font-700 text-foreground">Danh mục sản phẩm</p>
+                  <p className="text-[1.2rem] text-muted-foreground">Khám phá thiết bị golf theo nhu cầu</p>
+                </div>
+                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[1.1rem] font-600 text-primary">
+                  GolfStore
+                </span>
+              </div>
+              <Formik
+                initialValues={{ query: '' }}
+                validationSchema={searchSchema}
+                onSubmit={values => {
+                  submitSearch(values.query);
+                  closeMobileMenu();
+                }}
+              >
+                <Form autoComplete="off" className="relative">
+                  <Field
+                    name="query"
+                    placeholder="Tìm kiếm sản phẩm golf..."
+                    component={InputField}
+                    autoComplete="new-password"
+                    spellCheck={false}
+                    classNames={{
+                      inputWrapper:
+                        '!bg-[#f5f6f4] !border !border-border/70 !h-11 !pr-11 !rounded-xl focus-within:!border-primary',
+                      input: '!text-[1.4rem]',
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    aria-label="Tìm kiếm"
+                    className="absolute right-1.5 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg bg-primary text-white"
                   >
-                    {item.label}
+                    <Search className="h-4 w-4" />
+                  </button>
+                </Form>
+              </Formik>
+            </div>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-3">
+              <ul className="space-y-2">
+                {navItems.map(item => (
+                  <li
+                    key={item.href}
+                    className={`overflow-hidden rounded-2xl border bg-white transition-colors ${
+                      expandedMobileNav === item.href
+                        ? 'border-primary/30 shadow-[0_8px_24px_rgba(35,83,24,0.08)]'
+                        : 'border-border/70'
+                    }`}
+                  >
+                    <div className="flex min-h-12 items-center">
+                      <Link
+                        href={item.href}
+                        onClick={closeMobileMenu}
+                        className={`flex min-w-0 flex-1 items-center px-4 py-3 text-[1.5rem] font-600 transition-colors ${
+                          item.highlight ? 'text-destructive' : 'text-foreground hover:text-primary'
+                        }`}
+                      >
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                      {item.dropdown && (
+                        <button
+                          type="button"
+                          aria-label={`${expandedMobileNav === item.href ? 'Thu gọn' : 'Mở rộng'} ${item.label}`}
+                          aria-expanded={expandedMobileNav === item.href}
+                          onClick={() =>
+                            setExpandedMobileNav(current => (current === item.href ? null : item.href))
+                          }
+                          className="mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                        >
+                          <ChevronDown
+                            className={`h-4 w-4 transition-transform duration-200 ${
+                              expandedMobileNav === item.href ? 'rotate-180 text-primary' : ''
+                            }`}
+                          />
+                        </button>
+                      )}
+                    </div>
+
+                    {item.dropdown && expandedMobileNav === item.href && (
+                      <div className="border-t border-border/60 bg-[#fafbf9] px-3 py-3">
+                        <div className="space-y-2">
+                          {item.dropdown.map((column, columnIndex) => (
+                            <div
+                              key={`${column.title || 'column'}-${columnIndex}`}
+                              className="rounded-xl border border-border/60 bg-white px-3 py-2.5"
+                            >
+                              {column.title && (
+                                <Link
+                                  href={column.href ?? item.href}
+                                  onClick={closeMobileMenu}
+                                  className="mb-1.5 flex items-center justify-between gap-3 text-[1.4rem] font-700 text-foreground transition-colors hover:text-primary"
+                                >
+                                  <span>{column.title}</span>
+                                  <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
+                                </Link>
+                              )}
+                              <ul className={column.title ? 'border-t border-border/50 pt-1.5' : ''}>
+                                {column.items.map(subItem => (
+                                  <li key={subItem.href}>
+                                    <Link
+                                      href={subItem.href}
+                                      onClick={closeMobileMenu}
+                                      className="flex items-center justify-between gap-3 rounded-lg px-1 py-2 text-[1.35rem] text-muted-foreground transition-colors hover:bg-primary/5 hover:px-2 hover:text-primary"
+                                    >
+                                      <span>{subItem.label}</span>
+                                      <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-40" />
+                                    </Link>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="border-t border-border/70 bg-white p-3">
+              {data?.isAuthenticated ? (
+                <div className="grid grid-cols-3 gap-2">
+                  <Link
+                    href="/address"
+                    onClick={closeMobileMenu}
+                    className="flex flex-col items-center gap-1.5 rounded-xl bg-muted/70 px-2 py-2.5 text-[1.2rem] font-600 text-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    Địa chỉ
                   </Link>
-                </li>
-              ))}
-            </ul>
+                  <Link
+                    href="/orders"
+                    onClick={closeMobileMenu}
+                    className="flex flex-col items-center gap-1.5 rounded-xl bg-muted/70 px-2 py-2.5 text-[1.2rem] font-600 text-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                  >
+                    <ReceiptText className="h-4 w-4" />
+                    Đơn hàng
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeMobileMenu();
+                      logout();
+                    }}
+                    className="flex flex-col items-center gap-1.5 rounded-xl bg-muted/70 px-2 py-2.5 text-[1.2rem] font-600 text-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Đăng xuất
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={closeMobileMenu}
+                  className="flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-[1.4rem] font-700 text-white shadow-[0_8px_20px_rgba(55,130,38,0.22)] transition-colors hover:bg-primary-dark"
+                >
+                  <User className="h-4 w-4" />
+                  Đăng nhập tài khoản
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       )}

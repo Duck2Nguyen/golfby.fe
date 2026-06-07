@@ -252,38 +252,43 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
     <div className="min-h-screen bg-[#f8f9fa]">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 pb-16">
-        <nav className="flex items-center gap-1.5 py-4 text-[13px]">
+      <main className="mx-auto max-w-7xl px-4 pb-16">
+        <nav className="flex min-w-0 items-center gap-1.5 overflow-hidden py-4 text-[13px]">
           <Link href="/" className="text-muted-foreground hover:text-primary transition-colors">
             Trang Chủ
           </Link>
           <span className="text-muted-foreground/50">›</span>
-          <Link href="/orders" className="text-muted-foreground hover:text-primary transition-colors">
+          <Link
+            href="/orders"
+            className="min-w-0 truncate text-muted-foreground transition-colors hover:text-primary"
+          >
             Lịch sử đơn hàng
           </Link>
           <span className="text-muted-foreground/50">›</span>
-          <span className="text-foreground font-500">Chi tiết đơn</span>
+          <span className="shrink-0 font-500 text-foreground">Chi tiết đơn</span>
         </nav>
 
-        <section className="mb-5 flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-[2.6rem] leading-[3.2rem] font-700 text-foreground">Chi tiết đơn hàng</h1>
+        <section className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-[2.4rem] leading-[3rem] font-700 text-foreground sm:text-[2.6rem] sm:leading-[3.2rem]">
+              Chi tiết đơn hàng
+            </h1>
             <p className="mt-1 text-[1.4rem] text-muted-foreground">Xem đầy đủ thông tin đơn hàng của bạn.</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:items-center">
             <button
               type="button"
               onClick={() => {
                 void getOrderDetail.mutate();
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-[1.4rem] text-foreground transition-colors hover:bg-default-100"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-[1.4rem] text-foreground transition-colors hover:bg-default-100"
             >
               <RefreshCcw className={`h-4 w-4 ${getOrderDetail.isValidating ? 'animate-spin' : ''}`} />
               Làm mới
             </button>
             <Link
               href="/orders"
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-[1.4rem] text-foreground transition-colors hover:bg-default-100"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-[1.4rem] text-foreground transition-colors hover:bg-default-100"
             >
               <ArrowLeft className="h-4 w-4" />
               Quay lại
@@ -311,40 +316,44 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
           </section>
         ) : (
           <div className="space-y-4">
-            <section className="rounded-2xl border border-border bg-white p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-[1.8rem] font-700 text-foreground">{order.orderNumber || '--'}</p>
+            <section className="rounded-2xl border border-border bg-white p-4 sm:p-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="break-all text-[1.7rem] font-700 text-foreground sm:text-[1.8rem]">
+                    {order.orderNumber || '--'}
+                  </p>
                   <p className="mt-1 text-[1.3rem] text-muted-foreground">
                     Tạo lúc: {formatDateTime(order.createdAt)}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
                   <span
-                    className={`rounded-full px-3 py-1 text-[1.2rem] font-600 ${orderStatusMeta.badgeClassName}`}
+                    className={`max-w-full rounded-full px-3 py-1 text-[1.2rem] font-600 ${orderStatusMeta.badgeClassName}`}
                   >
                     TT Đơn: {orderStatusMeta.label}
                   </span>
                   <span
-                    className={`rounded-full px-3 py-1 text-[1.2rem] font-600 ${paymentStatusMeta.badgeClassName}`}
+                    className={`max-w-full rounded-full px-3 py-1 text-[1.2rem] font-600 ${paymentStatusMeta.badgeClassName}`}
                   >
                     TT Thanh toán: {paymentStatusMeta.label}
                   </span>
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_30rem]">
-                <div className="rounded-xl border border-border bg-default-50 p-4">
+              <div className="mt-4 grid gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_30rem]">
+                <div className="min-w-0 rounded-xl border border-border bg-default-50 p-4">
                   <p className="text-[1.3rem] font-700 text-foreground">Thông tin nhận hàng</p>
                   <p className="mt-1 text-[1.4rem] text-foreground">{order.fullName || '--'}</p>
                   <p className="mt-1 text-[1.3rem] text-muted-foreground">{order.phoneNumber || '--'}</p>
-                  <p className="mt-1 text-[1.3rem] text-muted-foreground">{shippingAddress || '--'}</p>
+                  <p className="mt-1 break-words text-[1.3rem] text-muted-foreground">
+                    {shippingAddress || '--'}
+                  </p>
                   {order.note && (
                     <p className="mt-2 text-[1.3rem] text-muted-foreground">Ghi chú: {order.note}</p>
                   )}
                 </div>
 
-                <div className="rounded-xl border border-border bg-default-50 p-4">
+                <div className="min-w-0 rounded-xl border border-border bg-default-50 p-4">
                   <p className="text-[1.2rem] text-muted-foreground">Phương thức thanh toán</p>
                   <p className="text-[1.4rem] font-700 text-foreground">
                     {getPaymentMethodLabel(order.paymentMethod)}
@@ -369,14 +378,16 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-border bg-white p-5">
+            <section className="rounded-2xl border border-border bg-white p-4 sm:p-5">
               <h2 className="text-[1.8rem] font-700 text-foreground">Sản phẩm trong đơn</h2>
               <div className="mt-3 space-y-1">
                 {normalizedLines.map(line => (
                   <div key={line.id} className="rounded-xl border border-border bg-default-50 p-3">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
-                        <p className="text-[1.5rem] font-700 text-foreground">{line.productName}</p>
+                        <p className="break-words text-[1.5rem] font-700 text-foreground">
+                          {line.productName}
+                        </p>
                         <p className="mt-0.5 text-[1.3rem] text-muted-foreground">
                           Số lượng: {line.quantity}
                         </p>
@@ -384,7 +395,9 @@ export default function OrderDetail({ orderId }: OrderDetailProps) {
                           Đơn giá: {formatCurrency(line.unitPrice)}
                         </p>
                       </div>
-                      <p className="text-[1.5rem] font-700 text-primary">{formatCurrency(line.lineTotal)}</p>
+                      <p className="text-[1.5rem] font-700 text-primary sm:shrink-0">
+                        {formatCurrency(line.lineTotal)}
+                      </p>
                     </div>
                   </div>
                 ))}

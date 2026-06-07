@@ -155,7 +155,7 @@ export default function OrderHistory() {
     <div className="min-h-screen bg-[#f8f9fa]">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 pb-16">
+      <main className="mx-auto max-w-7xl px-4 pb-16">
         <nav className="flex items-center gap-1.5 py-4 text-[13px]">
           <Link href="/" className="text-muted-foreground hover:text-primary transition-colors">
             Trang Chủ
@@ -164,9 +164,11 @@ export default function OrderHistory() {
           <span className="text-foreground font-500">Lịch sử đơn hàng</span>
         </nav>
 
-        <section className="mb-6 flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-[2.6rem] leading-[3.2rem] font-700 text-foreground">Lịch sử đơn hàng</h1>
+        <section className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-[2.4rem] leading-[3rem] font-700 text-foreground sm:text-[2.6rem] sm:leading-[3.2rem]">
+              Lịch sử đơn hàng
+            </h1>
             <p className="mt-1 text-[1.4rem] text-muted-foreground">
               Danh sách tất cả đơn hàng của tài khoản hiện tại.
             </p>
@@ -176,7 +178,7 @@ export default function OrderHistory() {
             onClick={() => {
               void getMyOrders.mutate();
             }}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-[1.4rem] text-foreground transition-colors hover:bg-default-100"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-[1.4rem] text-foreground transition-colors hover:bg-default-100 sm:w-auto"
           >
             <RefreshCcw className={`h-4 w-4 ${getMyOrders.isValidating ? 'animate-spin' : ''}`} />
             Làm mới
@@ -256,9 +258,9 @@ export default function OrderHistory() {
 
               return (
                 <article key={order.id} className="rounded-2xl border border-border bg-white p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
-                      <p className="max-w-[56rem] truncate text-[1.6rem] leading-[2.2rem] font-700 text-foreground">
+                      <p className="max-w-[56rem] break-all text-[1.6rem] leading-[2.2rem] font-700 text-foreground sm:truncate">
                         {order.orderNumber || '--'}
                       </p>
                       <p className="mt-1 text-[1.2rem] text-muted-foreground">Tổng thanh toán</p>
@@ -266,8 +268,8 @@ export default function OrderHistory() {
                         {formatCurrency(order.total)}
                       </p>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="flex flex-wrap justify-end items-center gap-2">
+                    <div className="flex min-w-0 flex-col gap-2 sm:items-end">
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                         <span
                           className={`rounded-full px-3 py-1 text-[1.2rem] font-600 ${orderStatusMeta.badgeClassName}`}
                         >
@@ -279,17 +281,17 @@ export default function OrderHistory() {
                           TT thanh toán: {paymentStatusMeta.label}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
                         <button
                           type="button"
                           onClick={() => toggleExpandedOrder(order.id)}
-                          className="inline-flex items-center rounded-lg bg-default-100 px-3 py-1.5 text-[1.2rem] text-foreground transition-colors hover:bg-default-200"
+                          className="inline-flex min-h-9 items-center justify-center rounded-lg bg-default-100 px-3 py-1.5 text-[1.2rem] text-foreground transition-colors hover:bg-default-200"
                         >
                           {isExpanded ? 'Thu gọn' : 'Mở rộng'}
                         </button>
                         <Link
                           href={`/orders/${order.id}`}
-                          className="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-[1.2rem] text-white transition-colors hover:bg-primary-dark"
+                          className="inline-flex min-h-9 items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-[1.2rem] text-white transition-colors hover:bg-primary-dark"
                         >
                           Xem chi tiết
                         </Link>
@@ -304,7 +306,7 @@ export default function OrderHistory() {
                         {previewLines.map(line => (
                           <div key={line.id} className="rounded-lg border border-border bg-white px-3 py-2">
                             <p
-                              className="text-[1.4rem] font-600 text-foreground truncate"
+                              className="break-words text-[1.4rem] font-600 text-foreground sm:truncate"
                               title={line.productName || '--'}
                             >
                               {line.productName || '--'}
