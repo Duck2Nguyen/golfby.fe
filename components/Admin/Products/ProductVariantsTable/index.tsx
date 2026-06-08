@@ -7,26 +7,29 @@ import type { ColDef, CellValueChangedEvent } from 'ag-grid-community';
 
 import { useVariants, ProductVariantStatus, type ProductVariantItem } from '@/hooks/useVariants';
 
+import { PriceInput } from '@/elements';
+
 import DataGrid from '@/components/DataGrid';
 
 type EditableVariantRow = ProductVariantItem & {
   rowKey: string;
 };
 
-type BulkField = 'sku' | 'barcode' | 'costPrice' | 'listPrice' | 'salePrice' | 'stock';
+type BulkField = 'costPrice' | 'listPrice' | 'salePrice' | 'stock';
+type PriceField = 'costPrice' | 'listPrice' | 'salePrice';
 
 const BULK_FIELD_OPTIONS: Array<{ label: string; value: BulkField }> = [
-  { label: 'SKU', value: 'sku' },
-  { label: 'Barcode', value: 'barcode' },
-  { label: 'Cost Price', value: 'costPrice' },
-  { label: 'List Price', value: 'listPrice' },
-  { label: 'Sale Price', value: 'salePrice' },
-  { label: 'Stock', value: 'stock' },
+  { label: 'Giá nhập', value: 'costPrice' },
+  { label: 'Giá niêm yết', value: 'listPrice' },
+  { label: 'Giá bán', value: 'salePrice' },
+  { label: 'Tồn kho', value: 'stock' },
 ];
 
 const NUMERIC_FIELDS: BulkField[] = ['costPrice', 'listPrice', 'salePrice', 'stock'];
+const PRICE_FIELDS: PriceField[] = ['costPrice', 'listPrice', 'salePrice'];
 
 const isNumericField = (field: BulkField) => NUMERIC_FIELDS.includes(field);
+const isPriceField = (field: BulkField): field is PriceField => PRICE_FIELDS.includes(field as PriceField);
 
 const toNumber = (value: unknown) => {
   const normalized = String(value ?? '')
@@ -44,6 +47,7 @@ const toEditableRows = (items: ProductVariantItem[]): EditableVariantRow[] => {
     costPrice: toNumber(item.costPrice),
     id: item.id,
     listPrice: toNumber(item.listPrice),
+    optionSummary: item.optionSummary ?? '',
     pendingQuantity: item.pendingQuantity ?? 0,
     rowKey: item.variantId ?? item.id ?? `${item.sku || 'variant'}-${index}`,
     salePrice: toNumber(item.salePrice),
@@ -88,49 +92,98 @@ export default function ProductVariantsTable({
     setRows(toEditableRows(sourceRows));
   }, [isDirty, sourceSignature, sourceRows]);
 
+  const handlePriceValueChangeAction = useCallback((rowKey: string, field: PriceField, value?: number) => {
+    setRows(prev => prev.map(row => (row.rowKey === rowKey ? { ...row, [field]: value ?? 0 } : row)));
+    setIsDirty(true);
+  }, []);
+
+  const handleStockValueChangeAction = useCallback((rowKey: string, value: string) => {
+    setRows(prev => prev.map(row => (row.rowKey === rowKey ? { ...row, stock: toNumber(value) } : row)));
+    setIsDirty(true);
+  }, []);
+
   const columnDefs = useMemo<ColDef<EditableVariantRow>[]>(
     () => [
       {
-        editable: true,
-        field: 'sku',
-        flex: 1,
-        headerName: 'SKU',
-        minWidth: 160,
+        editable: false,
+        field: 'optionSummary',
+        flex: 1.6,
+        headerName: 'Tổ hợp',
+        minWidth: 300,
+        tooltipValueGetter: params => params.value,
+        valueFormatter: params => params.value || 'Không có tổ hợp',
       },
       {
-        editable: true,
-        field: 'barcode',
-        flex: 1,
-        headerName: 'Barcode',
-        minWidth: 170,
-      },
-      {
-        editable: true,
+        cellRenderer: (params: { data?: EditableVariantRow; value?: number }) => {
+          if (!params.data) return null;
+
+          return (
+            <PriceInput
+              className="h-9 border-transparent bg-transparent px-0 focus:border-primary"
+              onValueChange={value => handlePriceValueChangeAction(params.data!.rowKey, 'costPrice', value)}
+              placeholder="0"
+              value={toNumber(params.value)}
+            />
+          );
+        },
+        editable: false,
         field: 'costPrice',
-        headerName: 'Cost Price',
-        minWidth: 140,
-        valueParser: params => toNumber(params.newValue),
+        headerName: 'Giá nhập',
+        minWidth: 150,
       },
       {
-        editable: true,
+        cellRenderer: (params: { data?: EditableVariantRow; value?: number }) => {
+          if (!params.data) return null;
+
+          return (
+            <PriceInput
+              className="h-9 border-transparent bg-transparent px-0 focus:border-primary"
+              onValueChange={value => handlePriceValueChangeAction(params.data!.rowKey, 'listPrice', value)}
+              placeholder="0"
+              value={toNumber(params.value)}
+            />
+          );
+        },
+        editable: false,
         field: 'listPrice',
-        headerName: 'List Price',
-        minWidth: 140,
-        valueParser: params => toNumber(params.newValue),
+        headerName: 'Giá niêm yết',
+        minWidth: 150,
       },
       {
-        editable: true,
+        cellRenderer: (params: { data?: EditableVariantRow; value?: number }) => {
+          if (!params.data) return null;
+
+          return (
+            <PriceInput
+              className="h-9 border-transparent bg-transparent px-0 focus:border-primary"
+              onValueChange={value => handlePriceValueChangeAction(params.data!.rowKey, 'salePrice', value)}
+              placeholder="0"
+              value={toNumber(params.value)}
+            />
+          );
+        },
+        editable: false,
         field: 'salePrice',
-        headerName: 'Sale Price',
-        minWidth: 140,
-        valueParser: params => toNumber(params.newValue),
+        headerName: 'Giá bán',
+        minWidth: 150,
       },
       {
-        editable: true,
+        cellRenderer: (params: { data?: EditableVariantRow; value?: number }) => {
+          if (!params.data) return null;
+
+          return (
+            <input
+              className="h-9 w-full rounded-md border border-transparent bg-transparent px-3 text-[1.3rem] text-foreground outline-none transition-colors focus:border-primary focus:bg-white"
+              inputMode="numeric"
+              onChange={event => handleStockValueChangeAction(params.data!.rowKey, event.target.value)}
+              value={String(toNumber(params.value))}
+            />
+          );
+        },
+        editable: false,
         field: 'stock',
         headerName: 'Tồn kho',
-        minWidth: 120,
-        valueParser: params => toNumber(params.newValue),
+        minWidth: 130,
       },
       {
         editable: false,
@@ -148,7 +201,7 @@ export default function ProductVariantsTable({
         minWidth: 150,
       },
     ],
-    [],
+    [handlePriceValueChangeAction, handleStockValueChangeAction],
   );
 
   const handleCellValueChangedAction = useCallback((event: CellValueChangedEvent<EditableVariantRow>) => {
@@ -167,7 +220,7 @@ export default function ProductVariantsTable({
       return;
     }
 
-    const nextValue = isNumericField(bulkField) ? toNumber(normalizedValue) : normalizedValue;
+    const nextValue = toNumber(normalizedValue);
 
     setRows(prev => prev.map(row => ({ ...row, [bulkField]: nextValue })));
     setIsDirty(true);
@@ -224,12 +277,21 @@ export default function ProductVariantsTable({
 
           <div>
             <label className="mb-1 block text-[1.2rem] font-500 text-muted-foreground">Giá trị áp dụng</label>
-            <input
-              className="h-10 w-full rounded-lg border border-border bg-white px-3 text-[1.3rem] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-              onChange={event => setBulkValue(event.target.value)}
-              placeholder={isNumericField(bulkField) ? 'Nhập số...' : 'Nhập text...'}
-              value={bulkValue}
-            />
+            {isPriceField(bulkField) ? (
+              <PriceInput
+                className="border-border focus:border-primary focus:ring-2 focus:ring-primary/20"
+                onValueChange={value => setBulkValue(value == null ? '' : String(value))}
+                placeholder="Nhập số..."
+                value={bulkValue ? toNumber(bulkValue) : undefined}
+              />
+            ) : (
+              <input
+                className="h-10 w-full rounded-lg border border-border bg-white px-3 text-[1.3rem] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                onChange={event => setBulkValue(event.target.value)}
+                placeholder={isNumericField(bulkField) ? 'Nhập số...' : 'Nhập text...'}
+                value={bulkValue}
+              />
+            )}
           </div>
 
           <div className="flex items-end gap-2">

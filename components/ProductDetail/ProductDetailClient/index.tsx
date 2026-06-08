@@ -135,7 +135,7 @@ const mapApiProductToDetailData = (item: ApiProductDetail): ProductDetailViewDat
       .map(image => image.url || image.key)
       .filter((image): image is string => Boolean(image)) || [];
 
-  const options =
+  let options =
     (item.options ?? [])
       .map(option => ({
         id: option.id,
@@ -199,6 +199,21 @@ const mapApiProductToDetailData = (item: ApiProductDetail): ProductDetailViewDat
         stock: variant.stock ?? null,
       };
     }) || [];
+
+  if (variants.length > 0) {
+    const usedOptionValueIds = new Set(
+      variants.flatMap(variant =>
+        variant.selections.flatMap(selection => (selection.optionValueId ? [selection.optionValueId] : [])),
+      ),
+    );
+
+    options = options
+      .map(option => ({
+        ...option,
+        values: option.values.filter(value => !value.id || usedOptionValueIds.has(value.id)),
+      }))
+      .filter(option => option.values.length > 0);
+  }
 
   const customOptions =
     (item.customOptionGroups ?? [])

@@ -30,11 +30,9 @@ export default function CustomOptionGroupPicker({
     <MultiSelectDropdown
       allowMultiple={false}
       items={customOptionGroupItems}
-      label="Nhóm custom option"
+      label="Nhóm custom"
       onSelectionChangeAction={onSelectAction}
-      placeholder={
-        getAllAdminCustomOptionGroups.isLoading ? 'Đang tải nhóm custom option...' : 'Chọn nhóm custom option'
-      }
+      placeholder={getAllAdminCustomOptionGroups.isLoading ? 'Đang tải nhóm custom...' : 'Chọn nhóm custom'}
       selectedIds={selectedGroupIds}
       showAddNew={false}
     />

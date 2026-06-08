@@ -307,19 +307,45 @@ const buildProductOptionsPatchPayload = (
   };
 };
 
-const mapDetailVariantsToTableRows = (variants?: AdminProductDetail['variants']): ProductVariantItem[] => {
-  return (variants ?? []).map(variant => ({
-    barcode: variant.barcode ?? '',
-    costPrice: toNumberOrZero(variant.costPrice),
-    id: variant.id,
-    listPrice: toNumberOrZero(variant.listPrice),
-    pendingQuantity: variant.pendingQuantity ?? 0,
-    salePrice: toNumberOrZero(variant.salePrice),
-    sku: variant.sku ?? '',
-    stock: toNumberOrZero(variant.stock),
-    shortage: variant.shortage ?? 0,
-    variantId: variant.id,
-  }));
+const mapDetailVariantsToTableRows = (detailProduct?: AdminProductDetail): ProductVariantItem[] => {
+  const optionNameById = new Map((detailProduct?.options ?? []).map(option => [option.id, option.name]));
+  const optionOrderById = new Map((detailProduct?.options ?? []).map((option, index) => [option.id, index]));
+
+  return (detailProduct?.variants ?? []).map(variant => {
+    const optionSummary = [...(variant.selectedOptionValues ?? [])]
+      .sort((a, b) => {
+        const aOrder = a.optionValue?.optionId ? optionOrderById.get(a.optionValue.optionId) : undefined;
+        const bOrder = b.optionValue?.optionId ? optionOrderById.get(b.optionValue.optionId) : undefined;
+
+        return (aOrder ?? Number.MAX_SAFE_INTEGER) - (bOrder ?? Number.MAX_SAFE_INTEGER);
+      })
+      .map(selected => {
+        const optionValue = selected.optionValue;
+        const optionName = optionValue?.optionId ? optionNameById.get(optionValue.optionId) : undefined;
+
+        if (!optionValue?.value) {
+          return null;
+        }
+
+        return optionName ? `${optionName}: ${optionValue.value}` : optionValue.value;
+      })
+      .filter((value): value is string => Boolean(value))
+      .join(' / ');
+
+    return {
+      barcode: variant.barcode ?? '',
+      costPrice: toNumberOrZero(variant.costPrice),
+      id: variant.id,
+      listPrice: toNumberOrZero(variant.listPrice),
+      optionSummary,
+      pendingQuantity: variant.pendingQuantity ?? 0,
+      salePrice: toNumberOrZero(variant.salePrice),
+      sku: variant.sku ?? '',
+      stock: toNumberOrZero(variant.stock),
+      shortage: variant.shortage ?? 0,
+      variantId: variant.id,
+    };
+  });
 };
 
 export default function ProductForm({ productId }: ProductFormProps) {
@@ -377,8 +403,8 @@ export default function ProductForm({ productId }: ProductFormProps) {
       return [];
     }
 
-    return mapDetailVariantsToTableRows(detailProduct?.variants);
-  }, [detailProduct?.variants, isEdit]);
+    return mapDetailVariantsToTableRows(detailProduct);
+  }, [detailProduct, isEdit]);
 
   const validationSchema = useMemo(() => buildValidationSchema(isEdit), [isEdit]);
 
@@ -637,7 +663,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
       console.error('[Admin Products][CustomOptionGroup] Update assignment failed:', error);
       addToast({
         color: 'danger',
-        description: 'Không thể cập nhật nhóm custom option cho sản phẩm.',
+        description: 'Không thể cập nhật nhóm custom cho sản phẩm.',
       });
     } finally {
       setIsUpdatingCustomOptionGroup(false);
@@ -811,9 +837,9 @@ export default function ProductForm({ productId }: ProductFormProps) {
             </FormSection>
 
             <FormSection
-              description="Gán 1 nhóm custom option cho sản phẩm"
+              description="Gán 1 nhóm custom cho sản phẩm"
               icon={<Grid3x3 className="h-4 w-4 text-primary" />}
-              title="Nhóm custom option"
+              title="Nhóm custom"
             >
               <CustomOptionGroupPicker
                 onSelectAction={handleCustomOptionGroupSelection}
@@ -823,7 +849,7 @@ export default function ProductForm({ productId }: ProductFormProps) {
               <p className="mt-2 text-[1.2rem] text-muted-foreground">
                 {isEdit
                   ? isUpdatingCustomOptionGroup
-                    ? 'Đang cập nhật nhóm custom option...'
+                    ? 'Đang cập nhật nhóm custom...'
                     : 'Khi đổi nhóm: hệ thống sẽ gỡ nhóm cũ và gán nhóm mới ngay.'
                   : 'Nhóm đã chọn sẽ được gán tự động sau khi tạo sản phẩm thành công.'}
               </p>

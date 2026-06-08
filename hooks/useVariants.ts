@@ -12,6 +12,7 @@ export interface ProductVariantItem {
   barcode: string;
   costPrice: number;
   listPrice: number;
+  optionSummary?: string;
   pendingQuantity?: number;
   salePrice: number;
   sku: string;
